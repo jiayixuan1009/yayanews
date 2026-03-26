@@ -1,0 +1,40 @@
+# 部署与运维日志
+
+## 2026-03-19
+
+### 问题与处理
+
+- **现象**：站点 https://yayanews.cryptooptiontool.com 外网 502 Bad Gateway，手机/电脑无法打开。
+- **原因**：
+  1. PM2 以「脚本」方式执行了 `deploy/ecosystem.web.cjs`，未按配置文件中的 `apps` 启动 Next，导致无进程监听 3000 端口。
+  2. Nginx 正常，反代目标为 127.0.0.1:3000，但上游无响应，返回 502。
+
+### 服务器侧操作（47.79.37.187）
+
+1. 确认 Nginx 运行正常：`sudo systemctl status nginx`（已 active）。
+2. 确认端口：项目使用端口 **3000**（ecosystem、nginx 一致），未使用其他端口。
+3. 停止错误进程并正确启动 Next：
+   ```bash
+   cd /var/www/yayanews
+   pm2 delete 0
+   pm2 start node_modules/next/dist/bin/next --name yayanews-web -- start -H 0.0.0.0 -p 3000
+   pm2 set 0:env NODE_ENV production
+   pm2 set 0:env NEXT_PUBLIC_SITE_URL "https://yayanews.cryptooptiontool.com"
+   pm2 restart 0
+   pm2 save
+   ```
+4. 验证：`ss -tlnp | grep 3000` 有监听，`curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/` 返回 200。
+
+### 其他
+
+- **DNS**：域名解析走 Cloudflare，NS 未改；阿里云控制台若提示「未接入云解析」可忽略，能访问即可。
+- **电脑无法访问**：用户误输入域名 `yayanews.crypptoopptiontool.com`（多 p），正确为 `yayanews.cryptooptiontool.com`；更正后可访问。
+
+### 后续注意
+
+- 启动 Next 请用：`pm2 start node_modules/next/dist/bin/next --name yayanews-web -- start -H 0.0.0.0 -p 3000`（或从项目目录执行 `pm2 start deploy/ecosystem.web.cjs` 且确保 PM2 将其识别为 ecosystem 配置而非脚本）。
+- 已执行 `pm2 save`，重启后进程会由 PM2 恢复。
+
+### 脚本更新（同日）
+
+- **deploy/publish-yayanews.sh**：发布时若 PM2 中已有 `yayanews-web` 则 `pm2 restart`，否则用上述直接启动 next 的命令新建进程并设置 NODE_ENV、NEXT_PUBLIC_SITE_URL，避免 `pm2 start deploy/ecosystem.web.cjs` 被当作脚本执行导致 502。后续部署执行该脚本即可保持站点可用。

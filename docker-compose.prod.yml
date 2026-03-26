@@ -1,0 +1,23 @@
+# 生产：本机 127.0.0.1:3000，前面用 Nginx + HTTPS 反代到 yayanews.cryptooptiontool.com
+#
+# 首次：在宿主机准备 data/yayanews.db（可 scp 或 pipeline init + seed）
+# 启动：docker compose -f docker-compose.prod.yml up -d --build
+#
+services:
+  web:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SITE_URL: https://yayanews.cryptooptiontool.com
+        NEXT_PUBLIC_PARENT_SITE: https://www.biyapay.com
+        NEXT_PUBLIC_TRADING_SITE: https://invest.biyapay.com
+    image: yayanews:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      NEXT_PUBLIC_SITE_URL: https://yayanews.cryptooptiontool.com
+      NEXT_PUBLIC_PARENT_SITE: https://www.biyapay.com
+      NEXT_PUBLIC_TRADING_SITE: https://invest.biyapay.com
+    volumes:
+      - ./data:/app/data

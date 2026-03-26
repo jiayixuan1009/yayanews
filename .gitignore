@@ -1,0 +1,20 @@
+node_modules/
+.next/
+out/
+data/*.db
+data/*.db-wal
+data/*.db-shm
+.env
+.env.local
+.env.production
+*.tsbuildinfo
+next-env.d.ts
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+pipeline/**/__pycache__/
+# 文生图落盘（pipeline OpenAI）；保留目录用 .gitkeep
+public/covers/generated/*
+!public/covers/generated/.gitkeep
+data/ws_flash_queue.jsonl

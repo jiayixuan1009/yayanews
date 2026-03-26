@@ -1,0 +1,127 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-[#f7f4ee] text-slate-900 antialiased;
+    background-image: radial-gradient(circle at top, rgba(255,255,255,0.75), rgba(247,244,238,0.96) 34%, rgba(247,244,238,1));
+  }
+
+  a {
+    @apply transition-colors duration-200;
+  }
+
+  ::selection {
+    @apply bg-emerald-900/15 text-slate-900;
+  }
+}
+
+@layer components {
+  .container-main {
+    @apply mx-auto max-w-[1180px] px-4 sm:px-6 lg:px-8;
+  }
+
+  .card {
+    @apply rounded-none border border-[#d9d2c8] bg-white shadow-none;
+  }
+
+  .card-duck {
+    @apply border-l-[3px] border-l-[#1d5c4f];
+  }
+
+  .yn-panel {
+    @apply rounded-none border border-[#d9d2c8] bg-white;
+  }
+
+  .yn-panel-soft {
+    @apply rounded-none border border-[#e5ddd2] bg-[#fbf8f4];
+  }
+
+  .yn-section-rule {
+    @apply border-b border-[#ddd5ca] pb-2;
+  }
+
+  .yn-display {
+    @apply font-display text-[2.35rem] font-semibold leading-[0.98] tracking-[-0.05em] text-[#14261f] sm:text-[3rem] md:text-[3.8rem] lg:text-[4.5rem];
+    text-wrap: balance;
+  }
+
+  .yn-title-xl {
+    @apply font-display text-[2rem] font-semibold leading-[1.01] tracking-[-0.048em] text-[#14261f] sm:text-[2.4rem] lg:text-[2.7rem];
+    text-wrap: balance;
+  }
+
+  .yn-heading {
+    @apply font-display text-[1.4rem] font-semibold leading-[1.03] tracking-[-0.04em] text-[#14261f] sm:text-[1.55rem];
+  }
+
+  .yn-heading-sm {
+    @apply font-display text-[1.1rem] font-semibold leading-[1.08] tracking-[-0.035em] text-[#14261f] sm:text-[1.16rem];
+  }
+
+  .yn-meta {
+    @apply font-label text-[11px] uppercase tracking-[0.16em] text-[#667067];
+  }
+
+  .yn-body {
+    @apply font-body text-[15px] leading-7 text-slate-700 sm:text-[15.5px];
+  }
+
+  .yn-link {
+    @apply text-[#1d5c4f] hover:text-[#143d33];
+  }
+
+  .story-kicker {
+    @apply font-label text-[11px] font-semibold uppercase tracking-[0.2em] text-[#667067];
+  }
+
+  .story-rule {
+    @apply border-t border-[#e6ddd1] pt-4;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full border px-2.5 py-1 font-label text-[11px] font-medium uppercase tracking-[0.12em];
+  }
+
+  .badge-crypto {
+    @apply badge border-amber-300 bg-amber-50 text-amber-700;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-none border border-[#1d5c4f] bg-[#1d5c4f] px-5 py-2.5 font-label text-xs font-semibold uppercase tracking-[0.14em] text-white hover:bg-[#143d33];
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-none border border-[#d2c9bc] bg-white px-5 py-2.5 font-label text-xs font-semibold uppercase tracking-[0.14em] text-slate-700 hover:border-[#bfb4a5] hover:bg-[#faf8f4];
+  }
+
+  .btn-cta {
+    @apply inline-flex items-center justify-center rounded-none border border-[#1d5c4f] bg-[#1d5c4f] px-5 py-2.5 font-label text-xs font-semibold uppercase tracking-[0.14em] text-white hover:bg-[#143d33];
+  }
+
+  .prose-article {
+    @apply prose prose-slate max-w-none prose-headings:font-display prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-[#14261f] prose-p:font-body prose-p:text-[16px] prose-p:leading-8 prose-p:text-slate-700 prose-a:text-[#1d5c4f] prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900 prose-li:text-slate-700 prose-blockquote:my-8 prose-blockquote:border-l-2 prose-blockquote:border-l-[#8aa89b] prose-blockquote:bg-[#f7fbf8] prose-blockquote:px-5 prose-blockquote:py-2 prose-blockquote:font-display prose-blockquote:text-[1.2rem] prose-blockquote:leading-8 prose-blockquote:text-slate-700 prose-figcaption:text-xs prose-figcaption:uppercase prose-figcaption:tracking-[0.14em] prose-figcaption:text-slate-500;
+  }
+
+  .prose-article > p:first-of-type::first-letter {
+    float: left;
+    margin-right: 0.12em;
+    font-family: var(--font-newsreader), serif;
+    font-size: 4rem;
+    line-height: 0.92;
+    color: #143d33;
+  }
+
+  .archive-rail {
+    @apply hidden xl:flex xl:flex-col xl:gap-2 xl:border-r xl:border-[#ddd5ca] xl:pr-6;
+  }
+
+  .archive-rail a {
+    @apply font-label text-[11px] uppercase tracking-[0.16em] text-[#667067] hover:text-[#14261f];
+  }
+}
