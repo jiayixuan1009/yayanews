@@ -20,15 +20,15 @@ export function getCategoriesOrdered(): Category[] {
   });
 }
 
-export function getPublishedArticles(limit = 20, offset = 0, categorySlug?: string, subcategory?: string, articleType?: string): Article[] {
+export function getPublishedArticles(lang: string = 'zh', limit = 20, offset = 0, categorySlug?: string, subcategory?: string, articleType?: string): Article[] {
   const db = getDb();
   let sql = `
     SELECT a.*, c.name as category_name, c.slug as category_slug
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
-    WHERE a.status = 'published'
+    WHERE a.status = 'published' AND a.lang = ?
   `;
-  const params: unknown[] = [];
+  const params: unknown[] = [lang];
 
   if (categorySlug) {
     sql += ' AND c.slug = ?';
@@ -105,45 +105,46 @@ export function getRelatedArticles(articleId: number, categoryId: number | null,
   `).all(articleId, limit) as Article[];
 }
 
-export function getFlashMaxId(categorySlug?: string): number {
+export function getFlashMaxId(lang: string = 'zh', categorySlug?: string): number {
   const db = getDb();
   if (categorySlug) {
     const row = db
       .prepare(
         `SELECT MAX(f.id) as m FROM flash_news f
-         JOIN categories c ON f.category_id = c.id WHERE c.slug = ?`
+         JOIN categories c ON f.category_id = c.id WHERE c.slug = ? AND f.lang = ?`
       )
-      .get(categorySlug) as { m: number | null };
+      .get(categorySlug, lang) as { m: number | null };
     return row.m ?? 0;
   }
-  const row = db.prepare('SELECT MAX(id) as m FROM flash_news').get() as { m: number | null };
+  const row = db.prepare('SELECT MAX(id) as m FROM flash_news WHERE lang = ?').get(lang) as { m: number | null };
   return row.m ?? 0;
 }
 
-export function getPublishedArticleMaxId(): number {
+export function getPublishedArticleMaxId(lang: string = 'zh'): number {
   const row = getDb()
-    .prepare(`SELECT MAX(id) as m FROM articles WHERE status = 'published'`)
-    .get() as { m: number | null };
+    .prepare(`SELECT MAX(id) as m FROM articles WHERE status = 'published' AND lang = ?`)
+    .get(lang) as { m: number | null };
   return row.m ?? 0;
 }
 
-export function getFlashNews(limit = 50, categorySlug?: string): FlashNews[] {
+export function getFlashNews(lang: string = 'zh', limit = 50, categorySlug?: string): FlashNews[] {
   const db = getDb();
   if (categorySlug) {
     return db.prepare(`
       SELECT f.*, c.name as category_name
       FROM flash_news f
       LEFT JOIN categories c ON f.category_id = c.id
-      WHERE c.slug = ?
+      WHERE c.slug = ? AND f.lang = ?
       ORDER BY f.published_at DESC LIMIT ?
-    `).all(categorySlug, limit) as FlashNews[];
+    `).all(categorySlug, lang, limit) as FlashNews[];
   }
   return db.prepare(`
     SELECT f.*, c.name as category_name
     FROM flash_news f
     LEFT JOIN categories c ON f.category_id = c.id
+    WHERE f.lang = ?
     ORDER BY f.published_at DESC LIMIT ?
-  `).all(limit) as FlashNews[];
+  `).all(lang, limit) as FlashNews[];
 }
 
 export function getTopics(limit = 20): Topic[] {

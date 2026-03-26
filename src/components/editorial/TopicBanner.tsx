@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import LocalizedLink from '@/components/LocalizedLink';
 import DuckAccent from './DuckAccent';
 
 type Props = {
@@ -20,17 +20,17 @@ export default function TopicBanner({ title, description, href, kicker = '专题
       <div className="px-5 py-5 sm:px-6 sm:py-6 pr-16 sm:pr-20">
         <p className="yn-meta mb-1 font-medium uppercase tracking-wider text-emerald-500/80">{kicker}</p>
         <h3 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-          <Link href={href} className="hover:text-emerald-400/95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
+          <LocalizedLink href={href} className="hover:text-emerald-400/95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
             {title}
-          </Link>
+          </LocalizedLink>
         </h3>
         {description ? <p className="mt-2 max-w-2xl text-sm text-slate-400 line-clamp-2">{description}</p> : null}
-        <Link
+        <LocalizedLink
           href={href}
           className="mt-4 inline-flex text-sm font-medium text-emerald-500 hover:text-emerald-400"
         >
           进入专题 →
-        </Link>
+        </LocalizedLink>
       </div>
     </div>
   );

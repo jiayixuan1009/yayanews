@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import LocalizedLink from '@/components/LocalizedLink';
 
 type Props = {
   title: string;
@@ -30,12 +30,12 @@ export default function SectionHeader({
         {title}
       </h2>
       {actionHref ? (
-        <Link
+        <LocalizedLink
           href={actionHref}
           className="shrink-0 font-label text-xs font-semibold uppercase tracking-[0.14em] text-[#1d5c4f] hover:text-[#143d33] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1d5c4f]"
         >
           {actionLabel}
-        </Link>
+        </LocalizedLink>
       ) : null}
     </div>
   );

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import LocalizedLink from '@/components/LocalizedLink';
 import DuckAccent from './DuckAccent';
 
 type Props = {
@@ -20,9 +20,9 @@ export default function EditorialEmptyState({ title, description, actionHref, ac
       <p className="text-base font-semibold text-slate-200">{title}</p>
       {description ? <p className="mt-2 max-w-md text-sm text-slate-500">{description}</p> : null}
       {actionHref && actionLabel ? (
-        <Link href={actionHref} className="mt-5 text-sm font-medium text-emerald-500 hover:text-emerald-400">
+        <LocalizedLink href={actionHref} className="mt-5 text-sm font-medium text-emerald-500 hover:text-emerald-400">
           {actionLabel}
-        </Link>
+        </LocalizedLink>
       ) : null}
     </div>
   );

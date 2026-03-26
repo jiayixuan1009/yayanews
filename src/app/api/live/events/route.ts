@@ -11,6 +11,7 @@ const MAX_CONNECTION_MS = 10 * 60 * 1000;
  * 首页用 SSE：快讯或已发布文章任一有新 id 即推送，客户端 router.refresh()。
  */
 export async function GET(req: NextRequest) {
+  const lang = req.nextUrl.searchParams.get('lang') || 'zh';
   let flashSince = Math.max(0, parseInt(req.nextUrl.searchParams.get('flashSince') || '0', 10) || 0);
   let articleSince = Math.max(0, parseInt(req.nextUrl.searchParams.get('articleSince') || '0', 10) || 0);
 
@@ -37,8 +38,8 @@ export async function GET(req: NextRequest) {
           return;
         }
         try {
-          const fmax = getFlashMaxId();
-          const amax = getPublishedArticleMaxId();
+          const fmax = getFlashMaxId(lang);
+          const amax = getPublishedArticleMaxId(lang);
           const flashNew = fmax > flashSince;
           const articleNew = amax > articleSince;
           if (flashNew) flashSince = fmax;

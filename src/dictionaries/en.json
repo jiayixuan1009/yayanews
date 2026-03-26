@@ -1,0 +1,36 @@
+{
+  "nav": {
+    "home": "Home",
+    "flash": "Flash News",
+    "markets": "Markets",
+    "usStock": "US Stocks",
+    "crypto": "Crypto",
+    "derivatives": "Derivatives",
+    "hkStock": "HK Stocks",
+    "guide": "Guides",
+    "about": "About"
+  },
+  "home": {
+    "flashTitle": "24H Flash News",
+    "flashDesc": "Real-time global financial market updates",
+    "moreFlash": "More Flash News",
+    "latestNews": "Latest News & Analysis",
+    "moreNews": "More News",
+    "marketQuotes": "Market Quotes"
+  },
+  "footer": {
+    "desc": "YayaNews is a leading professional financial news platform, delivering global financial updates, crypto dynamics, and in-depth analysis.",
+    "links": "Quick Links",
+    "contact": "Contact Us",
+    "rights": "All Rights Reserved"
+  },
+  "common": {
+    "readMore": "Read More",
+    "publishedAt": "Published at",
+    "author": "Author",
+    "source": "Source",
+    "noData": "No data available",
+    "search": "Search",
+    "searchPlaceholder": "Search news, topics, tags..."
+  }
+}

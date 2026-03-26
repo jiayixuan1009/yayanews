@@ -1,6 +1,6 @@
 import type { Article } from '@/lib/types';
 import Image from 'next/image';
-import Link from 'next/link';
+import LocalizedLink from '@/components/LocalizedLink';
 import { getArticleCoverSrc } from '@/lib/article-image';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
 
@@ -84,9 +84,9 @@ export default function ChannelHeader({
               <div className="absolute bottom-5 left-5 max-w-[260px] rotate-[-2deg] border border-[#d6cec2] bg-[#f8f4ee] p-4 text-[#14261f] shadow-[0_10px_30px_rgba(0,0,0,0.16)]">
                 <p className="yn-meta text-[#1d5c4f]">Editor&apos;s pick</p>
                 <p className="mt-2 font-display text-lg leading-tight">{featured.title}</p>
-                <Link href={`/article/${featured.slug}`} className="mt-3 inline-block text-[11px] uppercase tracking-[0.16em] text-[#1d5c4f] hover:text-[#143d33]">
+                <LocalizedLink href={`/article/${featured.slug}`} className="mt-3 inline-block text-[11px] uppercase tracking-[0.16em] text-[#1d5c4f] hover:text-[#143d33]">
                   Open dossier →
-                </Link>
+                </LocalizedLink>
               </div>
             ) : null}
           </div>

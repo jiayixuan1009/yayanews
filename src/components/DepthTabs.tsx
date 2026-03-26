@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import LocalizedLink from '@/components/LocalizedLink';
 
 interface DepthTabsProps {
   baseUrl: string;
@@ -28,7 +28,7 @@ export default function DepthTabs({ baseUrl, current, counts }: DepthTabsProps) 
           const href = tab.key ? `${baseUrl}?type=${tab.key}` : baseUrl;
           const count = countMap[tab.key] ?? 0;
           return (
-            <Link
+            <LocalizedLink
               key={tab.key}
               href={href}
               className={`border-b pb-1 text-[11px] uppercase tracking-[0.18em] transition-colors ${
@@ -39,7 +39,7 @@ export default function DepthTabs({ baseUrl, current, counts }: DepthTabsProps) 
             >
               {tab.label}
               {count > 0 ? <span className="ml-1.5 text-[#8a938b]">{count}</span> : null}
-            </Link>
+            </LocalizedLink>
           );
         })}
       </div>

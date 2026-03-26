@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import LocalizedLink from '@/components/LocalizedLink';
 import Image from 'next/image';
 import type { Article } from '@/lib/types';
 import { getArticleCoverSrc, articleHasRealCover } from '@/lib/article-image';
@@ -34,7 +34,7 @@ export default function ArticleCard({ article, featured = false, priority = fals
 
   if (featured) {
     return (
-      <Link href={`/article/${article.slug}`} className="group block overflow-hidden border border-[#d9d2c8] bg-[#fbf9f5] transition-colors hover:border-[#b7ab99]">
+      <LocalizedLink href={`/article/${article.slug}`} className="group block overflow-hidden border border-[#d9d2c8] bg-[#fbf9f5] transition-colors hover:border-[#b7ab99]">
         <div className="grid gap-0 lg:grid-cols-[1.08fr,0.92fr]">
           <div className="relative min-h-[300px] bg-[#ebe3d6] lg:order-2 lg:min-h-[540px]">
             <Image
@@ -73,12 +73,12 @@ export default function ArticleCard({ article, featured = false, priority = fals
             </div>
           </div>
         </div>
-      </Link>
+      </LocalizedLink>
     );
   }
 
   return (
-    <Link href={`/article/${article.slug}`} className="group grid gap-4 border-t border-[#ddd5ca] py-5 first:border-t-0 first:pt-0 sm:grid-cols-[minmax(0,1fr)_196px] sm:items-start sm:gap-5 sm:py-6">
+    <LocalizedLink href={`/article/${article.slug}`} className="group grid gap-4 border-t border-[#ddd5ca] py-5 first:border-t-0 first:pt-0 sm:grid-cols-[minmax(0,1fr)_196px] sm:items-start sm:gap-5 sm:py-6">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1.5">
           {article.category_name && <span className={getCategoryBadgeClass(article.category_slug)}>{article.category_name}</span>}
@@ -106,6 +106,6 @@ export default function ArticleCard({ article, featured = false, priority = fals
           unoptimized={!coverOpt}
         />
       </div>
-    </Link>
+    </LocalizedLink>
   );
 }

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import LocalizedLink from '@/components/LocalizedLink';
 import { siteConfig } from '@/lib/types';
 
 const footerColumns = {
@@ -21,7 +21,7 @@ const footerColumns = {
   ],
 };
 
-export default function Footer() {
+export default function Footer({ lang = 'zh' }: { lang?: string }) {
   return (
     <footer className="border-t border-[#0c3b31] bg-[#003326] text-emerald-50">
       <div className="container-main py-12 sm:py-14 lg:py-16">
@@ -29,9 +29,9 @@ export default function Footer() {
           <div className="grid gap-6 lg:grid-cols-[1.2fr,0.8fr] lg:items-end">
             <div>
               <p className="font-label text-[11px] uppercase tracking-[0.2em] text-[#91f78e]">The daily edition</p>
-              <Link href="/" className="mt-2 inline-block font-display text-[2.35rem] font-semibold leading-none tracking-[-0.06em] text-[#dfffe0] sm:text-[2.8rem]">
+              <LocalizedLink href="/" className="mt-2 inline-block font-display text-[2.35rem] font-semibold leading-none tracking-[-0.06em] text-[#dfffe0] sm:text-[2.8rem]">
                 yayanews
-              </Link>
+              </LocalizedLink>
               <p className="mt-4 max-w-[38ch] text-sm leading-7 text-emerald-50/82">
                 金融新闻编辑台。把美股、港股、加密货币与衍生品的重要变化，整理成更有版面感和连续性的阅读体验。
               </p>
@@ -57,7 +57,7 @@ export default function Footer() {
             <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-emerald-50/82">
               <a href={siteConfig.parentSite} target="_blank" rel="noopener noreferrer" className="hover:text-white">官网</a>
               <a href={siteConfig.tradingSite} target="_blank" rel="noopener noreferrer" className="hover:text-white">交易</a>
-              <Link href="/topics" className="hover:text-white">专题</Link>
+              <LocalizedLink href="/topics" className="hover:text-white">专题</LocalizedLink>
             </div>
           </div>
 
@@ -67,9 +67,9 @@ export default function Footer() {
               <ul className="mt-5 space-y-3">
                 {links.map(link => (
                   <li key={link.href}>
-                    <Link href={link.href} className="text-sm text-emerald-50/82 hover:text-white">
+                    <LocalizedLink href={link.href} className="text-sm text-emerald-50/82 hover:text-white">
                       {link.label}
-                    </Link>
+                    </LocalizedLink>
                   </li>
                 ))}
               </ul>

@@ -14,6 +14,7 @@ const MAX_CONNECTION_MS = 10 * 60 * 1000;
 export async function GET(req: NextRequest) {
   const since = Math.max(0, parseInt(req.nextUrl.searchParams.get('since') || '0', 10) || 0);
   const cat = req.nextUrl.searchParams.get('cat') || undefined;
+  const lang = req.nextUrl.searchParams.get('lang') || 'zh';
 
   const encoder = new TextEncoder();
   let last = since;
@@ -37,7 +38,7 @@ export async function GET(req: NextRequest) {
           return;
         }
         try {
-          const m = getFlashMaxId(cat);
+          const m = getFlashMaxId(lang, cat);
           if (m > last) {
             last = m;
             controller.enqueue(

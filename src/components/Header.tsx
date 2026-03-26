@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import LocalizedLink from '@/components/LocalizedLink';
 import { usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { siteConfig } from '@/lib/types';
@@ -18,7 +18,7 @@ const utilityNav = [
   { label: '指南', href: '/guide' },
 ];
 
-export default function Header() {
+export default function Header({ lang = 'zh' }: { lang?: string }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -44,9 +44,9 @@ export default function Header() {
           <div className="mx-auto text-center md:mx-0">Daily Financial Dispatch</div>
           <div className="hidden items-center gap-4 md:flex">
             {utilityNav.map(item => (
-              <Link key={item.href} href={item.href} className={isActive(item.href) ? 'text-[#101713]' : 'text-[#5d635f] hover:text-[#101713]'}>
+              <LocalizedLink key={item.href} href={item.href} className={isActive(item.href) ? 'text-[#101713]' : 'text-[#5d635f] hover:text-[#101713]'}>
                 {item.label}
-              </Link>
+              </LocalizedLink>
             ))}
           </div>
         </div>
@@ -54,18 +54,18 @@ export default function Header() {
 
       <div className="container-main grid min-h-[88px] grid-cols-[auto,1fr,auto] items-center gap-3 py-3 sm:min-h-[96px] sm:gap-4 sm:py-4">
         <div className="hidden lg:block">
-          <Link href="/search" aria-label="搜索" className="inline-flex h-10 w-10 items-center justify-center border border-[#d8d1c5] text-[#101713] hover:border-[#bfb4a5] hover:text-[#1d5c4f]">
+          <LocalizedLink href="/search" aria-label="搜索" className="inline-flex h-10 w-10 items-center justify-center border border-[#d8d1c5] text-[#101713] hover:border-[#bfb4a5] hover:text-[#1d5c4f]">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-          </Link>
+          </LocalizedLink>
         </div>
 
         <div className="min-w-0 text-center">
-          <Link href="/" className="inline-flex flex-col items-center">
+          <LocalizedLink href="/" className="inline-flex flex-col items-center">
             <span className="font-display text-[2.1rem] font-semibold leading-none tracking-[-0.06em] text-[#0d3b30] sm:text-[2.7rem] lg:text-[3rem]">yayanews</span>
             <span className="mt-1 max-w-[24ch] font-label text-[10px] uppercase tracking-[0.22em] text-[#667067]">Market intelligence edition</span>
-          </Link>
+          </LocalizedLink>
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
@@ -91,13 +91,13 @@ export default function Header() {
       <div className="hidden border-t border-[#e7dfd2] lg:block">
         <nav className="container-main flex min-h-[54px] items-center justify-center gap-7">
           {primaryNav.map(item => (
-            <Link
+            <LocalizedLink
               key={item.href}
               href={item.href}
               className={`border-b pb-1 text-[15px] ${isActive(item.href) ? 'border-[#14261f] font-medium text-[#101713]' : 'border-transparent text-[#5d635f] hover:text-[#101713]'}`}
             >
               {item.label.replace('资讯', 'News')}
-            </Link>
+            </LocalizedLink>
           ))}
         </nav>
       </div>
@@ -105,18 +105,18 @@ export default function Header() {
       {mobileOpen && (
         <div className="border-t border-[#ddd5ca] bg-[#f8f5f0] md:hidden">
           <nav className="container-main flex flex-col gap-1 py-4">
-            <Link href="/search" onClick={() => setMobileOpen(false)} className="mb-2 border border-[#d8d1c5] px-3 py-2 text-xs uppercase tracking-[0.16em] text-[#14261f]">
+            <LocalizedLink href="/search" onClick={() => setMobileOpen(false)} className="mb-2 border border-[#d8d1c5] px-3 py-2 text-xs uppercase tracking-[0.16em] text-[#14261f]">
               Search archive
-            </Link>
+            </LocalizedLink>
             {[...primaryNav, ...utilityNav].map(item => (
-              <Link
+              <LocalizedLink
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
                 className={`border-b border-[#e8e0d5] px-1 py-2.5 text-sm ${isActive(item.href) ? 'text-[#101713]' : 'text-[#5d635f] hover:text-[#101713]'}`}
               >
                 {item.label}
-              </Link>
+              </LocalizedLink>
             ))}
             <div className="mt-3 flex gap-3">
               <a href={siteConfig.tradingSite} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center border border-[#0d3b30] bg-[#0d3b30] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white">
