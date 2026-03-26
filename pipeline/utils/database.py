@@ -17,9 +17,11 @@ def now_cn() -> str:
 
 
 def get_conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = sqlite3.connect(str(DB_PATH), timeout=15.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
+    conn.execute("PRAGMA busy_timeout=15000")
     conn.execute("PRAGMA foreign_keys=ON")
     return conn
 
@@ -41,6 +43,7 @@ def insert_article(
     source_url: str = "",
     subcategory: str = "",
     collected_at: Optional[str] = None,
+    lang: str = "zh"
 ) -> int:
     conn = get_conn()
     ts = now_cn()
@@ -49,13 +52,13 @@ def insert_article(
             """INSERT INTO articles
             (title, slug, summary, content, category_id, author, status, article_type,
              sentiment, tickers, key_points, source, source_url, subcategory,
-             collected_at, published_at, created_at, updated_at)
+             collected_at, published_at, created_at, updated_at, lang)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?, ?,
-                    ?, ?, ?, ?)""",
+                    ?, ?, ?, ?, ?)""",
             (title, slug, summary, content, category_id, author, status, article_type,
              sentiment, tickers, key_points, source, source_url, subcategory,
-             collected_at or ts, published_at or ts, ts, ts),
+             collected_at or ts, published_at or ts, ts, ts, lang),
         )
         article_id = cur.lastrowid
         conn.commit()

@@ -26,6 +26,7 @@ from pipeline.agents.agent3_reviewer import review
 from pipeline.agents.agent4_seo import optimize
 from pipeline.agents.agent5_publisher import publish
 from pipeline.agents.flash_collector import collect_flash
+from pipeline.agents.agent6_translator import translate_queue
 from pipeline.utils.database import insert_pipeline_run, now_cn
 from pipeline.utils.logger import step_print
 from pipeline.tools.speed_benchmark import run_for_article
@@ -155,6 +156,9 @@ def main():
 
     if not args.flash_only:
         articles = run_article_pipeline(batch_size=args.articles)
+        if articles:
+            print(f"\n{'#'*30}\n  启动 Agent 6 英文转译子流\n{'#'*30}")
+            translations = translate_queue(batch_size=len(articles))
 
     if not args.articles_only:
         flash = run_flash_pipeline(count=args.flash)
