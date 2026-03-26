@@ -6,11 +6,18 @@ from psycopg2.extras import RealDictCursor
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 from pipeline.utils.logger import get_logger
+import redis
 
 log = get_logger("db")
 
 TZ_CN = timezone(timedelta(hours=8))
 DB_URL = os.environ.get("DATABASE_URL", "postgresql://yayanews:yayanews_master@127.0.0.1:5432/yayanews")
+
+redis_client = None
+try:
+    redis_client = redis.Redis(host='localhost', port=6379, db=0)
+except Exception as e:
+    log.error(f"Redis init failed: {e}")
 
 def now_cn() -> str:
     """当前 UTC+8 时间，格式 YYYY-MM-DD HH:MM:SS"""
@@ -59,6 +66,14 @@ def insert_article(
                 article_id = cur.fetchone()[0]
             conn.commit()
             log.info(f"Article inserted: id={article_id}, slug={slug}")
+            
+            if redis_client:
+                try:
+                    payload = {"type": "article", "id": article_id, "title": title, "slug": slug, "lang": lang, "created_at": ts}
+                    redis_client.publish(f"article:new:{lang}", json.dumps(payload))
+                except Exception as e:
+                    log.error(f"Redis publish fail: {e}")
+                    
             return article_id
     except psycopg2.IntegrityError as e:
         log.warning(f"Article already exists or constraint error: {e}")
@@ -111,6 +126,14 @@ def insert_flash(
                 fid = cur.fetchone()[0]
             conn.commit()
             log.info(f"Flash inserted: id={fid}, lang={lang}, title={title[:30]}")
+            
+            if redis_client:
+                try:
+                    payload = {"type": "flash", "id": fid, "title": title, "lang": lang, "importance": importance, "created_at": ts}
+                    redis_client.publish(f"flash:new:{lang}", json.dumps(payload))
+                except Exception as e:
+                    log.error(f"Redis flash publish fail: {e}")
+                    
             return fid
     except Exception as e:
         log.error(f"Flash insert failed: {e}")

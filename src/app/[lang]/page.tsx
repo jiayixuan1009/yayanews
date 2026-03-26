@@ -76,7 +76,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
 
   return (
     <>
-      <SiteLiveSubscriber flashMaxId={flashMaxId} articleMaxId={articleMaxId} />
+      <SiteLiveSubscriber />
 
       <HomeHeroEditorial lead={lead} secondaries={secondaries} />
 
