@@ -19,14 +19,19 @@ try:
 except Exception as e:
     log.error(f"Redis init failed: {e}")
 
+from psycopg2.pool import ThreadedConnectionPool
+
 def now_cn() -> str:
     """当前 UTC+8 时间，格式 YYYY-MM-DD HH:MM:SS"""
     return datetime.now(TZ_CN).strftime("%Y-%m-%d %H:%M:%S")
 
-def get_conn():
-    conn = psycopg2.connect(DB_URL)
-    conn.autocommit = False
-    return conn
+_pool = None
+
+def get_pool():
+    global _pool
+    if _pool is None:
+        _pool = ThreadedConnectionPool(1, 20, DB_URL)
+    return _pool
 
 def insert_article(
     title: str,
@@ -48,60 +53,67 @@ def insert_article(
     lang: str = "zh"
 ) -> int:
     ts = now_cn()
+    conn = get_pool().getconn()
     try:
-        with get_conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """INSERT INTO articles
-                    (title, slug, summary, content, category_id, author, status, article_type,
-                     sentiment, tickers, key_points, source, source_url, subcategory,
-                     collected_at, published_at, created_at, updated_at, lang)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
-                            %s, %s, %s, %s, %s, %s,
-                            %s, %s, %s, %s, %s) RETURNING id""",
-                    (title, slug, summary, content, category_id, author, status, article_type,
-                     sentiment, tickers, key_points, source, source_url, subcategory,
-                     collected_at or ts, published_at or ts, ts, ts, lang)
-                )
-                article_id = cur.fetchone()[0]
-            conn.commit()
-            log.info(f"Article inserted: id={article_id}, slug={slug}")
-            
-            if redis_client:
-                try:
-                    payload = {"type": "article", "id": article_id, "title": title, "slug": slug, "lang": lang, "created_at": ts}
-                    redis_client.publish(f"article:new:{lang}", json.dumps(payload))
-                except Exception as e:
-                    log.error(f"Redis publish fail: {e}")
-                    
-            return article_id
+        with conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO articles
+                (title, slug, summary, content, category_id, author, status, article_type,
+                 sentiment, tickers, key_points, source, source_url, subcategory,
+                 collected_at, published_at, created_at, updated_at, lang)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s) RETURNING id""",
+                (title, slug, summary, content, category_id, author, status, article_type,
+                 sentiment, tickers, key_points, source, source_url, subcategory,
+                 collected_at or ts, published_at or ts, ts, ts, lang)
+            )
+            article_id = cur.fetchone()[0]
+        conn.commit()
+        log.info(f"Article inserted: id={article_id}, slug={slug}")
+        
+        if redis_client:
+            try:
+                payload = {"type": "article", "id": article_id, "title": title, "slug": slug, "lang": lang, "created_at": ts}
+                redis_client.publish(f"article:new:{lang}", json.dumps(payload))
+            except Exception as e:
+                log.error(f"Redis publish fail: {e}")
+                
+        return article_id
     except psycopg2.IntegrityError as e:
+        conn.rollback()
         log.warning(f"Article already exists or constraint error: {e}")
         return -1
     except Exception as e:
+        conn.rollback()
         log.error(f"DB Error: {e}")
         return -1
+    finally:
+        get_pool().putconn(conn)
 
 def insert_tags(article_id: int, tag_names: list[str]):
     if not tag_names or article_id <= 0:
         return
+    conn = get_pool().getconn()
     try:
-        with get_conn() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                for name in tag_names:
-                    slug = name.lower().replace(" ", "-")
-                    cur.execute("INSERT INTO tags (name, slug) VALUES (%s, %s) ON CONFLICT (slug) DO NOTHING", (name, slug))
-                    cur.execute("SELECT id FROM tags WHERE name = %s", (name,))
-                    row = cur.fetchone()
-                    if row:
-                        cur.execute(
-                            "INSERT INTO article_tags (article_id, tag_id) VALUES (%s, %s) ON CONFLICT (article_id, tag_id) DO NOTHING",
-                            (article_id, row["id"])
-                        )
-            conn.commit()
-            log.info(f"Tags linked to article {article_id}: {tag_names}")
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            for name in tag_names:
+                slug = name.lower().replace(" ", "-")
+                cur.execute("INSERT INTO tags (name, slug) VALUES (%s, %s) ON CONFLICT (slug) DO NOTHING", (name, slug))
+                cur.execute("SELECT id FROM tags WHERE name = %s", (name,))
+                row = cur.fetchone()
+                if row:
+                    cur.execute(
+                        "INSERT INTO article_tags (article_id, tag_id) VALUES (%s, %s) ON CONFLICT (article_id, tag_id) DO NOTHING",
+                        (article_id, row["id"])
+                    )
+        conn.commit()
+        log.info(f"Tags linked to article {article_id}: {tag_names}")
     except Exception as e:
+        conn.rollback()
         log.error(f"Tags insert failed: {e}")
+    finally:
+        get_pool().putconn(conn)
 
 def insert_flash(
     title: str,
@@ -115,29 +127,32 @@ def insert_flash(
     lang: str = "zh",
 ) -> int:
     ts = now_cn()
+    conn = get_pool().getconn()
     try:
-        with get_conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """INSERT INTO flash_news (title, content, category_id, importance, source, source_url, subcategory, collected_at, published_at, created_at, lang)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
-                    (title, content, category_id, importance, source, source_url, subcategory, collected_at or ts, ts, ts, lang),
-                )
-                fid = cur.fetchone()[0]
-            conn.commit()
-            log.info(f"Flash inserted: id={fid}, lang={lang}, title={title[:30]}")
-            
-            if redis_client:
-                try:
-                    payload = {"type": "flash", "id": fid, "title": title, "lang": lang, "importance": importance, "created_at": ts}
-                    redis_client.publish(f"flash:new:{lang}", json.dumps(payload))
-                except Exception as e:
-                    log.error(f"Redis flash publish fail: {e}")
-                    
-            return fid
+        with conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO flash_news (title, content, category_id, importance, source, source_url, subcategory, collected_at, published_at, created_at, lang)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+                (title, content, category_id, importance, source, source_url, subcategory, collected_at or ts, ts, ts, lang),
+            )
+            fid = cur.fetchone()[0]
+        conn.commit()
+        log.info(f"Flash inserted: id={fid}, lang={lang}, title={title[:30]}")
+        
+        if redis_client:
+            try:
+                payload = {"type": "flash", "id": fid, "title": title, "lang": lang, "importance": importance, "created_at": ts}
+                redis_client.publish(f"flash:new:{lang}", json.dumps(payload))
+            except Exception as e:
+                log.error(f"Redis flash publish fail: {e}")
+                
+        return fid
     except Exception as e:
+        conn.rollback()
         log.error(f"Flash insert failed: {e}")
         return -1
+    finally:
+        get_pool().putconn(conn)
 
 def insert_pipeline_run(
     run_type: str,
@@ -151,61 +166,72 @@ def insert_pipeline_run(
     error_count: int = 0,
     notes: str = "",
 ) -> int:
+    conn = get_pool().getconn()
     try:
-        with get_conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """INSERT INTO pipeline_runs
-                    (run_type, started_at, finished_at, total_seconds,
-                     items_requested, items_produced, stage_timings, channel_timings,
-                     error_count, notes)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
-                    (run_type, started_at, finished_at, total_seconds,
-                     items_requested, items_produced,
-                     json.dumps(stage_timings or {}, ensure_ascii=False),
-                     json.dumps(channel_timings or {}, ensure_ascii=False),
-                     error_count, notes),
-                )
-                rid = cur.fetchone()[0]
-            conn.commit()
-            log.info(f"Pipeline run recorded: id={rid}, type={run_type}, {total_seconds:.1f}s")
-            return rid
+        with conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO pipeline_runs
+                (run_type, started_at, finished_at, total_seconds,
+                 items_requested, items_produced, stage_timings, channel_timings,
+                 error_count, notes)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+                (run_type, started_at, finished_at, total_seconds,
+                 items_requested, items_produced,
+                 json.dumps(stage_timings or {}, ensure_ascii=False),
+                 json.dumps(channel_timings or {}, ensure_ascii=False),
+                 error_count, notes),
+            )
+            rid = cur.fetchone()[0]
+        conn.commit()
+        log.info(f"Pipeline run recorded: id={rid}, type={run_type}, {total_seconds:.1f}s")
+        return rid
     except Exception as e:
+        conn.rollback()
         log.error(f"Pipeline run insert failed: {e}")
         return -1
+    finally:
+        get_pool().putconn(conn)
 
 def slug_exists(slug: str) -> bool:
+    conn = get_pool().getconn()
     try:
-        with get_conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT 1 FROM articles WHERE slug = %s", (slug,))
-                return cur.fetchone() is not None
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM articles WHERE slug = %s", (slug,))
+            return cur.fetchone() is not None
     except:
         return False
+    finally:
+        get_pool().putconn(conn)
 
 def title_exists(title: str) -> bool:
+    conn = get_pool().getconn()
     try:
-        with get_conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT 1 FROM articles WHERE title = %s", (title,))
-                return cur.fetchone() is not None
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM articles WHERE title = %s", (title,))
+            return cur.fetchone() is not None
     except:
         return False
+    finally:
+        get_pool().putconn(conn)
 
 def get_recent_titles(limit: int = 50) -> list[str]:
+    conn = get_pool().getconn()
     try:
-        with get_conn() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT title FROM articles ORDER BY created_at DESC LIMIT %s", (limit,))
-                return [r["title"] for r in cur.fetchall()]
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT title FROM articles ORDER BY created_at DESC LIMIT %s", (limit,))
+            return [r["title"] for r in cur.fetchall()]
     except:
         return []
+    finally:
+        get_pool().putconn(conn)
 
 def get_recent_flashes(limit: int = 50) -> list[str]:
+    conn = get_pool().getconn()
     try:
-        with get_conn() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT title FROM flash_news ORDER BY created_at DESC LIMIT %s", (limit,))
-                return [r["title"] for r in cur.fetchall()]
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT title FROM flash_news ORDER BY created_at DESC LIMIT %s", (limit,))
+            return [r["title"] for r in cur.fetchall()]
     except:
         return []
+    finally:
+        get_pool().putconn(conn)

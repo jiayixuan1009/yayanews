@@ -25,10 +25,28 @@ subscriber.on('error', (err) => console.error('Redis Client Error', err));
   });
 })();
 
+const interval = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (ws.isAlive === false) return ws.terminate();
+
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, 30000);
+
 wss.on('connection', (ws) => {
+  ws.isAlive = true;
   console.log('WS Client connected');
+  
+  ws.on('pong', () => {
+    ws.isAlive = true;
+  });
+
   ws.send(JSON.stringify({ type: 'connected' }));
+  
   ws.on('close', () => console.log('WS Client disconnected'));
 });
+
+wss.on('close', () => clearInterval(interval));
 
 console.log(`WebSocket Gateway is listening on ws://localhost:${PORT}`);
