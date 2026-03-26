@@ -25,5 +25,13 @@ module.exports = {
       max_restarts: 20,
       min_uptime: "30s",
     },
+    {
+      name: "yaya-ws-gateway",
+      cwd: root,
+      script: "src/ws-server.js",
+      autorestart: true,
+      max_restarts: 20,
+      min_uptime: "10s",
+    },
   ],
 };
