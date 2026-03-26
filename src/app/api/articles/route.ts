@@ -3,7 +3,7 @@ import { getPublishedArticles } from '@/lib/queries';
 
 export const dynamic = 'force-dynamic';
 
-export function GET(req: NextRequest) {
+export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const category = sp.get('category') || undefined;
   const subcategory = sp.get('subcategory') || undefined;
@@ -11,7 +11,7 @@ export function GET(req: NextRequest) {
   const lang = sp.get('lang') || 'zh';
 
   try {
-    const articles = getPublishedArticles(lang, limit, 0, category, subcategory);
+    const articles = await getPublishedArticles(lang, limit, 0, category, subcategory);
     return NextResponse.json({ articles });
   } catch (e: unknown) {
     return NextResponse.json({ error: String(e) }, { status: 500 });

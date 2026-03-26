@@ -1,0 +1,80 @@
+CREATE TABLE IF NOT EXISTS categories (
+    id SERIAL PRIMARY KEY, name TEXT NOT NULL UNIQUE,
+    slug TEXT NOT NULL UNIQUE, description TEXT, sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS tags (
+    id SERIAL PRIMARY KEY, name TEXT NOT NULL UNIQUE,
+    slug TEXT NOT NULL UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS articles (
+    id SERIAL PRIMARY KEY, title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE,
+    summary TEXT, content TEXT NOT NULL, cover_image TEXT,
+    category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL, 
+    author TEXT DEFAULT 'YayaNews',
+    status TEXT DEFAULT 'draft',
+    article_type TEXT DEFAULT 'standard',
+    view_count INTEGER DEFAULT 0, published_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    collected_at TIMESTAMP, lang TEXT DEFAULT 'zh' NOT NULL
+);
+CREATE TABLE IF NOT EXISTS article_tags (
+    article_id INTEGER REFERENCES articles(id) ON DELETE CASCADE,
+    tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE,
+    PRIMARY KEY (article_id, tag_id)
+);
+CREATE TABLE IF NOT EXISTS flash_news (
+    id SERIAL PRIMARY KEY, title TEXT NOT NULL, content TEXT NOT NULL,
+    source TEXT, source_url TEXT, category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+    importance TEXT DEFAULT 'normal',
+    published_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    collected_at TIMESTAMP, lang TEXT DEFAULT 'zh' NOT NULL
+);
+CREATE TABLE IF NOT EXISTS topics (
+    id SERIAL PRIMARY KEY, title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE,
+    description TEXT, cover_image TEXT,
+    status TEXT DEFAULT 'active',
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS topic_articles (
+    topic_id INTEGER REFERENCES topics(id) ON DELETE CASCADE,
+    article_id INTEGER REFERENCES articles(id) ON DELETE CASCADE,
+    sort_order INTEGER DEFAULT 0, PRIMARY KEY (topic_id, article_id)
+);
+CREATE TABLE IF NOT EXISTS guides (
+    id SERIAL PRIMARY KEY, title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE,
+    summary TEXT, content TEXT NOT NULL, cover_image TEXT, sort_order INTEGER DEFAULT 0,
+    published_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS pipeline_runs (
+    id SERIAL PRIMARY KEY,
+    run_type TEXT NOT NULL,
+    started_at TIMESTAMP NOT NULL,
+    finished_at TIMESTAMP NOT NULL,
+    total_seconds REAL NOT NULL,
+    items_requested INTEGER DEFAULT 0,
+    items_produced INTEGER DEFAULT 0,
+    stage_timings TEXT DEFAULT '{}',
+    channel_timings TEXT DEFAULT '{}',
+    error_count INTEGER DEFAULT 0,
+    notes TEXT DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS speed_benchmarks (
+    id SERIAL PRIMARY KEY,
+    article_id INTEGER REFERENCES articles(id) ON DELETE CASCADE,
+    article_title TEXT NOT NULL,
+    our_published_at TIMESTAMP NOT NULL,
+    competitor_title TEXT,
+    competitor_source TEXT,
+    competitor_url TEXT,
+    competitor_published_at TIMESTAMP,
+    diff_seconds REAL,
+    search_query TEXT,
+    result_count INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'pending',
+    error_message TEXT DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

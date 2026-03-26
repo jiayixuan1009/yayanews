@@ -1,16 +1,24 @@
-import Database from 'better-sqlite3';
-import path from 'path';
+import { Pool } from 'pg';
 
-let db: Database.Database | null = null;
+let pool: Pool | null = null;
 
-export function getDb(): Database.Database {
-  if (!db) {
-    const dbPath = path.join(process.cwd(), 'data', 'yayanews.db');
-    db = new Database(dbPath, { readonly: false });
-    db.pragma('journal_mode = WAL');
-    db.pragma('synchronous = NORMAL');
-    db.pragma('busy_timeout = 15000');
-    db.pragma('foreign_keys = ON');
+export function getDb(): Pool {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL || 'postgresql://yayanews:REDACTED@127.0.0.1:5432/yayanews';
+    pool = new Pool({
+      connectionString,
+      max: 20
+    });
   }
-  return db;
+  return pool;
+}
+
+export async function queryAll<T>(text: string, params: any[] = []): Promise<T[]> {
+  const { rows } = await getDb().query(text, params);
+  return rows as T[];
+}
+
+export async function queryGet<T>(text: string, params: any[] = []): Promise<T | undefined> {
+  const { rows } = await getDb().query(text, params);
+  return rows[0] as T | undefined;
 }

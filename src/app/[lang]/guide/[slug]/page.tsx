@@ -11,7 +11,7 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const guide = getGuideBySlug(params.slug);
+  const guide = await getGuideBySlug(params.slug);
   if (!guide) return { title: '指南未找到' };
   return {
     title: guide.title,
@@ -22,14 +22,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export async function generateStaticParams() {
-  const guides = getGuides(100);
+  const guides = await getGuides(100);
   return guides.map(g => ({ slug: g.slug }));
 }
 
 export const revalidate = 600;
 
-export default function GuideDetailPage({ params }: Props) {
-  const guide = getGuideBySlug(params.slug);
+export default async function GuideDetailPage({ params }: Props) {
+  const guide = await getGuideBySlug(params.slug);
   if (!guide) notFound();
 
   return (

@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 
 export const revalidate = 300;
 
-export default function TopicsPage() {
-  const topics = getTopics(50);
+export default async function TopicsPage() {
+  const topics = await getTopics(50);
 
   return (
     <div className="container-main py-6 sm:py-8">

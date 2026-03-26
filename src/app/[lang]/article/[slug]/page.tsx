@@ -22,7 +22,7 @@ import { sanitizeHtml } from '@/lib/sanitize';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const article = getArticleBySlug(params.slug);
+  const article = await getArticleBySlug(params.slug);
   if (!article) return {};
   return {
     title: article.title,
@@ -58,19 +58,19 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
     return null;
   }
 
-  const article = getArticleBySlug(params.slug);
+  const article = await getArticleBySlug(params.slug);
   if (!article) notFound();
 
-  const related = getRelatedArticles(article.id, article.category_id, 5);
-  const { prev, next } = getAdjacentArticles(article.id);
+  const related = await getRelatedArticles(article.id, article.category_id, 5);
+  const { prev, next } = await getAdjacentArticles(article.id);
   const articleUrl = `${siteConfig.siteUrl}/article/${article.slug}`;
   const coverOpt = article.cover_image ? isRemoteImageOptimizable(article.cover_image) : false;
   const sameCategory =
     article.category_slug != null
-      ? getPublishedArticles(params.lang, 8, 0, article.category_slug).filter(a => a.id !== article.id)
+      ? await getPublishedArticles(params.lang, 8, 0, article.category_slug).filter(a => a.id !== article.id)
       : [];
   const moreRead = sameCategory.slice(0, 4);
-  const bridgeTopic = getTopics(1)[0];
+  const bridgeTopic = await getTopics(1)[0];
   const sentiment = getSentimentLabel(article.sentiment);
   const tickers = article.tickers
     ? article.tickers

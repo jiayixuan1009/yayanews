@@ -14,8 +14,8 @@ import ChannelHeader from '@/components/editorial/ChannelHeader';
 import RightRailPanel from '@/components/editorial/RightRailPanel';
 import SectionHeader from '@/components/editorial/SectionHeader';
 
-export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
-  const tag = getTagBySlug(params.slug);
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const tag = await getTagBySlug(params.slug);
   if (!tag) return {};
   return {
     title: `标签：${tag.name}`,
@@ -28,14 +28,14 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
 export const revalidate = 120;
 
 export default async function TagPage({ params }: { params: { slug: string; lang: string } }) {
-  const tag = getTagBySlug(params.slug);
+  const tag = await getTagBySlug(params.slug);
   if (!tag) notFound();
 
   const dict = await getDictionary(params.lang as any);
-  const articles = getPublishedArticlesByTagSlug(params.slug, 48, 0);
-  const total = getArticleCountByTagSlug(params.slug);
-  const popularTags = getPopularTags(12);
-  const flashMini = getFlashNews(params.lang, 6);
+  const articles = await getPublishedArticlesByTagSlug(params.slug, 48, 0);
+  const total = await getArticleCountByTagSlug(params.slug);
+  const popularTags = await getPopularTags(12);
+  const flashMini = await getFlashNews(params.lang, 6);
   const featured = articles[0];
   const subFeatured = articles.slice(1, 3);
   const feed = articles.slice(3);

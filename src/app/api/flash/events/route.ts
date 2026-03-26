@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
   const stream = new ReadableStream({
     start(controller) {
-      const tick = () => {
+      const tick = async () => {
         if (Date.now() - t0 > MAX_CONNECTION_MS) {
           clearInterval(iv);
           try {
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
           return;
         }
         try {
-          const m = getFlashMaxId(lang, cat);
+          const m = await getFlashMaxId(lang, cat);
           if (m > last) {
             last = m;
             controller.enqueue(

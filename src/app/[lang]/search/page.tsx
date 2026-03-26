@@ -16,10 +16,10 @@ const HOT_SEARCHES = [
   '特斯拉', '降息', 'ETF', '原油',
 ];
 
-export default function SearchPage({ searchParams }: { searchParams: { q?: string } }) {
+export default async function SearchPage({ searchParams }: { searchParams: { q?: string } }) {
   const query = searchParams.q?.trim() || '';
-  const results = query ? searchArticles(query) : [];
-  const popularTags = !query ? getPopularTags(20) : [];
+  const results = query ? await searchArticles(query) : [];
+  const popularTags = !query ? await getPopularTags(20) : [];
 
   return (
     <div className="container-main py-6 sm:py-8">

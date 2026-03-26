@@ -15,7 +15,7 @@ function escapeXml(s: string): string {
 }
 
 export async function GET() {
-  const articles = getNewsArticlesLast48h();
+  const articles = await getNewsArticlesLast48h();
 
   const urls = articles.map(a => `
   <url>

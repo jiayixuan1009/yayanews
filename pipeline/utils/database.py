@@ -1,30 +1,25 @@
-"""SQLite 数据库操作封装，供 Pipeline 各 Agent 使用。"""
+"""PostgreSQL 数据库操作封装，支持异步多并发访问。"""
 import json
-import sqlite3
+import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from datetime import datetime, timezone, timedelta
 from typing import Optional
-from pipeline.config.settings import DB_PATH
 from pipeline.utils.logger import get_logger
 
 log = get_logger("db")
 
 TZ_CN = timezone(timedelta(hours=8))
-
+DB_URL = os.environ.get("DATABASE_URL", "postgresql://yayanews:REDACTED@127.0.0.1:5432/yayanews")
 
 def now_cn() -> str:
     """当前 UTC+8 时间，格式 YYYY-MM-DD HH:MM:SS"""
     return datetime.now(TZ_CN).strftime("%Y-%m-%d %H:%M:%S")
 
-
-def get_conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(str(DB_PATH), timeout=15.0)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA synchronous=NORMAL")
-    conn.execute("PRAGMA busy_timeout=15000")
-    conn.execute("PRAGMA foreign_keys=ON")
+def get_conn():
+    conn = psycopg2.connect(DB_URL)
+    conn.autocommit = False
     return conn
-
 
 def insert_article(
     title: str,
@@ -45,51 +40,53 @@ def insert_article(
     collected_at: Optional[str] = None,
     lang: str = "zh"
 ) -> int:
-    conn = get_conn()
     ts = now_cn()
     try:
-        cur = conn.execute(
-            """INSERT INTO articles
-            (title, slug, summary, content, category_id, author, status, article_type,
-             sentiment, tickers, key_points, source, source_url, subcategory,
-             collected_at, published_at, created_at, updated_at, lang)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?,
-                    ?, ?, ?, ?, ?, ?,
-                    ?, ?, ?, ?, ?)""",
-            (title, slug, summary, content, category_id, author, status, article_type,
-             sentiment, tickers, key_points, source, source_url, subcategory,
-             collected_at or ts, published_at or ts, ts, ts, lang),
-        )
-        article_id = cur.lastrowid
-        conn.commit()
-        log.info(f"Article inserted: id={article_id}, slug={slug}")
-        return article_id
-    except sqlite3.IntegrityError as e:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """INSERT INTO articles
+                    (title, slug, summary, content, category_id, author, status, article_type,
+                     sentiment, tickers, key_points, source, source_url, subcategory,
+                     collected_at, published_at, created_at, updated_at, lang)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s) RETURNING id""",
+                    (title, slug, summary, content, category_id, author, status, article_type,
+                     sentiment, tickers, key_points, source, source_url, subcategory,
+                     collected_at or ts, published_at or ts, ts, ts, lang)
+                )
+                article_id = cur.fetchone()[0]
+            conn.commit()
+            log.info(f"Article inserted: id={article_id}, slug={slug}")
+            return article_id
+    except psycopg2.IntegrityError as e:
         log.warning(f"Article already exists or constraint error: {e}")
         return -1
-    finally:
-        conn.close()
-
+    except Exception as e:
+        log.error(f"DB Error: {e}")
+        return -1
 
 def insert_tags(article_id: int, tag_names: list[str]):
     if not tag_names or article_id <= 0:
         return
-    conn = get_conn()
     try:
-        for name in tag_names:
-            slug = name.lower().replace(" ", "-")
-            conn.execute("INSERT OR IGNORE INTO tags (name, slug) VALUES (?, ?)", (name, slug))
-            row = conn.execute("SELECT id FROM tags WHERE name = ?", (name,)).fetchone()
-            if row:
-                conn.execute(
-                    "INSERT OR IGNORE INTO article_tags (article_id, tag_id) VALUES (?, ?)",
-                    (article_id, row["id"]),
-                )
-        conn.commit()
-        log.info(f"Tags linked to article {article_id}: {tag_names}")
-    finally:
-        conn.close()
-
+        with get_conn() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                for name in tag_names:
+                    slug = name.lower().replace(" ", "-")
+                    cur.execute("INSERT INTO tags (name, slug) VALUES (%s, %s) ON CONFLICT (slug) DO NOTHING", (name, slug))
+                    cur.execute("SELECT id FROM tags WHERE name = %s", (name,))
+                    row = cur.fetchone()
+                    if row:
+                        cur.execute(
+                            "INSERT INTO article_tags (article_id, tag_id) VALUES (%s, %s) ON CONFLICT (article_id, tag_id) DO NOTHING",
+                            (article_id, row["id"])
+                        )
+            conn.commit()
+            log.info(f"Tags linked to article {article_id}: {tag_names}")
+    except Exception as e:
+        log.error(f"Tags insert failed: {e}")
 
 def insert_flash(
     title: str,
@@ -102,24 +99,22 @@ def insert_flash(
     collected_at: Optional[str] = None,
     lang: str = "zh",
 ) -> int:
-    conn = get_conn()
     ts = now_cn()
     try:
-        cur = conn.execute(
-            """INSERT INTO flash_news (title, content, category_id, importance, source, source_url, subcategory, collected_at, published_at, created_at, lang)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (title, content, category_id, importance, source, source_url, subcategory, collected_at or ts, ts, ts, lang),
-        )
-        fid = cur.lastrowid
-        conn.commit()
-        log.info(f"Flash inserted: id={fid}, lang={lang}, title={title[:30]}")
-        return fid
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """INSERT INTO flash_news (title, content, category_id, importance, source, source_url, subcategory, collected_at, published_at, created_at, lang)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+                    (title, content, category_id, importance, source, source_url, subcategory, collected_at or ts, ts, ts, lang),
+                )
+                fid = cur.fetchone()[0]
+            conn.commit()
+            log.info(f"Flash inserted: id={fid}, lang={lang}, title={title[:30]}")
+            return fid
     except Exception as e:
         log.error(f"Flash insert failed: {e}")
         return -1
-    finally:
-        conn.close()
-
 
 def insert_pipeline_run(
     run_type: str,
@@ -133,55 +128,61 @@ def insert_pipeline_run(
     error_count: int = 0,
     notes: str = "",
 ) -> int:
-    conn = get_conn()
     try:
-        cur = conn.execute(
-            """INSERT INTO pipeline_runs
-            (run_type, started_at, finished_at, total_seconds,
-             items_requested, items_produced, stage_timings, channel_timings,
-             error_count, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (run_type, started_at, finished_at, total_seconds,
-             items_requested, items_produced,
-             json.dumps(stage_timings or {}, ensure_ascii=False),
-             json.dumps(channel_timings or {}, ensure_ascii=False),
-             error_count, notes),
-        )
-        rid = cur.lastrowid
-        conn.commit()
-        log.info(f"Pipeline run recorded: id={rid}, type={run_type}, {total_seconds:.1f}s")
-        return rid
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """INSERT INTO pipeline_runs
+                    (run_type, started_at, finished_at, total_seconds,
+                     items_requested, items_produced, stage_timings, channel_timings,
+                     error_count, notes)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+                    (run_type, started_at, finished_at, total_seconds,
+                     items_requested, items_produced,
+                     json.dumps(stage_timings or {}, ensure_ascii=False),
+                     json.dumps(channel_timings or {}, ensure_ascii=False),
+                     error_count, notes),
+                )
+                rid = cur.fetchone()[0]
+            conn.commit()
+            log.info(f"Pipeline run recorded: id={rid}, type={run_type}, {total_seconds:.1f}s")
+            return rid
     except Exception as e:
         log.error(f"Pipeline run insert failed: {e}")
         return -1
-    finally:
-        conn.close()
-
 
 def slug_exists(slug: str) -> bool:
-    conn = get_conn()
     try:
-        row = conn.execute("SELECT 1 FROM articles WHERE slug = ?", (slug,)).fetchone()
-        return row is not None
-    finally:
-        conn.close()
-
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1 FROM articles WHERE slug = %s", (slug,))
+                return cur.fetchone() is not None
+    except:
+        return False
 
 def title_exists(title: str) -> bool:
-    conn = get_conn()
     try:
-        row = conn.execute("SELECT 1 FROM articles WHERE title = ?", (title,)).fetchone()
-        return row is not None
-    finally:
-        conn.close()
-
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1 FROM articles WHERE title = %s", (title,))
+                return cur.fetchone() is not None
+    except:
+        return False
 
 def get_recent_titles(limit: int = 50) -> list[str]:
-    conn = get_conn()
     try:
-        rows = conn.execute(
-            "SELECT title FROM articles ORDER BY created_at DESC LIMIT ?", (limit,)
-        ).fetchall()
-        return [r["title"] for r in rows]
-    finally:
-        conn.close()
+        with get_conn() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("SELECT title FROM articles ORDER BY created_at DESC LIMIT %s", (limit,))
+                return [r["title"] for r in cur.fetchall()]
+    except:
+        return []
+
+def get_recent_flashes(limit: int = 50) -> list[str]:
+    try:
+        with get_conn() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("SELECT title FROM flash_news ORDER BY created_at DESC LIMIT %s", (limit,))
+                return [r["title"] for r in cur.fetchall()]
+    except:
+        return []

@@ -59,20 +59,20 @@ export default async function CategoryPage({
   const articleType = depthFilter === 'deep' ? 'deep' : depthFilter === 'standard' ? 'standard' : undefined;
 
   const dict = await getDictionary(params.lang as any);
-  const articles = getPublishedArticles(params.lang, 36, 0, params.category, undefined, articleType);
-  const categories = getCategoriesOrdered();
+  const articles = await getPublishedArticles(params.lang, 36, 0, params.category, undefined, articleType);
+  const categories = await getCategoriesOrdered();
   const isDerivatives = params.category === 'derivatives';
 
-  const countAll = getArticleCountByType(params.category);
-  const countStandard = getArticleCountByType(params.category, 'standard');
-  const countDeep = getArticleCountByType(params.category, 'deep');
+  const countAll = await getArticleCountByType(params.category);
+  const countStandard = await getArticleCountByType(params.category, 'standard');
+  const countDeep = await getArticleCountByType(params.category, 'deep');
 
   const featured = articles[0];
   const secondary = articles.slice(1, 4);
   const feed = articles.slice(4);
 
-  const popularTags = getPopularTags(10);
-  const flashMini = getFlashNews(params.lang, 6);
+  const popularTags = await getPopularTags(10);
+  const flashMini = await getFlashNews(params.lang, 6);
 
   const lead = featured ?? null;
   const featureCover = lead ? getArticleCoverSrc(lead.cover_image) : null;

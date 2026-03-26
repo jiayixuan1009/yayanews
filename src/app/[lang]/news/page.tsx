@@ -37,17 +37,17 @@ export default async function NewsPage({
   const pageSize = 20;
   const offset = (page - 1) * pageSize;
   const dict = await getDictionary(params.lang as any);
-  const articles = getPublishedArticles(params.lang, pageSize, offset, undefined, undefined, articleType);
-  const total = getArticleCountByType(undefined, articleType);
+  const articles = await getPublishedArticles(params.lang, pageSize, offset, undefined, undefined, articleType);
+  const total = await getArticleCountByType(undefined, articleType);
   const totalPages = Math.ceil(total / pageSize);
-  const categories = getCategoriesOrdered();
+  const categories = await getCategoriesOrdered();
 
-  const countAll = getArticleCountByType();
-  const countStandard = getArticleCountByType(undefined, 'standard');
-  const countDeep = getArticleCountByType(undefined, 'deep');
+  const countAll = await getArticleCountByType();
+  const countStandard = await getArticleCountByType(undefined, 'standard');
+  const countDeep = await getArticleCountByType(undefined, 'deep');
 
-  const popularTags = getPopularTags(12);
-  const flashMini = getFlashNews(params.lang, 6);
+  const popularTags = await getPopularTags(12);
+  const flashMini = await getFlashNews(params.lang, 6);
 
   const featured = articles[0];
   const subFeatured = articles.slice(1, 3);

@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
   const stream = new ReadableStream({
     start(controller) {
-      const tick = () => {
+      const tick = async () => {
         if (Date.now() - t0 > MAX_CONNECTION_MS) {
           clearInterval(iv);
           try {
@@ -38,8 +38,8 @@ export async function GET(req: NextRequest) {
           return;
         }
         try {
-          const fmax = getFlashMaxId(lang);
-          const amax = getPublishedArticleMaxId(lang);
+          const fmax = await getFlashMaxId(lang);
+          const amax = await getPublishedArticleMaxId(lang);
           const flashNew = fmax > flashSince;
           const articleNew = amax > articleSince;
           if (flashNew) flashSince = fmax;

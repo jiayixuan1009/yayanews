@@ -10,7 +10,7 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const topic = getTopicBySlug(params.slug);
+  const topic = await getTopicBySlug(params.slug);
   if (!topic) return { title: '专题未找到' };
   return {
     title: topic.title,
@@ -21,14 +21,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export async function generateStaticParams() {
-  const topics = getTopics(100);
+  const topics = await getTopics(100);
   return topics.map(t => ({ slug: t.slug }));
 }
 
 export const revalidate = 300;
 
-export default function TopicDetailPage({ params }: Props) {
-  const topic = getTopicBySlug(params.slug);
+export default async function TopicDetailPage({ params }: Props) {
+  const topic = await getTopicBySlug(params.slug);
   if (!topic) notFound();
 
   return (
