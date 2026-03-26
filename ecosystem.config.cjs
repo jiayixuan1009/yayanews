@@ -1,7 +1,7 @@
 /**
  * PM2 常驻：Finnhub WebSocket 快讯缓冲 + Pipeline 周期调度
- * 需在 biyanews 目录执行，且已配置 .env（LLM_API_KEY、FINNHUB_KEY 等）
- *   cd biyanews && pm2 start ecosystem.config.cjs
+ * 需在项目根目录执行，且已配置 .env（LLM_API_KEY、FINNHUB_KEY 等）
+ *   cd /var/www/yayanews && pm2 start ecosystem.config.cjs
  */
 const root = __dirname;
 

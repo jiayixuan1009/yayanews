@@ -175,15 +175,6 @@ export function getTopicBySlug(slug: string): (Topic & { articles: Article[] }) 
   return { ...topic, articles };
 }
 
-export function getGuides(limit = 20): Guide[] {
-  return getDb().prepare(
-    'SELECT * FROM guides ORDER BY sort_order, created_at DESC LIMIT ?'
-  ).all(limit) as Guide[];
-}
-
-export function getGuideBySlug(slug: string): Guide | undefined {
-  return getDb().prepare('SELECT * FROM guides WHERE slug = ?').get(slug) as Guide | undefined;
-}
 
 export function getArticleCount(): number {
   const row = getDb().prepare("SELECT COUNT(*) as count FROM articles WHERE status = 'published'").get() as { count: number };
@@ -285,6 +276,24 @@ export function getTagsForSitemap(): { slug: string; updated_at: string }[] {
   `
     )
     .all() as { slug: string; updated_at: string }[];
+}
+
+export function getGuides(limit = 20): Guide[] {
+  try {
+    return getDb().prepare(
+      'SELECT * FROM guides ORDER BY sort_order, created_at DESC LIMIT ?'
+    ).all(limit) as Guide[];
+  } catch {
+    return [];
+  }
+}
+
+export function getGuideBySlug(slug: string): Guide | undefined {
+  try {
+    return getDb().prepare('SELECT * FROM guides WHERE slug = ?').get(slug) as Guide | undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function searchArticles(query: string, limit = 20): Article[] {
