@@ -24,7 +24,7 @@ from pipeline.config.settings import (
 )
 from pipeline.utils.ws_flash_buffer import drain_ws_buffer
 from pipeline.utils.database import insert_flash, get_conn, now_cn
-from pipeline.utils.llm import chat, batch_translate
+from pipeline.utils.llm import chat, batch_translate, compute_similarity
 from pipeline.utils.logger import get_logger, step_print
 
 log = get_logger("flash")
@@ -59,13 +59,13 @@ def _is_degraded(name: str) -> bool:
     return _health(name).get("degraded", False)
 
 
-def _get_existing_flash_titles(limit: int = 500) -> set[str]:
+def _get_recent_flash_texts(limit: int = 200) -> list[str]:
     conn = get_conn()
     try:
         rows = conn.execute(
-            "SELECT title FROM flash_news ORDER BY published_at DESC LIMIT ?", (limit,)
+            "SELECT title, content FROM flash_news ORDER BY published_at DESC LIMIT ?", (limit,)
         ).fetchall()
-        return {r["title"] for r in rows}
+        return [f"{r['title']} {r.get('content', '')}" for r in rows]
     finally:
         conn.close()
 
@@ -491,7 +491,7 @@ def collect_flash(count: int = 10) -> list[dict]:
     """多通道并发采集快讯，批量翻译，按权重入库。"""
     step_print("快讯多通道引擎", f"目标: {count} 条 | 并发: {FLASH_CONCURRENCY} | 批量翻译: {FLASH_TRANSLATE_BATCH}条/次")
 
-    existing = _get_existing_flash_titles()
+    existing_texts = _get_recent_flash_texts(200)
     stats: dict[str, dict] = {}
 
     active_channels = [
@@ -584,15 +584,26 @@ def collect_flash(count: int = 10) -> list[dict]:
 
     all_items.sort(key=_sort_key)
 
-    # ── 去重 + 入库 ──
     inserted = 0
     for item in all_items:
         title = item.get("title", "").strip()
-        if not title or title in existing:
+        raw_text = item.get("raw_text", item.get("title", ""))
+        
+        if not title:
+            continue
+            
+        # Semantic Deduplication: Skip if N-gram similarity > 0.45
+        is_duplicate = False
+        item_full_text = f"{title} {item.get('content', '')}"
+        for ex_text in existing_texts:
+            if compute_similarity(item_full_text, ex_text) > 0.45:
+                is_duplicate = True
+                break
+        
+        if is_duplicate:
             continue
 
         cat_id = item.get("category_id", 2)
-        raw_text = item.get("raw_text", item.get("title", ""))
         subcategory = _detect_subcategory(raw_text, cat_id)
 
         fid = insert_flash(
@@ -607,7 +618,7 @@ def collect_flash(count: int = 10) -> list[dict]:
         )
         if fid > 0:
             inserted += 1
-            existing.add(title)
+            existing_texts.append(item_full_text)
             ch = item.get("channel", "?")
             stats.setdefault(ch, {})["inserted"] = stats.get(ch, {}).get("inserted", 0) + 1
             print(f"    + [{ch}] {title[:60]}")
@@ -622,8 +633,14 @@ def collect_flash(count: int = 10) -> list[dict]:
         stats["llm_fallback"] = {"fetched": len(fallback), "status": "ok"}
         for item in fallback:
             title = item.get("title", "").strip()
-            if not title or title in existing:
+            item_full_text = f"{title} {item.get('content', '')}"
+            if not title:
                 continue
+                
+            is_dup = any(compute_similarity(item_full_text, ex) > 0.45 for ex in existing_texts)
+            if is_dup:
+                continue
+                
             cat_override = item.pop("category_override", None)
             cat_id = CATEGORIES.get(cat_override, CATEGORIES["crypto"])["id"] if cat_override else 2
 
@@ -639,7 +656,7 @@ def collect_flash(count: int = 10) -> list[dict]:
             )
             if fid > 0:
                 inserted += 1
-                existing.add(title)
+                existing_texts.append(item_full_text)
                 print(f"    + [AI] {title[:60]}")
             if inserted >= count:
                 break
