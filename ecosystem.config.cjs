@@ -33,5 +33,14 @@ module.exports = {
       max_restarts: 20,
       min_uptime: "10s",
     },
+    {
+      name: "yaya-pipeline-worker",
+      cwd: root,
+      script: "python",
+      args: "-m pipeline.worker",
+      autorestart: true,
+      max_restarts: 20,
+      min_uptime: "10s",
+    },
   ],
 };
