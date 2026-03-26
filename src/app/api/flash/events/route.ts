@@ -4,7 +4,7 @@ import { getFlashMaxId } from '@/lib/queries';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const POLL_MS = 2500;
+const POLL_MS = 1500;
 const MAX_CONNECTION_MS = 10 * 60 * 1000;
 
 /**

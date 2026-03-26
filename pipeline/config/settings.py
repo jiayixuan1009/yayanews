@@ -58,7 +58,7 @@ CN_FLASH_RSS_FEEDS = [
 
 FLASH_CHANNELS = {
     "finnhub_ws": {
-        "enabled": False,
+        "enabled": True,
         "weight": 5,
     },
     "finnhub": {

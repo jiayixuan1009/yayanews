@@ -18,8 +18,8 @@ import subprocess
 import sys
 import time
 
-FLASH_SEC = int(os.environ.get("DAEMON_FLASH_SEC", "300"))
-ARTICLE_SEC = int(os.environ.get("DAEMON_ARTICLE_SEC", "7200"))
+FLASH_SEC = int(os.environ.get("DAEMON_FLASH_SEC", "60"))
+ARTICLE_SEC = int(os.environ.get("DAEMON_ARTICLE_SEC", "1800"))
 FLASH_COUNT = int(os.environ.get("DAEMON_FLASH_COUNT", "12"))
 ARTICLE_COUNT = int(
     os.environ.get("DAEMON_ARTICLE_COUNT", os.environ.get("BATCH_SIZE", "10"))

@@ -34,7 +34,7 @@ const LiveTicker = dynamic(() => import('@/components/LiveTicker'), {
   ),
 });
 
-export const revalidate = 60;
+export const revalidate = 15;
 
 export default function HomePage() {
   const articles = getPublishedArticles(22);

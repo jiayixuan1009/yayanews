@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS articles (
   subcategory TEXT DEFAULT '',
   collected_at DATETIME,
   view_count INTEGER DEFAULT 0, published_at DATETIME,
+  lang TEXT DEFAULT 'zh',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS article_tags (
@@ -42,6 +43,7 @@ CREATE TABLE IF NOT EXISTS flash_news (
   importance TEXT DEFAULT 'normal' CHECK(importance IN ('low','normal','high','urgent')),
   subcategory TEXT DEFAULT '',
   collected_at DATETIME,
+  lang TEXT DEFAULT 'zh',
   published_at DATETIME DEFAULT CURRENT_TIMESTAMP, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS topics (
