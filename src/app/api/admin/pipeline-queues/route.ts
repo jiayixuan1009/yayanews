@@ -4,11 +4,11 @@ import { requireAuth } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
-export function GET(req: NextRequest) {
+export async function GET(req: NextRequest) {
   const denied = requireAuth(req);
   if (denied) return denied;
   try {
-    return NextResponse.json(getPipelineQueues());
+    return NextResponse.json(await getPipelineQueues());
   } catch (e: unknown) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }

@@ -2,13 +2,13 @@ import { queryAll, queryGet } from './db';
 import type { Article, FlashNews, Category, Topic, Guide, Tag } from './types';
 import { CATEGORY_DISPLAY_ORDER } from './constants';
 
-export async function getCategories(): Category[] {
+export async function getCategories(): Promise<Category[]> {
   return await queryAll('SELECT * FROM categories ORDER BY sort_order') as Category[];
 }
 
 /** 按固定栏目顺序排序：快讯、美股、港股、衍生品、加密货币、其他（未在顺序中的排在最后） */
-export async function getCategoriesOrdered(): Category[] {
-  const list = getCategories();
+export async function getCategoriesOrdered(): Promise<Category[]> {
+  const list = await getCategories();
   const order = CATEGORY_DISPLAY_ORDER;
   return [...list].sort((a, b) => {
     const i = order.indexOf(a.slug);
@@ -20,7 +20,7 @@ export async function getCategoriesOrdered(): Category[] {
   });
 }
 
-export async function getPublishedArticles(lang: string = 'zh', limit = 20, offset = 0, categorySlug?: string, subcategory?: string, articleType?: string): Article[] {
+export async function getPublishedArticles(lang: string = 'zh', limit = 20, offset = 0, categorySlug?: string, subcategory?: string, articleType?: string): Promise<Article[]> {
   let sql = `
     SELECT a.*, c.name as category_name, c.slug as category_slug
     FROM articles a
@@ -28,38 +28,46 @@ export async function getPublishedArticles(lang: string = 'zh', limit = 20, offs
     WHERE a.status = 'published' AND a.lang = $1
   `;
   const params: unknown[] = [lang];
+  let paramIdx = 2;
 
   if (categorySlug) {
-    sql += ' AND c.slug = ?';
+    sql += ` AND c.slug = $${paramIdx++}`;
     params.push(categorySlug);
   }
 
   if (subcategory) {
-    sql += ' AND a.subcategory = ?';
+    sql += ` AND a.subcategory = $${paramIdx++}`;
     params.push(subcategory);
   }
 
   if (articleType) {
-    sql += ' AND a.article_type = ?';
+    sql += ` AND a.article_type = $${paramIdx++}`;
     params.push(articleType);
   }
 
-  sql += ' ORDER BY a.published_at DESC LIMIT ? OFFSET ?';
+  sql += ` ORDER BY a.published_at DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}`;
   params.push(limit, offset);
 
-  const articles = db.prepare(sql).all(...params) as Article[];
-  return articles.map(a => ({ ...a, tags: getArticleTags(a.id) }));
+  const articles = await queryAll<Article>(sql, params);
+  const result: Article[] = [];
+  for (const a of articles) {
+    result.push({ ...a, tags: await getArticleTags(a.id) });
+  }
+  return result;
 }
 
-export async function getArticleCountByType(categorySlug?: string, articleType?: string): number {
-  let sql = "SELECT COUNT(*) as count FROM articles a LEFT JOIN categories c ON a.category_id = c.id WHERE a.status = 'published'";
+export async function getArticleCountByType(categorySlug?: string, articleType?: string): Promise<number> {
+  let sql = "SELECT COUNT(*)::int as count FROM articles a LEFT JOIN categories c ON a.category_id = c.id WHERE a.status = 'published'";
   const params: unknown[] = [];
-  if (categorySlug) { sql += ' AND c.slug = ?'; params.push(categorySlug); }
-  if (articleType) { sql += ' AND a.article_type = ?'; params.push(articleType); }
-  return (db.prepare(sql).get(...params) as { count: number }).count;
+  let paramIdx = 1;
+  if (categorySlug) { sql += ` AND c.slug = $${paramIdx++}`; params.push(categorySlug); }
+  if (articleType) { sql += ` AND a.article_type = $${paramIdx++}`; params.push(articleType); }
+  
+  const res = await queryGet<{ count: number }>(sql, params);
+  return res?.count || 0;
 }
 
-export async function getArticleBySlug(slug: string): Article | undefined {
+export async function getArticleBySlug(slug: string): Promise<Article | undefined> {
   const article = await queryGet(`
     SELECT a.*, c.name as category_name, c.slug as category_slug
     FROM articles a
@@ -68,13 +76,13 @@ export async function getArticleBySlug(slug: string): Article | undefined {
   `, [slug]) as Article | undefined;
 
   if (article) {
-    article.tags = getArticleTags(article.id);
-    await queryAll('UPDATE articles SET view_count = view_count + 1 WHERE id = ?', [article.id]);
+    article.tags = await getArticleTags(article.id);
+    await queryAll('UPDATE articles SET view_count = view_count + 1 WHERE id = $1', [article.id]);
   }
   return article;
 }
 
-export async function getArticleTags(articleId: number): Tag[] {
+export async function getArticleTags(articleId: number): Promise<Tag[]> {
   return await queryAll(`
     SELECT t.* FROM tags t
     JOIN article_tags at ON t.id = at.tag_id
@@ -82,7 +90,7 @@ export async function getArticleTags(articleId: number): Tag[] {
   `, [articleId]) as Tag[];
 }
 
-export async function getRelatedArticles(articleId: number, categoryId: number | null, limit = 5): Article[] {
+export async function getRelatedArticles(articleId: number, categoryId: number | null, limit = 5): Promise<Article[]> {
   if (categoryId) {
     return await queryAll(`
       SELECT a.*, c.name as category_name, c.slug as category_slug
@@ -101,28 +109,28 @@ export async function getRelatedArticles(articleId: number, categoryId: number |
   `, [articleId, limit]) as Article[];
 }
 
-export async function getFlashMaxId(lang: string = 'zh', categorySlug?: string): number {
+export async function getFlashMaxId(lang: string = 'zh', categorySlug?: string): Promise<number> {
   if (categorySlug) {
-    const row = db
-      .prepare(
-        `SELECT MAX(f.id) as m FROM flash_news f
-         JOIN categories c ON f.category_id = c.id WHERE c.slug = $1 AND f.lang = $2`
-      )
-      .get(categorySlug, lang) as { m: number | null };
-    return row.m ?? 0;
+    const row = await queryGet<{ m: number | null }>(
+      `SELECT MAX(f.id) as m FROM flash_news f
+       JOIN categories c ON f.category_id = c.id WHERE c.slug = $1 AND f.lang = $2`,
+      [categorySlug, lang]
+    );
+    return row?.m ?? 0;
   }
-  const row = db.prepare('SELECT MAX(id) as m FROM flash_news WHERE lang = ?').get(lang) as { m: number | null };
-  return row.m ?? 0;
+  const row = await queryGet<{ m: number | null }>('SELECT MAX(id) as m FROM flash_news WHERE lang = $1', [lang]);
+  return row?.m ?? 0;
 }
 
-export async function getPublishedArticleMaxId(lang: string = 'zh'): number {
-  const row = getDb()
-    .prepare(`SELECT MAX(id) as m FROM articles WHERE status = 'published' AND lang = $1`)
-    .get(lang) as { m: number | null };
-  return row.m ?? 0;
+export async function getPublishedArticleMaxId(lang: string = 'zh'): Promise<number> {
+  const row = await queryGet<{ m: number | null }>(
+    `SELECT MAX(id) as m FROM articles WHERE status = 'published' AND lang = $1`,
+    [lang]
+  );
+  return row?.m ?? 0;
 }
 
-export async function getFlashNews(lang: string = 'zh', limit = 50, categorySlug?: string): FlashNews[] {
+export async function getFlashNews(lang: string = 'zh', limit = 50, categorySlug?: string): Promise<FlashNews[]> {
   if (categorySlug) {
     return await queryAll(`
       SELECT f.*, c.name as category_name
@@ -141,7 +149,7 @@ export async function getFlashNews(lang: string = 'zh', limit = 50, categorySlug
   `, [lang, limit]) as FlashNews[];
 }
 
-export async function getTopics(limit = 20): Topic[] {
+export async function getTopics(limit = 20): Promise<Topic[]> {
   return await queryAll(`
     SELECT t.*, COUNT(ta.article_id) as article_count
     FROM topics t
@@ -153,48 +161,48 @@ export async function getTopics(limit = 20): Topic[] {
   `, [limit]) as Topic[];
 }
 
-export async function getTopicBySlug(slug: string): (Topic & { articles: Article[] }) | undefined {
-  const topic = db.prepare('SELECT * FROM topics WHERE slug = ? AND status = ?').get(slug, 'active') as Topic | undefined;
+export async function getTopicBySlug(slug: string): Promise<(Topic & { articles: Article[] }) | undefined> {
+  const topic = await queryGet<Topic>('SELECT * FROM topics WHERE slug = $1 AND status = $2', [slug, 'active']);
   if (!topic) return undefined;
 
-  const articles = await queryAll(`
+  const articles = await queryAll<Article>(`
     SELECT a.*, c.name as category_name, c.slug as category_slug
     FROM articles a
     JOIN topic_articles ta ON a.id = ta.article_id
     LEFT JOIN categories c ON a.category_id = c.id
     WHERE ta.topic_id = $1 AND a.status = 'published'
     ORDER BY ta.sort_order, a.published_at DESC
-  `, [topic.id]) as Article[];
+  `, [topic.id]);
 
   return { ...topic, articles };
 }
 
 
-export async function getArticleCount(): number {
-  const row = getDb().prepare("SELECT COUNT(*) as count FROM articles WHERE status = 'published'").get() as { count: number };
-  return row.count;
+export async function getArticleCount(): Promise<number> {
+  const row = await queryGet<{ count: number }>("SELECT COUNT(*)::int as count FROM articles WHERE status = 'published'");
+  return row?.count || 0;
 }
 
-export async function getRecentArticlesForSitemap(): { slug: string; updated_at: string }[] {
+export async function getRecentArticlesForSitemap(): Promise<{ slug: string; updated_at: string }[]> {
   return await queryAll(`
     SELECT slug, updated_at FROM articles
     WHERE status = 'published' ORDER BY published_at DESC
   `) as { slug: string; updated_at: string }[];
 }
 
-export async function getNewsArticlesLast48h(): Article[] {
-  return await queryAll(`
+export async function getNewsArticlesLast48h(): Promise<Article[]> {
+  return await queryAll<Article>(`
     SELECT a.*, c.name as category_name
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
     WHERE a.status = 'published'
-      AND a.updated_at >= datetime('now', '+8 hours', '-48 hours')
+      AND a.updated_at >= (NOW() - INTERVAL '48 hours')
     ORDER BY a.updated_at DESC
     LIMIT 1000
-  `) as Article[];
+  `);
 }
 
-export async function getAdjacentArticles(articleId: number): { prev: { slug: string; title: string } | null; next: { slug: string; title: string } | null } {
+export async function getAdjacentArticles(articleId: number): Promise<{ prev: { slug: string; title: string } | null; next: { slug: string; title: string } | null }> {
   const prev = await queryGet(`
     SELECT slug, title FROM articles
     WHERE status = 'published' AND id < $1
@@ -208,7 +216,7 @@ export async function getAdjacentArticles(articleId: number): { prev: { slug: st
   return { prev: prev || null, next: next || null };
 }
 
-export async function getPopularTags(limit = 15): Tag[] {
+export async function getPopularTags(limit = 15): Promise<Tag[]> {
   return await queryAll(`
     SELECT t.*, COUNT(at.article_id) as usage_count
     FROM tags t
@@ -219,13 +227,12 @@ export async function getPopularTags(limit = 15): Tag[] {
   `, [limit]) as Tag[];
 }
 
-export async function getTagBySlug(slug: string): Tag | undefined {
-  return await queryGet('SELECT * FROM tags WHERE slug = ?', [slug]) as Tag | undefined;
+export async function getTagBySlug(slug: string): Promise<Tag | undefined> {
+  return await queryGet<Tag>('SELECT * FROM tags WHERE slug = $1', [slug]);
 }
 
-export async function getPublishedArticlesByTagSlug(tagSlug: string, limit = 48, offset = 0): Article[] {
-  const articles = getDb()
-    .prepare(
+export async function getPublishedArticlesByTagSlug(tagSlug: string, limit = 48, offset = 0): Promise<Article[]> {
+  const articles = await queryAll<Article>(
       `
     SELECT a.*, c.name as category_name, c.slug as category_slug
     FROM articles a
@@ -235,30 +242,33 @@ export async function getPublishedArticlesByTagSlug(tagSlug: string, limit = 48,
     WHERE t.slug = $1 AND a.status = 'published'
     ORDER BY a.published_at DESC
     LIMIT $2 OFFSET $3
-  `
-    )
-    .all(tagSlug, limit, offset) as Article[];
-  return articles.map(a => ({ ...a, tags: getArticleTags(a.id) }));
+  `,
+    [tagSlug, limit, offset]
+  );
+  
+  const result: Article[] = [];
+  for (const a of articles) {
+    result.push({ ...a, tags: await getArticleTags(a.id) });
+  }
+  return result;
 }
 
-export async function getArticleCountByTagSlug(tagSlug: string): number {
-  const row = getDb()
-    .prepare(
+export async function getArticleCountByTagSlug(tagSlug: string): Promise<number> {
+  const row = await queryGet<{ count: number }>(
       `
-    SELECT COUNT(*) as count FROM articles a
+    SELECT COUNT(*)::int as count FROM articles a
     JOIN article_tags at ON a.id = at.article_id
     JOIN tags t ON t.id = at.tag_id
     WHERE t.slug = $1 AND a.status = 'published'
-  `
-    )
-    .get(tagSlug) as { count: number };
-  return row.count;
+  `,
+    [tagSlug]
+  );
+  return row?.count || 0;
 }
 
 /** 有已发布稿件关联的标签，用于 sitemap */
-export async function getTagsForSitemap(): { slug: string; updated_at: string }[] {
-  return getDb()
-    .prepare(
+export async function getTagsForSitemap(): Promise<{ slug: string; updated_at: string }[]> {
+  return await queryAll<{ slug: string; updated_at: string }>(
       `
     SELECT t.slug, MAX(a.updated_at) as updated_at
     FROM tags t
@@ -267,36 +277,35 @@ export async function getTagsForSitemap(): { slug: string; updated_at: string }[
     WHERE a.status = 'published'
     GROUP BY t.id
   `
-    )
-    .all() as { slug: string; updated_at: string }[];
+  );
 }
 
-export async function getGuides(limit = 20): Guide[] {
+export async function getGuides(limit = 20): Promise<Guide[]> {
   try {
-    return getDb().prepare(
-      'SELECT * FROM guides ORDER BY sort_order, created_at DESC LIMIT ?'
-    ).all(limit) as Guide[];
+    return await queryAll<Guide>(
+      'SELECT * FROM guides ORDER BY sort_order, created_at DESC LIMIT $1', [limit]
+    );
   } catch {
     return [];
   }
 }
 
-export async function getGuideBySlug(slug: string): Guide | undefined {
+export async function getGuideBySlug(slug: string): Promise<Guide | undefined> {
   try {
-    return await queryGet('SELECT * FROM guides WHERE slug = ?', [slug]) as Guide | undefined;
+    return await queryGet<Guide>('SELECT * FROM guides WHERE slug = $1', [slug]);
   } catch {
     return undefined;
   }
 }
 
-export async function searchArticles(query: string, limit = 20): Article[] {
+export async function searchArticles(query: string, limit = 20): Promise<Article[]> {
   const q = `%${query}%`;
   return await queryAll(`
     SELECT a.*, c.name as category_name, c.slug as category_slug
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
     WHERE a.status = 'published'
-      AND (a.title LIKE $1 OR a.summary LIKE $2 OR a.content LIKE $3)
+      AND (a.title ILIKE $1 OR a.summary ILIKE $2 OR a.content ILIKE $3)
     ORDER BY a.published_at DESC LIMIT $4
   `, [q, q, q, limit]) as Article[];
 }

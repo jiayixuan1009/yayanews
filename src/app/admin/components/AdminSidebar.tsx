@@ -1,6 +1,6 @@
 'use client';
 
-import LocalizedLink from '@/components/LocalizedLink';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const navItems = [
@@ -30,7 +30,7 @@ export default function AdminSidebar() {
             ? pathname === '/admin'
             : pathname.startsWith(item.href);
           return (
-            <LocalizedLink
+            <Link
               key={item.href}
               href={item.href}
               aria-current={active ? 'page' : undefined}
@@ -44,7 +44,7 @@ export default function AdminSidebar() {
                 <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
               </svg>
               {item.label}
-            </LocalizedLink>
+            </Link>
           );
         })}
       </nav>
@@ -52,7 +52,7 @@ export default function AdminSidebar() {
       <div className="border-t border-slate-800 p-4">
         <div className="rounded-lg bg-slate-800/50 p-3 text-xs text-slate-500">
           <p>YayaNews Pipeline</p>
-          <p className="text-slate-600 mt-0.5">v1.0 &middot; SQLite</p>
+          <p className="text-slate-600 mt-0.5">v1.0 &middot; PostgreSQL</p>
         </div>
       </div>
     </aside>

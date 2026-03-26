@@ -4,12 +4,12 @@ import { requireAuth } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
-export function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const denied = requireAuth(req);
   if (denied) return denied;
 
   try {
-    const article = getAdminArticleById(Number(params.id));
+    const article = await getAdminArticleById(Number(params.id));
     if (!article) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(article);
   } catch (e: unknown) {
@@ -17,12 +17,12 @@ export function GET(req: NextRequest, { params }: { params: { id: string } }) {
   }
 }
 
-export function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const denied = requireAuth(req);
   if (denied) return denied;
 
   try {
-    const ok = deleteArticle(Number(params.id));
+    const ok = await deleteArticle(Number(params.id));
     return NextResponse.json({ success: ok });
   } catch (e: unknown) {
     return NextResponse.json({ error: String(e) }, { status: 500 });

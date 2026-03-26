@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import LocalizedLink from '@/components/LocalizedLink';
+import Link from 'next/link';
 import { adminFetch } from '@/lib/admin-fetch';
 
 interface PipelineStatus {
@@ -204,9 +204,9 @@ export default function PipelinePage() {
               ))
             )}
           </ul>
-          <LocalizedLink href="/admin/articles" className="mt-3 inline-block text-xs text-primary-400 hover:text-primary-300">
+          <Link href="/admin/articles" className="mt-3 inline-block text-xs text-primary-400 hover:text-primary-300">
             文章管理 →
-          </LocalizedLink>
+          </Link>
         </div>
         <div className="rounded-xl border border-emerald-900/40 bg-slate-900/60 p-4">
           <div className="flex items-center justify-between mb-3">
@@ -216,13 +216,13 @@ export default function PipelinePage() {
           <ul className="max-h-64 overflow-y-auto space-y-2 text-sm">
             {queues.published.map(a => (
               <li key={a.id} className="border-b border-slate-800/80 pb-2">
-                <LocalizedLink
+                <Link
                   href={`/article/${a.slug}`}
                   target="_blank"
                   className="text-slate-300 hover:text-primary-400 line-clamp-2"
                 >
                   {a.title}
-                </LocalizedLink>
+                </Link>
                 <div className="text-[10px] text-slate-600 mt-0.5">{a.published_at?.slice(0, 16)}</div>
               </li>
             ))}

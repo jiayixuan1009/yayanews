@@ -6,21 +6,21 @@ import path from 'path';
 
 export const dynamic = 'force-dynamic';
 
-export function GET(req: NextRequest) {
+export async function GET(req: NextRequest) {
   const denied = requireAuth(req);
   if (denied) return denied;
 
   try {
     const limit = parseInt(req.nextUrl.searchParams.get('limit') || '50', 10);
     const offset = parseInt(req.nextUrl.searchParams.get('offset') || '0', 10);
-    const data = getBenchmarks(limit, offset);
+    const data = await getBenchmarks(limit, offset);
     return NextResponse.json(data);
   } catch (e: unknown) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }
 
-export function POST(req: NextRequest) {
+export async function POST(req: NextRequest) {
   const denied = requireAuth(req);
   if (denied) return denied;
 

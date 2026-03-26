@@ -55,14 +55,14 @@ function getStatus(): { running: boolean; pid: number | null; log: string } {
   return { running, pid: running ? pid : null, log };
 }
 
-export function GET(req: NextRequest) {
+export async function GET(req: NextRequest) {
   const denied = requireAuth(req);
   if (denied) return denied;
 
   return NextResponse.json(getStatus());
 }
 
-export function POST(req: NextRequest) {
+export async function POST(req: NextRequest) {
   const denied = requireAuth(req);
   if (denied) return denied;
 

@@ -17,7 +17,7 @@ import ArticleCard from '@/components/ArticleCard';
 import RightRailPanel from '@/components/editorial/RightRailPanel';
 import TopicBridge from '@/components/editorial/TopicBridge';
 import SectionHeader from '@/components/editorial/SectionHeader';
-import { siteConfig } from '@/lib/types';
+import { siteConfig, type Article } from '@/lib/types';
 import { sanitizeHtml } from '@/lib/sanitize';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
 
@@ -67,10 +67,10 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
   const coverOpt = article.cover_image ? isRemoteImageOptimizable(article.cover_image) : false;
   const sameCategory =
     article.category_slug != null
-      ? await getPublishedArticles(params.lang, 8, 0, article.category_slug).filter(a => a.id !== article.id)
+      ? (await getPublishedArticles(params.lang, 8, 0, article.category_slug)).filter((a: Article) => a.id !== article.id)
       : [];
   const moreRead = sameCategory.slice(0, 4);
-  const bridgeTopic = await getTopics(1)[0];
+  const bridgeTopic = (await getTopics(1))[0];
   const sentiment = getSentimentLabel(article.sentiment);
   const tickers = article.tickers
     ? article.tickers

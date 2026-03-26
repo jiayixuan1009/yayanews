@@ -11,13 +11,17 @@ services:
         NEXT_PUBLIC_SITE_URL: https://yayanews.cryptooptiontool.com
         NEXT_PUBLIC_PARENT_SITE: https://www.biyapay.com
         NEXT_PUBLIC_TRADING_SITE: https://invest.biyapay.com
+        DATABASE_URL: REDACTED
     image: yayanews:latest
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     environment:
       NEXT_PUBLIC_SITE_URL: https://yayanews.cryptooptiontool.com
       NEXT_PUBLIC_PARENT_SITE: https://www.biyapay.com
       NEXT_PUBLIC_TRADING_SITE: https://invest.biyapay.com
+      DATABASE_URL: REDACTED
+    env_file:
+      - .env
     volumes:
       - ./data:/app/data

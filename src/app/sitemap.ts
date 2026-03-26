@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import { getRecentArticlesForSitemap, getTopics, getCategories, getTagsForSitemap } from '@/lib/queries';
 import { siteConfig } from '@/lib/types';
 
-export default async function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = siteConfig.siteUrl;
 
   const staticPages: MetadataRoute.Sitemap = [

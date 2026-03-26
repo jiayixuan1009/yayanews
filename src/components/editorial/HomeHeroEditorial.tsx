@@ -47,7 +47,7 @@ export default function HomeHeroEditorial({ lead, secondaries }: Props) {
 
   return (
     <section className="border-b border-[#ddd5ca] bg-[#f7f4ee]">
-      <div className="container-main py-6 sm:py-8 lg:py-10">
+      <div className="container-main py-4 md:py-6 lg:py-8">
         <div className="mb-4 flex items-center justify-between gap-4 border-b border-[#ddd5ca] pb-3">
           <div className="flex items-center gap-3">
             <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#8fcb79] bg-[#91f78e]/50">
@@ -63,13 +63,13 @@ export default function HomeHeroEditorial({ lead, secondaries }: Props) {
 
         {lead ? (
           <>
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)_280px] xl:items-start">
+            <div className="grid gap-4 md:gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)_280px] xl:items-start">
               <div>
                 <div className="mb-3 inline-flex rounded-[2px] bg-[#91f78e]/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1d5c4f]">
                   {lead.article_type === 'deep' ? 'Investigative feature' : 'Featured report'}
                 </div>
                 <LocalizedLink href={`/article/${lead.slug}`} className="group block">
-                  <h1 className="max-w-[9ch] font-display text-[2.9rem] font-semibold leading-[0.93] tracking-[-0.055em] text-[#111713] group-hover:text-[#1d5c4f] sm:text-[4rem] lg:text-[4.7rem] xl:text-[5.2rem]">
+                  <h1 className="max-w-[9ch] font-display text-[2.2rem] md:text-[2.9rem] font-semibold leading-[0.93] tracking-[-0.055em] text-[#111713] group-hover:text-[#1d5c4f] sm:text-[4rem] lg:text-[4.7rem] xl:text-[5.2rem]">
                     {lead.title}
                   </h1>
                   {lead.summary ? <p className="mt-5 max-w-[34ch] font-body text-[1rem] leading-8 text-slate-700 sm:text-[1.08rem] sm:leading-9">{lead.summary}</p> : null}
@@ -131,7 +131,7 @@ export default function HomeHeroEditorial({ lead, secondaries }: Props) {
             </div>
 
             {lowerFeatures.length > 0 ? (
-              <div className="mt-8 grid gap-6 lg:grid-cols-2 lg:gap-8">
+              <div className="mt-5 md:mt-8 grid gap-4 md:gap-6 lg:grid-cols-2 lg:gap-8">
                 {lowerFeatures.map(item => <SecondaryFeature key={item.id} article={item} />)}
               </div>
             ) : null}

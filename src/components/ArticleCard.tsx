@@ -50,7 +50,7 @@ export default function ArticleCard({ article, featured = false, priority = fals
               <span className="font-label text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">Lead report</span>
             </div>
           </div>
-          <div className="flex flex-col justify-between p-5 sm:p-8 lg:p-10">
+          <div className="flex flex-col justify-between p-4 sm:p-6 lg:p-10">
             <div>
               <div className="flex flex-wrap items-center gap-1.5">
                 {article.category_name && <span className={getCategoryBadgeClass(article.category_slug)}>{article.category_name}</span>}
@@ -58,12 +58,12 @@ export default function ArticleCard({ article, featured = false, priority = fals
                 {!hasRealCover && <span className="badge border-amber-200 bg-amber-50 text-amber-700">待配图</span>}
               </div>
               <p className="mt-5 font-label text-[11px] font-semibold uppercase tracking-[0.2em] text-[#667067]">Lead report</p>
-              <h2 className="mt-3 max-w-[10ch] font-display text-[2.4rem] font-semibold leading-[0.94] tracking-[-0.055em] text-[#101713] group-hover:text-[#1d5c4f] sm:text-[3rem] lg:text-[4.15rem]">
+              <h2 className="mt-3 max-w-[10ch] font-display text-[2rem] font-semibold leading-[0.94] tracking-[-0.055em] text-[#101713] group-hover:text-[#1d5c4f] sm:text-[2.4rem] lg:text-[4.15rem]">
                 {article.title}
               </h2>
-              {article.summary && <p className="mt-5 max-w-[33ch] font-body text-[1rem] leading-8 text-slate-700 line-clamp-4">{article.summary}</p>}
+              {article.summary && <p className="mt-4 max-w-[33ch] font-body text-[15px] leading-7 text-slate-700 sm:text-[1rem] sm:leading-8 line-clamp-4">{article.summary}</p>}
             </div>
-            <div className="mt-7 border-t border-[#e3dbcf] pt-5 text-[11px] uppercase tracking-[0.16em] text-[#667067]">
+            <div className="mt-5 sm:mt-7 border-t border-[#e3dbcf] pt-4 sm:pt-5 text-[11px] uppercase tracking-[0.16em] text-[#667067]">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span className="font-semibold text-[#14261f]">{article.author}</span>
                 <span>{article.published_at?.slice(0, 16)}</span>
@@ -78,7 +78,7 @@ export default function ArticleCard({ article, featured = false, priority = fals
   }
 
   return (
-    <LocalizedLink href={`/article/${article.slug}`} className="group grid gap-4 border-t border-[#ddd5ca] py-5 first:border-t-0 first:pt-0 sm:grid-cols-[minmax(0,1fr)_196px] sm:items-start sm:gap-5 sm:py-6">
+    <LocalizedLink href={`/article/${article.slug}`} className="group grid gap-3 sm:gap-5 border-t border-[#ddd5ca] py-4 sm:py-6 first:border-t-0 first:pt-0 sm:grid-cols-[minmax(0,1fr)_196px] sm:items-start">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1.5">
           {article.category_name && <span className={getCategoryBadgeClass(article.category_slug)}>{article.category_name}</span>}
@@ -89,7 +89,7 @@ export default function ArticleCard({ article, featured = false, priority = fals
           {article.title}
         </h3>
         {article.summary && <p className="mt-3 max-w-[56ch] font-body text-[15px] leading-7 text-slate-600 line-clamp-3">{article.summary}</p>}
-        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[#ece4d8] pt-3 text-[11px] uppercase tracking-[0.16em] text-[#667067]">
+        <div className="mt-3 sm:mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[#ece4d8] pt-3 text-[11px] uppercase tracking-[0.16em] text-[#667067]">
           <span className="font-semibold text-[#14261f]">{article.author}</span>
           <span>{article.published_at?.slice(0, 16)}</span>
           <span>{getReadTime(article.article_type)}</span>

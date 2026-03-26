@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { queryAll, queryGet, queryRun } from './db';
 import type { Article, FlashNews, Category } from './types';
 
 /* ── Dashboard 统计 ── */
@@ -24,65 +24,61 @@ export interface DashboardStats {
   processingStats: ProcessingStats;
 }
 
-export function getDashboardStats(): DashboardStats {
-  const db = getDb();
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const [{ c: totalArticles }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM articles");
+  const [{ c: totalFlash }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM flash_news");
+  const [{ c: totalViews }] = await queryAll<{ c: number }>("SELECT COALESCE(SUM(view_count),0)::int as c FROM articles");
 
-  const totalArticles = (db.prepare("SELECT COUNT(*) as c FROM articles").get() as { c: number }).c;
-  const totalFlash = (db.prepare("SELECT COUNT(*) as c FROM flash_news").get() as { c: number }).c;
-  const totalViews = (db.prepare("SELECT COALESCE(SUM(view_count),0) as c FROM articles").get() as { c: number }).c;
+  const [{ c: todayArticles }] = await queryAll<{ c: number }>(
+    "SELECT COUNT(*)::int as c FROM articles WHERE date(created_at) = CURRENT_DATE"
+  );
 
-  const todayArticles = (db.prepare(
-    "SELECT COUNT(*) as c FROM articles WHERE date(created_at)=date('now')"
-  ).get() as { c: number }).c;
+  const [{ c: todayFlash }] = await queryAll<{ c: number }>(
+    "SELECT COUNT(*)::int as c FROM flash_news WHERE date(published_at) = CURRENT_DATE"
+  );
 
-  const todayFlash = (db.prepare(
-    "SELECT COUNT(*) as c FROM flash_news WHERE date(published_at)=date('now')"
-  ).get() as { c: number }).c;
-
-  const categoryStats = db.prepare(`
+  const categoryStats = await queryAll<DashboardStats['categoryStats'][0]>(`
     SELECT c.slug, c.name,
-      (SELECT COUNT(*) FROM articles a WHERE a.category_id=c.id) as articles,
-      (SELECT COUNT(*) FROM flash_news f WHERE f.category_id=c.id) as flash
+      (SELECT COUNT(*)::int FROM articles a WHERE a.category_id=c.id) as articles,
+      (SELECT COUNT(*)::int FROM flash_news f WHERE f.category_id=c.id) as flash
     FROM categories c ORDER BY c.sort_order
-  `).all() as DashboardStats['categoryStats'];
+  `);
 
-  const recentArticles = db.prepare(`
+  const recentArticles = await queryAll<Article & { category_name: string; category_slug: string }>(`
     SELECT a.*, c.name as category_name, c.slug as category_slug
     FROM articles a LEFT JOIN categories c ON a.category_id=c.id
     ORDER BY a.created_at DESC LIMIT 10
-  `).all() as Article[];
+  `);
 
-  const dailyTrend = db.prepare(`
-    SELECT d.date,
-      COALESCE(ac.cnt, 0) as articles,
-      COALESCE(fc.cnt, 0) as flash
+  const dailyTrend = await queryAll<DashboardStats['dailyTrend'][0]>(`
+    SELECT d.date::text,
+      COALESCE(ac.cnt, 0)::int as articles,
+      COALESCE(fc.cnt, 0)::int as flash
     FROM (
-      SELECT date('now', '-' || n || ' days') as date
-      FROM (SELECT 0 as n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
-            UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6)
+      SELECT generate_series(CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE, '1 day')::date AS date
     ) d
-    LEFT JOIN (SELECT date(created_at) as dt, COUNT(*) as cnt FROM articles GROUP BY dt) ac ON ac.dt=d.date
-    LEFT JOIN (SELECT date(published_at) as dt, COUNT(*) as cnt FROM flash_news GROUP BY dt) fc ON fc.dt=d.date
+    LEFT JOIN (SELECT date(created_at) as dt, COUNT(*)::int as cnt FROM articles GROUP BY dt) ac ON ac.dt=d.date
+    LEFT JOIN (SELECT date(published_at) as dt, COUNT(*)::int as cnt FROM flash_news GROUP BY dt) fc ON fc.dt=d.date
     ORDER BY d.date
-  `).all() as DashboardStats['dailyTrend'];
+  `);
 
-  const processingStats = db.prepare(`
+  const processingStats = await queryGet<ProcessingStats>(`
     SELECT
-      (SELECT AVG(CAST((julianday(published_at) - julianday(collected_at)) * 86400 AS INTEGER))
-       FROM articles WHERE collected_at IS NOT NULL AND published_at IS NOT NULL) as avgArticleSeconds,
-      (SELECT AVG(CAST((julianday(published_at) - julianday(collected_at)) * 86400 AS INTEGER))
-       FROM flash_news WHERE collected_at IS NOT NULL AND published_at IS NOT NULL) as avgFlashSeconds,
-      (SELECT MAX(CAST((julianday(published_at) - julianday(collected_at)) * 86400 AS INTEGER))
-       FROM articles WHERE collected_at IS NOT NULL AND published_at IS NOT NULL) as maxArticleSeconds,
-      (SELECT MAX(CAST((julianday(published_at) - julianday(collected_at)) * 86400 AS INTEGER))
-       FROM flash_news WHERE collected_at IS NOT NULL AND published_at IS NOT NULL) as maxFlashSeconds,
-      (SELECT AVG(CAST((julianday(published_at) - julianday(collected_at)) * 86400 AS INTEGER))
-       FROM articles WHERE collected_at IS NOT NULL AND published_at IS NOT NULL AND date(created_at)=date('now')) as todayAvgArticleSeconds,
-      (SELECT AVG(CAST((julianday(published_at) - julianday(collected_at)) * 86400 AS INTEGER))
-       FROM flash_news WHERE collected_at IS NOT NULL AND published_at IS NOT NULL AND date(created_at)=date('now')) as todayAvgFlashSeconds
-  `).get() as ProcessingStats;
+      (SELECT AVG(EXTRACT(EPOCH FROM (published_at - collected_at)))::int
+       FROM articles WHERE collected_at IS NOT NULL AND published_at IS NOT NULL) as "avgArticleSeconds",
+      (SELECT AVG(EXTRACT(EPOCH FROM (published_at - collected_at)))::int
+       FROM flash_news WHERE collected_at IS NOT NULL AND published_at IS NOT NULL) as "avgFlashSeconds",
+      (SELECT MAX(EXTRACT(EPOCH FROM (published_at - collected_at)))::int
+       FROM articles WHERE collected_at IS NOT NULL AND published_at IS NOT NULL) as "maxArticleSeconds",
+      (SELECT MAX(EXTRACT(EPOCH FROM (published_at - collected_at)))::int
+       FROM flash_news WHERE collected_at IS NOT NULL AND published_at IS NOT NULL) as "maxFlashSeconds",
+      (SELECT AVG(EXTRACT(EPOCH FROM (published_at - collected_at)))::int
+       FROM articles WHERE collected_at IS NOT NULL AND published_at IS NOT NULL AND date(created_at)=CURRENT_DATE) as "todayAvgArticleSeconds",
+      (SELECT AVG(EXTRACT(EPOCH FROM (published_at - collected_at)))::int
+       FROM flash_news WHERE collected_at IS NOT NULL AND published_at IS NOT NULL AND date(created_at)=CURRENT_DATE) as "todayAvgFlashSeconds"
+  `);
 
-  return { totalArticles, totalFlash, totalViews, todayArticles, todayFlash, categoryStats, recentArticles, dailyTrend, processingStats };
+  return { totalArticles, totalFlash, totalViews, todayArticles, todayFlash, categoryStats, recentArticles, dailyTrend, processingStats: processingStats! };
 }
 
 /* ── 文章管理（含所有状态） ── */
@@ -103,63 +99,63 @@ export interface AdminArticleListResult {
   pageSize: number;
 }
 
-export function getAdminArticles(params: AdminArticleListParams = {}): AdminArticleListResult {
-  const db = getDb();
+export async function getAdminArticles(params: AdminArticleListParams = {}): Promise<AdminArticleListResult> {
   const page = params.page ?? 1;
   const pageSize = params.pageSize ?? 20;
   const offset = (page - 1) * pageSize;
 
   let where = '1=1';
   const binds: unknown[] = [];
+  let paramIdx = 1;
 
   if (params.category) {
-    where += ' AND c.slug = ?';
+    where += ` AND c.slug = $${paramIdx++}`;
     binds.push(params.category);
   }
   if (params.subcategory) {
-    where += ' AND a.subcategory = ?';
+    where += ` AND a.subcategory = $${paramIdx++}`;
     binds.push(params.subcategory);
   }
   if (params.status) {
-    where += ' AND a.status = ?';
+    where += ` AND a.status = $${paramIdx++}`;
     binds.push(params.status);
   }
   if (params.search) {
-    where += ' AND (a.title LIKE ? OR a.summary LIKE ?)';
-    const q = `%${params.search}%`;
-    binds.push(q, q);
+    where += ` AND (a.title ILIKE $${paramIdx} OR a.summary ILIKE $${paramIdx})`;
+    binds.push(`%${params.search}%`);
+    paramIdx++;
   }
 
-  const total = (db.prepare(`
-    SELECT COUNT(*) as c FROM articles a LEFT JOIN categories c ON a.category_id=c.id WHERE ${where}
-  `).get(...binds) as { c: number }).c;
+  const [{ c: total }] = await queryAll<{ c: number }>(`
+    SELECT COUNT(*)::int as c FROM articles a LEFT JOIN categories c ON a.category_id=c.id WHERE ${where}
+  `, binds);
 
-  const articles = db.prepare(`
+  const articles = await queryAll<Article>(`
     SELECT a.*, c.name as category_name, c.slug as category_slug,
       CASE WHEN a.collected_at IS NOT NULL AND a.published_at IS NOT NULL
-        THEN CAST((julianday(a.published_at) - julianday(a.collected_at)) * 86400 AS INTEGER)
+        THEN EXTRACT(EPOCH FROM (a.published_at - a.collected_at))::int
         ELSE NULL END as processing_seconds
     FROM articles a LEFT JOIN categories c ON a.category_id=c.id
     WHERE ${where}
-    ORDER BY a.created_at DESC LIMIT ? OFFSET ?
-  `).all(...binds, pageSize, offset) as Article[];
+    ORDER BY a.created_at DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}
+  `, [...binds, pageSize, offset]);
 
   return { articles, total, page, pageSize };
 }
 
-export function getAdminArticleById(id: number): Article | undefined {
-  const db = getDb();
-  const article = db.prepare(`
+export async function getAdminArticleById(id: number): Promise<Article | undefined> {
+  const article = await queryGet<Article>(`
     SELECT a.*, c.name as category_name, c.slug as category_slug,
       CASE WHEN a.collected_at IS NOT NULL AND a.published_at IS NOT NULL
-        THEN CAST((julianday(a.published_at) - julianday(a.collected_at)) * 86400 AS INTEGER)
+        THEN EXTRACT(EPOCH FROM (a.published_at - a.collected_at))::int
         ELSE NULL END as processing_seconds
-    FROM articles a LEFT JOIN categories c ON a.category_id=c.id WHERE a.id=?
-  `).get(id) as Article | undefined;
+    FROM articles a LEFT JOIN categories c ON a.category_id=c.id WHERE a.id=$1
+  `, [id]);
+  
   if (article) {
-    const tags = db.prepare(`
-      SELECT t.* FROM tags t JOIN article_tags at ON t.id=at.tag_id WHERE at.article_id=?
-    `).all(article.id) as { id: number; name: string; slug: string }[];
+    const tags = await queryAll<{ id: number; name: string; slug: string }>(`
+      SELECT t.* FROM tags t JOIN article_tags at ON t.id=at.tag_id WHERE at.article_id=$1
+    `, [article.id]);
     article.tags = tags;
   }
   return article;
@@ -182,42 +178,42 @@ export interface AdminFlashListResult {
   pageSize: number;
 }
 
-export function getAdminFlash(params: AdminFlashListParams = {}): AdminFlashListResult {
-  const db = getDb();
+export async function getAdminFlash(params: AdminFlashListParams = {}): Promise<AdminFlashListResult> {
   const page = params.page ?? 1;
   const pageSize = params.pageSize ?? 30;
   const offset = (page - 1) * pageSize;
 
   let where = '1=1';
   const binds: unknown[] = [];
+  let paramIdx = 1;
 
   if (params.category) {
-    where += ' AND c.slug = ?';
+    where += ` AND c.slug = $${paramIdx++}`;
     binds.push(params.category);
   }
   if (params.subcategory) {
-    where += ' AND f.subcategory = ?';
+    where += ` AND f.subcategory = $${paramIdx++}`;
     binds.push(params.subcategory);
   }
   if (params.search) {
-    where += ' AND (f.title LIKE ? OR f.content LIKE ?)';
-    const q = `%${params.search}%`;
-    binds.push(q, q);
+    where += ` AND (f.title ILIKE $${paramIdx} OR f.content ILIKE $${paramIdx})`;
+    binds.push(`%${params.search}%`);
+    paramIdx++;
   }
 
-  const total = (db.prepare(`
-    SELECT COUNT(*) as c FROM flash_news f LEFT JOIN categories c ON f.category_id=c.id WHERE ${where}
-  `).get(...binds) as { c: number }).c;
+  const [{ c: total }] = await queryAll<{ c: number }>(`
+    SELECT COUNT(*)::int as c FROM flash_news f LEFT JOIN categories c ON f.category_id=c.id WHERE ${where}
+  `, binds);
 
-  const items = db.prepare(`
+  const items = await queryAll<FlashNews>(`
     SELECT f.*, c.name as category_name,
       CASE WHEN f.collected_at IS NOT NULL AND f.published_at IS NOT NULL
-        THEN CAST((julianday(f.published_at) - julianday(f.collected_at)) * 86400 AS INTEGER)
+        THEN EXTRACT(EPOCH FROM (f.published_at - f.collected_at))::int
         ELSE NULL END as processing_seconds
     FROM flash_news f LEFT JOIN categories c ON f.category_id=c.id
     WHERE ${where}
-    ORDER BY f.published_at DESC LIMIT ? OFFSET ?
-  `).all(...binds, pageSize, offset) as FlashNews[];
+    ORDER BY f.published_at DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}
+  `, [...binds, pageSize, offset]);
 
   return { items, total, page, pageSize };
 }
@@ -311,60 +307,55 @@ function percentile(arr: number[], p: number): number | null {
   return sorted[Math.max(0, idx)];
 }
 
-export function getSpeedStats(): SpeedStats {
-  const db = getDb();
-
-  // ── Pipeline runs overview ──
-  const allArticleRuns = db.prepare(
+export async function getSpeedStats(): Promise<SpeedStats> {
+  const allArticleRuns = await queryAll<{ total_seconds: number }>(
     "SELECT total_seconds FROM pipeline_runs WHERE run_type='article' ORDER BY total_seconds"
-  ).all() as { total_seconds: number }[];
-  const allFlashRuns = db.prepare(
+  );
+  const allFlashRuns = await queryAll<{ total_seconds: number }>(
     "SELECT total_seconds FROM pipeline_runs WHERE run_type='flash' ORDER BY total_seconds"
-  ).all() as { total_seconds: number }[];
+  );
 
   const artTimes = allArticleRuns.map(r => r.total_seconds);
   const flashTimes = allFlashRuns.map(r => r.total_seconds);
 
-  const totalRuns = (db.prepare("SELECT COUNT(*) as c FROM pipeline_runs").get() as { c: number }).c;
-  const todayRuns = (db.prepare("SELECT COUNT(*) as c FROM pipeline_runs WHERE date(started_at)=date('now')").get() as { c: number }).c;
+  const [{ c: totalRuns }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM pipeline_runs");
+  const [{ c: todayRuns }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM pipeline_runs WHERE date(started_at)=CURRENT_DATE");
 
-  const todayAvgArticle = (db.prepare(
-    "SELECT AVG(total_seconds) as v FROM pipeline_runs WHERE run_type='article' AND date(started_at)=date('now')"
-  ).get() as { v: number | null }).v;
-  const todayAvgFlash = (db.prepare(
-    "SELECT AVG(total_seconds) as v FROM pipeline_runs WHERE run_type='flash' AND date(started_at)=date('now')"
-  ).get() as { v: number | null }).v;
+  const [{ v: todayAvgArticle }] = await queryAll<{ v: number | null }>(
+    "SELECT AVG(total_seconds) as v FROM pipeline_runs WHERE run_type='article' AND date(started_at)=CURRENT_DATE"
+  );
+  const [{ v: todayAvgFlash }] = await queryAll<{ v: number | null }>(
+    "SELECT AVG(total_seconds) as v FROM pipeline_runs WHERE run_type='flash' AND date(started_at)=CURRENT_DATE"
+  );
 
-  const yesterdayAvgArticle = (db.prepare(
-    "SELECT AVG(total_seconds) as v FROM pipeline_runs WHERE run_type='article' AND date(started_at)=date('now','-1 day')"
-  ).get() as { v: number | null }).v;
-  const yesterdayAvgFlash = (db.prepare(
-    "SELECT AVG(total_seconds) as v FROM pipeline_runs WHERE run_type='flash' AND date(started_at)=date('now','-1 day')"
-  ).get() as { v: number | null }).v;
+  const [{ v: yesterdayAvgArticle }] = await queryAll<{ v: number | null }>(
+    "SELECT AVG(total_seconds) as v FROM pipeline_runs WHERE run_type='article' AND date(started_at)=CURRENT_DATE - INTERVAL '1 day'"
+  );
+  const [{ v: yesterdayAvgFlash }] = await queryAll<{ v: number | null }>(
+    "SELECT AVG(total_seconds) as v FROM pipeline_runs WHERE run_type='flash' AND date(started_at)=CURRENT_DATE - INTERVAL '1 day'"
+  );
 
-  const perItemArticle = (db.prepare(
+  const [{ v: perItemArticle }] = await queryAll<{ v: number | null }>(
     "SELECT AVG(total_seconds * 1.0 / NULLIF(items_produced,0)) as v FROM pipeline_runs WHERE run_type='article' AND items_produced>0"
-  ).get() as { v: number | null }).v;
-  const perItemFlash = (db.prepare(
+  );
+  const [{ v: perItemFlash }] = await queryAll<{ v: number | null }>(
     "SELECT AVG(total_seconds * 1.0 / NULLIF(items_produced,0)) as v FROM pipeline_runs WHERE run_type='flash' AND items_produced>0"
-  ).get() as { v: number | null }).v;
+  );
 
-  // ── Per-article processing time from collected_at -> published_at ──
-  const artProcessingTimes = db.prepare(
-    `SELECT CAST((julianday(published_at) - julianday(collected_at)) * 86400 AS INTEGER) as secs
+  const artProcessingTimes = await queryAll<{ secs: number }>(
+    `SELECT EXTRACT(EPOCH FROM (published_at - collected_at))::int as secs
      FROM articles WHERE collected_at IS NOT NULL AND published_at IS NOT NULL
      ORDER BY secs`
-  ).all() as { secs: number }[];
+  );
   const artProcArr = artProcessingTimes.map(r => r.secs).filter(s => s >= 0);
 
-  const flashProcessingTimes = db.prepare(
-    `SELECT CAST((julianday(published_at) - julianday(collected_at)) * 86400 AS INTEGER) as secs
+  const flashProcessingTimes = await queryAll<{ secs: number }>(
+    `SELECT EXTRACT(EPOCH FROM (published_at - collected_at))::int as secs
      FROM flash_news WHERE collected_at IS NOT NULL AND published_at IS NOT NULL
      ORDER BY secs`
-  ).all() as { secs: number }[];
+  );
   const flashProcArr = flashProcessingTimes.map(r => r.secs).filter(s => s >= 0);
 
-  // ── Distribution: processing seconds bucketed ──
   const buckets = [
     { range: '<10s', min: 0, max: 10 },
     { range: '10-30s', min: 10, max: 30 },
@@ -381,28 +372,22 @@ export function getSpeedStats(): SpeedStats {
     flash_count: flashProcArr.filter(s => s >= b.min && s < b.max).length,
   }));
 
-  // ── 14-day trend ──
-  const trend = db.prepare(`
-    SELECT d.date,
-      (SELECT AVG(CAST((julianday(published_at) - julianday(collected_at)) * 86400 AS INTEGER))
+  const trend = await queryAll<SpeedTrendPoint>(`
+    SELECT d.date::text,
+      (SELECT AVG(EXTRACT(EPOCH FROM (published_at - collected_at)))::int
        FROM articles WHERE collected_at IS NOT NULL AND published_at IS NOT NULL AND date(published_at)=d.date) as avg_article,
-      (SELECT AVG(CAST((julianday(published_at) - julianday(collected_at)) * 86400 AS INTEGER))
+      (SELECT AVG(EXTRACT(EPOCH FROM (published_at - collected_at)))::int
        FROM flash_news WHERE collected_at IS NOT NULL AND published_at IS NOT NULL AND date(published_at)=d.date) as avg_flash,
-      (SELECT COUNT(*) FROM articles WHERE date(published_at)=d.date) as count_article,
-      (SELECT COUNT(*) FROM flash_news WHERE date(published_at)=d.date) as count_flash
+      (SELECT COUNT(*)::int FROM articles WHERE date(published_at)=d.date) as count_article,
+      (SELECT COUNT(*)::int FROM flash_news WHERE date(published_at)=d.date) as count_flash
     FROM (
-      SELECT date('now', '-' || n || ' days') as date
-      FROM (SELECT 0 as n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
-            UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6
-            UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9
-            UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13)
+      SELECT generate_series(CURRENT_DATE - INTERVAL '13 days', CURRENT_DATE, '1 day')::date AS date
     ) d ORDER BY d.date
-  `).all() as SpeedTrendPoint[];
+  `);
 
-  // ── Recent pipeline runs ──
-  const recentRuns = db.prepare(
+  const recentRuns = await queryAll<PipelineRun>(
     "SELECT * FROM pipeline_runs ORDER BY started_at DESC LIMIT 50"
-  ).all() as PipelineRun[];
+  );
 
   return {
     overview: {
@@ -447,16 +432,15 @@ export function getSpeedStats(): SpeedStats {
   };
 }
 
-export function deleteArticle(id: number): boolean {
-  const db = getDb();
-  db.prepare('DELETE FROM article_tags WHERE article_id=?').run(id);
-  const result = db.prepare('DELETE FROM articles WHERE id=?').run(id);
-  return result.changes > 0;
+export async function deleteArticle(id: number): Promise<boolean> {
+  await queryRun('DELETE FROM article_tags WHERE article_id=$1', [id]);
+  const changes = await queryRun('DELETE FROM articles WHERE id=$1', [id]);
+  return changes > 0;
 }
 
-export function deleteFlash(id: number): boolean {
-  const result = getDb().prepare('DELETE FROM flash_news WHERE id=?').run(id);
-  return result.changes > 0;
+export async function deleteFlash(id: number): Promise<boolean> {
+  const changes = await queryRun('DELETE FROM flash_news WHERE id=$1', [id]);
+  return changes > 0;
 }
 
 /* ── 时效对比（Speed Benchmarks） ── */
@@ -498,35 +482,28 @@ export interface PipelineQueueItem {
   published_at?: string | null;
 }
 
-export function getPipelineQueues(): { pending: PipelineQueueItem[]; published: PipelineQueueItem[] } {
-  const db = getDb();
-  const pending = db
-    .prepare(
-      `SELECT id, title, status, updated_at FROM articles
-       WHERE status IN ('draft','review') ORDER BY updated_at DESC LIMIT 40`
-    )
-    .all() as PipelineQueueItem[];
-  const published = db
-    .prepare(
-      `SELECT id, title, slug, published_at FROM articles
-       WHERE status = 'published' ORDER BY published_at DESC LIMIT 30`
-    )
-    .all() as PipelineQueueItem[];
+export async function getPipelineQueues(): Promise<{ pending: PipelineQueueItem[]; published: PipelineQueueItem[] }> {
+  const pending = await queryAll<PipelineQueueItem>(
+    `SELECT id, title, status, updated_at FROM articles
+     WHERE status IN ('draft','review') ORDER BY updated_at DESC LIMIT 40`
+  );
+  const published = await queryAll<PipelineQueueItem>(
+    `SELECT id, title, slug, published_at FROM articles
+     WHERE status = 'published' ORDER BY published_at DESC LIMIT 30`
+  );
   return { pending, published };
 }
 
-export function getBenchmarks(limit = 50, offset = 0): BenchmarkSummary {
-  const db = getDb();
+export async function getBenchmarks(limit = 50, offset = 0): Promise<BenchmarkSummary> {
+  const [{ c: total }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM speed_benchmarks");
+  const [{ c: done }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM speed_benchmarks WHERE status='done'");
+  const [{ c: faster }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM speed_benchmarks WHERE status='done' AND diff_seconds < 0");
+  const [{ c: slower }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM speed_benchmarks WHERE status='done' AND diff_seconds >= 0");
+  const [{ c: noResult }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM speed_benchmarks WHERE status='no_result'");
 
-  const total = (db.prepare("SELECT COUNT(*) as c FROM speed_benchmarks").get() as { c: number }).c;
-  const done = (db.prepare("SELECT COUNT(*) as c FROM speed_benchmarks WHERE status='done'").get() as { c: number }).c;
-  const faster = (db.prepare("SELECT COUNT(*) as c FROM speed_benchmarks WHERE status='done' AND diff_seconds < 0").get() as { c: number }).c;
-  const slower = (db.prepare("SELECT COUNT(*) as c FROM speed_benchmarks WHERE status='done' AND diff_seconds >= 0").get() as { c: number }).c;
-  const noResult = (db.prepare("SELECT COUNT(*) as c FROM speed_benchmarks WHERE status='no_result'").get() as { c: number }).c;
+  const avgRow = await queryGet<{ avg: number | null }>("SELECT AVG(diff_seconds) as avg FROM speed_benchmarks WHERE status='done' AND diff_seconds IS NOT NULL");
 
-  const avgRow = db.prepare("SELECT AVG(diff_seconds) as avg FROM speed_benchmarks WHERE status='done' AND diff_seconds IS NOT NULL").get() as { avg: number | null };
-
-  const diffs = db.prepare("SELECT diff_seconds FROM speed_benchmarks WHERE status='done' AND diff_seconds IS NOT NULL ORDER BY diff_seconds").all() as { diff_seconds: number }[];
+  const diffs = await queryAll<{ diff_seconds: number }>("SELECT diff_seconds FROM speed_benchmarks WHERE status='done' AND diff_seconds IS NOT NULL ORDER BY diff_seconds");
   let medianDiffSeconds: number | null = null;
   if (diffs.length > 0) {
     const mid = Math.floor(diffs.length / 2);
@@ -535,10 +512,10 @@ export function getBenchmarks(limit = 50, offset = 0): BenchmarkSummary {
       : diffs[mid].diff_seconds;
   }
 
-  const records = db.prepare(`
+  const records = await queryAll<BenchmarkRecord>(`
     SELECT * FROM speed_benchmarks
-    ORDER BY created_at DESC LIMIT ? OFFSET ?
-  `).all(limit, offset) as BenchmarkRecord[];
+    ORDER BY created_at DESC LIMIT $1 OFFSET $2
+  `, [limit, offset]);
 
   return {
     total,
@@ -546,7 +523,7 @@ export function getBenchmarks(limit = 50, offset = 0): BenchmarkSummary {
     faster,
     slower,
     noResult,
-    avgDiffSeconds: avgRow.avg !== null ? Math.round(avgRow.avg) : null,
+    avgDiffSeconds: avgRow?.avg !== null && avgRow?.avg !== undefined ? Math.round(avgRow.avg) : null,
     medianDiffSeconds: medianDiffSeconds !== null ? Math.round(medianDiffSeconds) : null,
     records,
   };

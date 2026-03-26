@@ -4,13 +4,13 @@ import { requireAuth } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
-export function GET(req: NextRequest) {
+export async function GET(req: NextRequest) {
   const denied = requireAuth(req);
   if (denied) return denied;
 
   const sp = req.nextUrl.searchParams;
   try {
-    const result = getAdminFlash({
+    const result = await getAdminFlash({
       page: Number(sp.get('page')) || 1,
       pageSize: Math.min(Number(sp.get('pageSize')) || 30, 100),
       category: sp.get('category') || undefined,

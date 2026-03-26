@@ -4,12 +4,12 @@ import { requireAuth } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
-export function GET(req: NextRequest) {
+export async function GET(req: NextRequest) {
   const denied = requireAuth(req);
   if (denied) return denied;
 
   try {
-    const stats = getSpeedStats();
+    const stats = await getSpeedStats();
     return NextResponse.json(stats);
   } catch (e: unknown) {
     return NextResponse.json({ error: String(e) }, { status: 500 });

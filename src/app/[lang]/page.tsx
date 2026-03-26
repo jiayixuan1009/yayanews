@@ -98,9 +98,9 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
         </div>
       </section>
 
-      <div className="container-main py-8 sm:py-10 lg:py-12">
-        <div className="grid gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-12">
-          <div className="space-y-8 lg:col-span-8 lg:space-y-10">
+      <div className="container-main py-5 md:py-8 lg:py-10">
+        <div className="grid gap-5 md:gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-12">
+          <div className="space-y-5 md:space-y-8 lg:col-span-8 lg:space-y-10">
             <BreakingStreamBlock items={flashStream} />
 
             {leadTopic ? (
@@ -112,7 +112,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
             ) : null}
 
             {spotlightArticles.length > 0 ? (
-              <section className="border border-[#ddd5ca] bg-white px-5 py-6 sm:px-7">
+              <section className="border border-[#ddd5ca] bg-white px-4 py-5 md:px-5 md:py-6 sm:px-7">
                 <SectionHeader title="The Political Compass" emphasis="strong" />
                 <div className="mt-5 grid gap-6 md:grid-cols-3">
                   {spotlightArticles.slice(0, 3).map(item => (
@@ -167,7 +167,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
             </div>
           </div>
 
-          <aside className="space-y-5 lg:col-span-4 lg:space-y-6">
+          <aside className="space-y-4 md:space-y-5 lg:col-span-4 lg:space-y-6">
             {watchArticles.length > 0 ? (
               <RightRailPanel title={dict.home.marketWatch} accent actionHref="/news" actionLabel={dict.common.readMore}>
                 <ul className="divide-y divide-[#ece4d8]">
