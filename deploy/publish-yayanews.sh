@@ -3,15 +3,19 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export NEXT_PUBLIC_SITE_URL="${NEXT_PUBLIC_SITE_URL:-https://yayanews.cryptooptiontool.com}"
-export NODE_ENV=production
+
+# 必须在 npm ci 之前清除 NODE_ENV，否则不会安装打包必须的 devDependencies (如 tailwindcss)
+unset NODE_ENV
 
 # npm ci 需要 package-lock.json；若不存在则回退到 npm install
 if [ -f package-lock.json ]; then
-  npm ci
+  npm ci --include=dev
 else
   npm install
 fi
 
+# 打包时设置为 production
+export NODE_ENV=production
 npm run build
 
 # standalone 模式需要手动复制 public 和 static 目录
