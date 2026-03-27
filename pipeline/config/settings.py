@@ -104,6 +104,32 @@ FLASH_CHANNELS = {
         "api_url": "https://api.coingecko.com/api/v3",
         "move_threshold": 2.0,  # 涨跌幅阈值(%)
     },
+    "newsapi": {
+        "enabled": True,
+        "weight": 3,
+        "max_items": 15,
+        "timeout": 12,
+        "api_url": "https://newsapi.org/v2/top-headlines",
+        "api_key": os.environ.get("NEWSAPI_KEY", ""),
+        "categories": ["business", "technology"],
+    },
+    "polygon": {
+        "enabled": True,
+        "weight": 4,
+        "max_items": 15,
+        "timeout": 12,
+        "api_url": "https://api.polygon.io/v2/reference/news",
+        "api_key": os.environ.get("POLYGON_KEY", ""),
+    },
+    "alphavantage": {
+        "enabled": True,
+        "weight": 3,
+        "max_items": 15,
+        "timeout": 15,
+        "api_url": "https://www.alphavantage.co/query",
+        "api_key": os.environ.get("ALPHAVANTAGE_KEY", ""),
+        "topics": ["blockchain", "financial_markets", "earnings"],
+    },
     "rss": {
         "enabled": True,
         "weight": 1,

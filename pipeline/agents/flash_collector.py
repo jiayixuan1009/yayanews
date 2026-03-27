@@ -441,7 +441,118 @@ def _fetch_rss() -> list[dict]:
 
 
 # ══════════════════════════════════════════════
-# 通道 6: LLM 兜底
+# 通道 7: NewsAPI
+# ══════════════════════════════════════════════
+
+def _fetch_newsapi() -> list[dict]:
+    ch = FLASH_CHANNELS.get("newsapi", {})
+    if not ch.get("enabled", False) or not ch.get("api_key"):
+        return []
+
+    items = []
+    for category in ch.get("categories", ["business", "technology"]):
+        try:
+            resp = requests.get(
+                ch["api_url"],
+                params={"category": category, "apiKey": ch["api_key"], "language": "en", "pageSize": ch.get("max_items", 15)},
+                timeout=ch.get("timeout", 12),
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            for n in data.get("articles", []):
+                title = (n.get("title") or "").strip()
+                desc = (n.get("description") or "").strip()[:300]
+                if not title:
+                    continue
+                items.append({
+                    "title": title,
+                    "content": desc or title,
+                    "raw_text": f"{title} {desc} {category}",
+                    "source": f"NewsAPI/{n.get('source', {}).get('name', '')}",
+                    "source_url": n.get("url", ""),
+                    "lang": "en",
+                    "channel": "newsapi",
+                })
+        except Exception as e:
+            log.warning(f"NewsAPI [{category}]: {e}")
+    return items
+
+
+# ══════════════════════════════════════════════
+# 通道 8: Polygon.io
+# ══════════════════════════════════════════════
+
+def _fetch_polygon() -> list[dict]:
+    ch = FLASH_CHANNELS.get("polygon", {})
+    if not ch.get("enabled", False) or not ch.get("api_key"):
+        return []
+
+    items = []
+    try:
+        resp = requests.get(
+            ch["api_url"],
+            params={"apiKey": ch["api_key"], "limit": ch.get("max_items", 15)},
+            timeout=ch.get("timeout", 12),
+        )
+        resp.raise_for_status()
+        for n in resp.json().get("results", []):
+            title = (n.get("title") or "").strip()
+            desc = (n.get("description") or "").strip()[:300]
+            if not title:
+                continue
+            items.append({
+                "title": title,
+                "content": desc or title,
+                "raw_text": f"{title} {desc}",
+                "source": f"Polygon.io/{n.get('publisher', {}).get('name', '')}",
+                "source_url": n.get("article_url", ""),
+                "lang": "en",
+                "channel": "polygon",
+            })
+    except Exception as e:
+        log.warning(f"Polygon.io: {e}")
+    return items
+
+
+# ══════════════════════════════════════════════
+# 通道 9: AlphaVantage
+# ══════════════════════════════════════════════
+
+def _fetch_alphavantage() -> list[dict]:
+    ch = FLASH_CHANNELS.get("alphavantage", {})
+    if not ch.get("enabled", False) or not ch.get("api_key"):
+        return []
+
+    items = []
+    topics = ",".join(ch.get("topics", ["blockchain", "financial_markets"]))
+    try:
+        resp = requests.get(
+            ch["api_url"],
+            params={"function": "NEWS_SENTIMENT", "topics": topics, "apikey": ch["api_key"], "limit": ch.get("max_items", 15)},
+            timeout=ch.get("timeout", 15),
+        )
+        resp.raise_for_status()
+        for n in resp.json().get("feed", [])[:ch.get("max_items", 15)]:
+            title = (n.get("title") or "").strip()
+            summary = (n.get("summary") or "").strip()[:300]
+            if not title:
+                continue
+            items.append({
+                "title": title,
+                "content": summary or title,
+                "raw_text": f"{title} {summary} {topics}",
+                "source": f"AlphaVantage/{n.get('source', '')}",
+                "source_url": n.get("url", ""),
+                "lang": "en",
+                "channel": "alphavantage",
+            })
+    except Exception as e:
+        log.warning(f"AlphaVantage: {e}")
+    return items
+
+
+# ══════════════════════════════════════════════
+# 通道 10: LLM 兜底
 # ══════════════════════════════════════════════
 
 def _generate_fallback(need: int) -> list[dict]:
@@ -487,6 +598,9 @@ CHANNEL_REGISTRY = {
     "rss": _fetch_rss,
     "cn_sina": _fetch_cn_sina,
     "cn_rss": _fetch_cn_rss,
+    "newsapi": _fetch_newsapi,
+    "polygon": _fetch_polygon,
+    "alphavantage": _fetch_alphavantage,
 }
 
 
