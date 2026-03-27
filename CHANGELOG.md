@@ -2,6 +2,29 @@
 
 所有针对 YayaNews 生产环境的重要架构升级、Bug 修复及新特性，均将以时间倒序的形式记录于此。
 
+## [2026-03-27] - 全域 Bug 审查、生产部署稳定化与三端版本对齐
+
+### 🐛 关键 Bug 修复 (Critical Fixes)
+
+- **【agent6 SQLite 残留崩溃】**：`agent6_translator.py` 在 PostgreSQL 迁移后仍调用已删除的 `get_conn()` 函数及 SQLite `?` 占位符语法，翻译任务触发即 `NameError` 崩溃。修复为 `get_pool().getconn()` + psycopg2 `$1` 语法及 `RealDictCursor`。
+- **【flash_collector N-gram 去重崩溃】**：`_get_recent_flash_texts()` 同样调用了已删除的 `get_conn()`，每次快讯采集时去重逻辑均会异常。修复为连接池模式。
+- **【speed_benchmark 全面 SQLite 残留】**：`speed_benchmark.py` 整体仍使用 `sqlite3` 直连、`?` 占位符及 SQLite 特有 `datetime('now', ...)` 语法，任何 benchmark 调用即崩溃。全文重写为 `psycopg2` + PostgreSQL `INTERVAL` 语法。
+- **【PM2 Python 进程路径错误】**：`ecosystem.config.cjs` 使用 `script: "python"` 导致 PM2 找不到可执行文件，所有 Python 守护进程无法启动。改为 `interpreter: "none"` + `python3` 模式，并加入 `yayanews` Next.js 进程入口。
+
+### 🔨 构建系统修复 (Build Fixes)
+
+- **【generateStaticParams DB 容错】**：`topics/[slug]` 和 `guide/[slug]` 页面的 `generateStaticParams` 在构建时直连数据库，DB 不可用时整个 `npm run build` 崩溃。加入 `try-catch` 兜底，失败时返回空数组改为按需渲染。
+- **【sitemap.ts 构建崩溃】**：`/sitemap.xml` 路由 export 阶段 4 个 DB 查询均无错误处理。重构为 `Promise.all` 并发查询 + `.catch(() => [])` 兜底，并加入 `export const dynamic = 'force-dynamic'` 改为运行时生成。
+
+### 📦 依赖修复 (Dependency Fixes)
+
+- **【ws npm 包未列入正式依赖】**：`ws` 包仅存在于 `node_modules`，未写入 `package.json`，重新部署后 `yaya-ws-gateway` 启动即报 `MODULE_NOT_FOUND`。已 `npm install ws --save` 并提交。
+- **【Python 系统级依赖补装】**：服务器 Python 环境缺少 `redis`, `rq`, `psycopg2-binary`, `pgvector`, `websocket-client`, `feedparser` 等包。通过清华 PyPI 镜像 + `--break-system-packages` 完整补装。
+
+### 🔄 版本对齐 (Version Sync)
+
+- **【三端历史分叉修复】**：本地、GitHub、云端 VPS 三方代码版本长期分叉（VPS 停留在 `c8307ff`，本地有未推送提交）。通过 `git pull --rebase` + `git reset --hard origin/main` 完成历史清洗，三端统一对齐至 `d0df465`。
+
 ## [2026-03-26] - 双语引擎重构与生成管线极速加固
 
 ### 🚀 新增特性 (Features)
