@@ -4,9 +4,12 @@ Pipeline 全局配置。
 """
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # ── 项目路径 ──
 PROJECT_ROOT = Path(__file__).parent.parent.parent
+load_dotenv(PROJECT_ROOT / ".env")
+
 DB_PATH = PROJECT_ROOT / "data" / "yayanews.db"
 
 # ── LLM 配置 ──
