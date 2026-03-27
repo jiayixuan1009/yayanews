@@ -12,6 +12,8 @@ const basePath = process.cwd().includes('.next')
 
 const STATUS_FILE = path.join(basePath, 'data', 'daemon_status.txt');
 const HEARTBEAT_FILE = path.join(basePath, 'data', 'daemon_heartbeat.txt');
+const CONFIG_FILE = path.join(basePath, 'data', 'daemon_config.json');
+const RUN_LOG_FILE = path.join(basePath, 'data', 'pipeline_run.log');
 
 function getStatus() {
   let statusStr = 'running';
@@ -46,6 +48,14 @@ function getStatus() {
     log = `[运行中] (后台 PM2 7x24 常驻调度模式)\n${log}`;
   }
 
+  try {
+    if (fs.existsSync(RUN_LOG_FILE)) {
+      const runLog = fs.readFileSync(RUN_LOG_FILE, 'utf-8');
+      // Serve the last ~8000 chars to avoid massive payload but contain enough info for parsing
+      log += '\n\n' + runLog.slice(-8000);
+    }
+  } catch { /* ignore log read fail */ }
+
   return { running, pid, log };
 }
 
@@ -77,6 +87,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'start') {
+      const mode = url.searchParams.get('mode') || 'all';
+      const articles = parseInt(url.searchParams.get('articles') || '10', 10);
+      const flash = parseInt(url.searchParams.get('flash') || '15', 10);
+      
+      fs.writeFileSync(CONFIG_FILE, JSON.stringify({ mode, articles, flash }));
       fs.writeFileSync(STATUS_FILE, 'running');
       return NextResponse.json({ success: true, pid: 1, message: '已请求恢复 Pipeline' });
     }

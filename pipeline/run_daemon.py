@@ -55,6 +55,7 @@ def main():
     data_dir.mkdir(exist_ok=True)
     status_file = data_dir / "daemon_status.txt"
     heartbeat_file = data_dir / "daemon_heartbeat.txt"
+    config_file = data_dir / "daemon_config.json"
 
     if not status_file.exists():
         status_file.write_text("running")
@@ -83,16 +84,31 @@ def main():
         now = time.time()
         msg = "waiting"
         
+        # Read dynamic UI parameters
+        mode = "all"
+        dyn_flash = FLASH_COUNT
+        dyn_articles = ARTICLE_COUNT
+        try:
+            if config_file.exists():
+                cfg = json.loads(config_file.read_text())
+                mode = cfg.get("mode", "all")
+                dyn_flash = int(cfg.get("flash", FLASH_COUNT))
+                dyn_articles = int(cfg.get("articles", ARTICLE_COUNT))
+        except Exception as e:
+            print(f"[run_daemon] Failed to read config: {e}")
+        
         if now >= next_flash:
-            msg = f"Dispatching {FLASH_COUNT} flash items"
-            print(f"[Dispatch] Enqueue Flash ({FLASH_COUNT}) @ {time.strftime('%H:%M:%S')}", flush=True)
-            q.enqueue(task_run_flash, kwargs={"count": FLASH_COUNT}, job_timeout=600)
+            if mode in ["all", "flash"]:
+                msg = f"Dispatching {dyn_flash} flash items"
+                print(f"[Dispatch] Enqueue Flash ({dyn_flash}) @ {time.strftime('%H:%M:%S')}", flush=True)
+                q.enqueue(task_run_flash, kwargs={"count": dyn_flash}, job_timeout=600)
             next_flash = now + FLASH_SEC
             
         if now >= next_article:
-            msg = f"Dispatching {ARTICLE_COUNT} articles"
-            print(f"[Dispatch] Enqueue Articles ({ARTICLE_COUNT}) @ {time.strftime('%H:%M:%S')}", flush=True)
-            q.enqueue(task_run_articles_and_translate, kwargs={"batch_size": ARTICLE_COUNT}, job_timeout=3600)
+            if mode in ["all", "articles"]:
+                msg = f"Dispatching {dyn_articles} articles"
+                print(f"[Dispatch] Enqueue Articles ({dyn_articles}) @ {time.strftime('%H:%M:%S')}", flush=True)
+                q.enqueue(task_run_articles_and_translate, kwargs={"batch_size": dyn_articles}, job_timeout=3600)
             next_article = now + ARTICLE_SEC
 
         write_heartbeat(msg)

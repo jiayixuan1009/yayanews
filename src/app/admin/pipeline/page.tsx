@@ -57,6 +57,9 @@ export default function PipelinePage() {
     sources: [],
   });
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<'all' | 'articles' | 'flash'>('all');
+  const [articles, setArticles] = useState('10');
+  const [flash, setFlash] = useState('15');
   const logRef = useRef<HTMLPreElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -108,7 +111,8 @@ export default function PipelinePage() {
   async function handleStart() {
     setLoading(true);
     try {
-      const res = await adminFetch(`/api/admin/pipeline?action=start`, { method: 'POST' });
+      const params = new URLSearchParams({ action: 'start', mode, articles, flash });
+      const res = await adminFetch(`/api/admin/pipeline?${params}`, { method: 'POST' });
       const data = await res.json();
       if (data.error) alert(data.error);
       else setTimeout(fetchStatus, 1000);
@@ -288,6 +292,54 @@ export default function PipelinePage() {
         </div>
       </div>
 
+      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-white">运行时配置 (Runtime Config)</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs text-slate-400 mb-1.5">生产模式</label>
+            <select
+              value={mode}
+              onChange={e => setMode(e.target.value as typeof mode)}
+              disabled={status.running}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-primary-500 focus:outline-none disabled:opacity-50"
+            >
+              <option value="all">文章 + 快讯</option>
+              <option value="articles">仅文章出稿</option>
+              <option value="flash">仅快讯采集</option>
+            </select>
+          </div>
+          {mode !== 'flash' && (
+            <div>
+              <label className="block text-xs text-slate-400 mb-1.5">文章单次投递量</label>
+              <input
+                type="number"
+                min={1}
+                max={50}
+                value={articles}
+                onChange={e => setArticles(e.target.value)}
+                disabled={status.running}
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
+              />
+            </div>
+          )}
+          {mode !== 'articles' && (
+            <div>
+              <label className="block text-xs text-slate-400 mb-1.5">快讯采集条数</label>
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={flash}
+                onChange={e => setFlash(e.target.value)}
+                disabled={status.running}
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
+              />
+            </div>
+          )}
+        </div>
+        <p className="text-xs text-slate-500 mt-2">注：上述配置会在下次点击【总开关】启动时，写入后台 PM2 守护进程生效。</p>
+      </div>
+
       <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-white">守护进程实时心跳 (Daemon Heartbeat)</h3>
@@ -300,8 +352,8 @@ export default function PipelinePage() {
         </div>
         <pre
           ref={logRef}
-          className={`h-24 overflow-y-auto rounded-lg bg-slate-950 border p-4 text-sm font-mono whitespace-pre-wrap ${
-            isPaused ? 'border-amber-500/50 text-amber-200' : isOffline ? 'border-red-500/50 text-red-400' : 'border-emerald-500/50 text-emerald-300'
+          className={`h-80 overflow-y-auto rounded-lg bg-slate-950 border p-4 text-xs font-mono whitespace-pre-wrap ${
+            isPaused ? 'border-amber-500/50 text-amber-200' : isOffline ? 'border-red-500/50 text-red-400' : 'border-emerald-500/50 text-emerald-500'
           }`}
         >
           {status.log || '正在连接守护进程...'}
