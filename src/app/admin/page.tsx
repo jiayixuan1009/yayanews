@@ -81,6 +81,16 @@ export default function AdminDashboard() {
   }
 
   if (!stats) return <p className="text-red-400">Failed to load stats.</p>;
+  if ('error' in stats) {
+    return (
+      <div className="flex flex-col items-center justify-center p-10 h-64 border border-red-900/50 bg-red-950/20 rounded-xl space-y-4">
+        <p className="text-red-400 font-medium">访问被拒绝: {(stats as any).error}</p>
+        <button onClick={() => window.location.href = '/'} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-sm rounded-lg transition-colors">
+          返回前台 / 重新登录
+        </button>
+      </div>
+    );
+  }
 
   const maxCatArticles = Math.max(...stats.categoryStats.map(c => c.articles), 1);
   const maxTrend = Math.max(...stats.dailyTrend.map(d => d.articles + d.flash), 1);

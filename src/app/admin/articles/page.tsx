@@ -202,42 +202,49 @@ export default function ArticlesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
-                {data?.articles.map(a => (
-                  <tr key={a.id} className="text-slate-300 hover:bg-slate-800/30 cursor-pointer" onClick={() => openDetail(a.id)}>
-                    <td className="px-4 py-3 text-slate-500">#{a.id}</td>
-                    <td className="px-4 py-3">
-                      <span className="inline-block rounded bg-slate-800 px-1.5 py-0.5 text-[10px] uppercase font-bold text-slate-400">
-                        {a.lang || 'zh'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 max-w-md truncate font-medium">{a.title}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${CATEGORY_COLORS[a.category_slug || ''] || 'bg-slate-700 text-slate-400'}`}>
-                        {a.category_name || '-'}
-                      </span>
-                      {a.subcategory && (
-                        <span className="ml-1 inline-block rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-500">
-                          {DERIVATIVES_SUBCATEGORIES.find(s => s.slug === a.subcategory)?.name || a.subcategory}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3"><SentimentBadge value={a.sentiment} /></td>
-                    <td className="px-4 py-3 text-slate-500">{a.view_count}</td>
-                    <td className="px-4 py-3"><StatusBadge value={a.status} /></td>
-                    <td className="px-4 py-3"><ProcessingTime seconds={a.processing_seconds} /></td>
-                    <td className="px-4 py-3 text-xs text-slate-500">{a.created_at?.slice(0, 16)}</td>
-                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                      <button
-                        onClick={() => handleDelete(a.id)}
-                        className="text-xs text-red-400/60 hover:text-red-400 transition-colors"
-                      >
-                        删除
-                      </button>
+                {data && 'error' in data ? (
+                  <tr>
+                    <td colSpan={10} className="py-12 text-center text-red-500">
+                      访问失败 - {(data as any).error}
                     </td>
                   </tr>
-                ))}
-                {data?.articles.length === 0 && (
-                  <tr><td colSpan={9} className="text-center py-12 text-slate-500">暂无数据</td></tr>
+                ) : !data?.articles || data.articles.length === 0 ? (
+                  <tr><td colSpan={10} className="text-center py-12 text-slate-500">暂无数据</td></tr>
+                ) : (
+                  data.articles.map(a => (
+                    <tr key={a.id} className="text-slate-300 hover:bg-slate-800/30 cursor-pointer" onClick={() => openDetail(a.id)}>
+                      <td className="px-4 py-3 text-slate-500">#{a.id}</td>
+                      <td className="px-4 py-3">
+                        <span className="inline-block rounded bg-slate-800 px-1.5 py-0.5 text-[10px] uppercase font-bold text-slate-400">
+                          {a.lang || 'zh'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 max-w-md truncate font-medium">{a.title}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${CATEGORY_COLORS[a.category_slug || ''] || 'bg-slate-700 text-slate-400'}`}>
+                          {a.category_name || '-'}
+                        </span>
+                        {a.subcategory && (
+                          <span className="ml-1 inline-block rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-500">
+                            {DERIVATIVES_SUBCATEGORIES.find(s => s.slug === a.subcategory)?.name || a.subcategory}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3"><SentimentBadge value={a.sentiment} /></td>
+                      <td className="px-4 py-3 text-slate-500">{a.view_count}</td>
+                      <td className="px-4 py-3"><StatusBadge value={a.status} /></td>
+                      <td className="px-4 py-3"><ProcessingTime seconds={a.processing_seconds} /></td>
+                      <td className="px-4 py-3 text-xs text-slate-500">{a.created_at?.slice(0, 16)}</td>
+                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => handleDelete(a.id)}
+                          className="text-xs text-red-400/60 hover:text-red-400 transition-colors"
+                        >
+                          删除
+                        </button>
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>
