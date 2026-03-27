@@ -374,7 +374,7 @@ export default function PipelinePage() {
         </div>
         <pre
           ref={logRef}
-          className={`h-80 overflow-y-auto rounded-lg bg-slate-950 border p-4 text-xs font-mono whitespace-pre-wrap ${
+          className={`h-[1600px] overflow-y-auto rounded-lg bg-slate-950 border p-4 text-xs font-mono whitespace-pre-wrap ${
             isPaused ? 'border-amber-500/50 text-amber-200' : isOffline ? 'border-red-500/50 text-red-400' : 'border-emerald-500/50 text-emerald-500'
           }`}
         >
