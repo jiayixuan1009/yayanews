@@ -158,7 +158,7 @@ FLASH_CHANNELS = {
 }
 
 FLASH_CONCURRENCY = int(os.environ.get("FLASH_CONCURRENCY", "6"))
-FLASH_TRANSLATE_BATCH = int(os.environ.get("FLASH_TRANSLATE_BATCH", "8"))
+FLASH_TRANSLATE_BATCH = int(os.environ.get("FLASH_TRANSLATE_BATCH", "1"))
 # WebSocket 缓冲单次消费条数（需配合 pipeline.daemon.finnhub_ws_flash）
 FLASH_WS_DRAIN_MAX = int(os.environ.get("FLASH_WS_DRAIN_MAX", "25"))
 
