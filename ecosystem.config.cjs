@@ -20,7 +20,7 @@ module.exports = {
       autorestart: true,
       max_restarts: 20,
       min_uptime: "10s",
-      env: { NODE_ENV: "production", PORT: 3001 },
+      env: { NODE_ENV: "production", PORT: 3002 },
     },
     {
       name: "yaya-finnhub-ws",
