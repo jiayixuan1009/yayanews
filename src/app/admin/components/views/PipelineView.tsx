@@ -367,7 +367,7 @@ export default function PipelineView() {
                    isPaused ? 'text-amber-300/80' : isOffline ? 'text-red-400' : 'text-emerald-400/80'
                  }`}
                >
-                 {status.log || '正在连接守护进程...'}
+                 {status.log ? status.log.split('\n').reverse().join('\n') : '正在连接守护进程...'}
                </pre>
             </div>
          </div>
