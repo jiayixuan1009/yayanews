@@ -24,11 +24,20 @@ function getStatus() {
   let log = '';
   let running = statusStr !== 'paused';
   const pid = running ? 1 : null; // Representing PM2 daemon Active state
+  
+  let metrics = { queued: 0, started: 0, failed: 0, finished: 0 };
 
   try {
     const rawHb = fs.readFileSync(HEARTBEAT_FILE, 'utf-8');
     const hb = JSON.parse(rawHb);
     const dateStr = new Date(hb.ts * 1000).toLocaleString('zh-CN');
+    
+    metrics = {
+      queued: hb.queued || 0,
+      started: hb.started || 0,
+      failed: hb.failed || 0,
+      finished: hb.finished || 0,
+    };
     
     if (Date.now() / 1000 - hb.ts > 120 && running) {
        // If no heartbeat for 2 minutes and it claims to be running, it might be dead
@@ -56,7 +65,7 @@ function getStatus() {
     }
   } catch { /* ignore log read fail */ }
 
-  return { running, pid, log };
+  return { running, pid, log, metrics };
 }
 
 export async function GET(req: NextRequest) {
