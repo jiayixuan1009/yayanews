@@ -22,8 +22,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export async function generateStaticParams() {
-  const guides = await getGuides(100);
-  return guides.map(g => ({ slug: g.slug }));
+  try {
+    const guides = await getGuides(100);
+    return guides.map(g => ({ slug: g.slug }));
+  } catch {
+    return [];
+  }
 }
 
 export const revalidate = 600;
