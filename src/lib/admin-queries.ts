@@ -499,7 +499,17 @@ export interface PipelineQueueItem {
   published_at?: string | null;
 }
 
-export async function getPipelineQueues(): Promise<{ pending: PipelineQueueItem[]; published: PipelineQueueItem[] }> {
+export interface PipelineSourceActivity {
+  source: string;
+  last_seen: string;
+  count_24h: number;
+}
+
+export async function getPipelineQueues(): Promise<{ 
+  pending: PipelineQueueItem[]; 
+  published: PipelineQueueItem[];
+  sources: PipelineSourceActivity[];
+}> {
   const pending = await queryAll<PipelineQueueItem>(
     `SELECT id, title, status, updated_at FROM articles
      WHERE status IN ('draft','review') ORDER BY updated_at DESC LIMIT 40`
@@ -508,7 +518,22 @@ export async function getPipelineQueues(): Promise<{ pending: PipelineQueueItem[
     `SELECT id, title, slug, published_at FROM articles
      WHERE status = 'published' ORDER BY published_at DESC LIMIT 30`
   );
-  return { pending, published };
+  
+  // Aggregate source activity from Flash News
+  // We extract the root data source name before the '/' (e.g., "NewsAPI/BBC" -> "NewsAPI")
+  const sources = await queryAll<PipelineSourceActivity>(`
+    SELECT 
+      SPLIT_PART(source, '/', 1) as source,
+      MAX(published_at) as last_seen,
+      COUNT(*)::int as count_24h
+    FROM flash_news 
+    WHERE published_at >= CURRENT_TIMESTAMP - INTERVAL '24 hours'
+      AND source IS NOT NULL AND source != ''
+    GROUP BY SPLIT_PART(source, '/', 1)
+    ORDER BY last_seen DESC
+  `);
+
+  return { pending, published, sources };
 }
 
 export async function getBenchmarks(limit = 50, offset = 0): Promise<BenchmarkSummary> {
