@@ -1,58 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { spawn, execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { requireAuth } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
-const PID_FILE = path.join(process.cwd(), 'data', 'pipeline.pid');
-const LOG_FILE = path.join(process.cwd(), 'data', 'pipeline.log');
+const STATUS_FILE = path.join(process.cwd(), 'data', 'daemon_status.txt');
+const HEARTBEAT_FILE = path.join(process.cwd(), 'data', 'daemon_heartbeat.txt');
 
-const VALID_MODES = ['all', 'articles', 'flash'] as const;
-const MIN_COUNT = 1;
-const MAX_ARTICLES = 50;
-const MAX_FLASH = 100;
-
-function clampInt(raw: string | null, min: number, max: number, fallback: number): number {
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n !== Math.floor(n)) return fallback;
-  return Math.max(min, Math.min(max, n));
-}
-
-function readPid(): number | null {
+function getStatus() {
+  let statusStr = 'running';
   try {
-    const pid = parseInt(fs.readFileSync(PID_FILE, 'utf-8').trim(), 10);
-    return isNaN(pid) ? null : pid;
-  } catch {
-    return null;
-  }
-}
+    statusStr = fs.readFileSync(STATUS_FILE, 'utf-8').trim();
+  } catch { /* default to running */ }
 
-function isProcessRunning(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function getStatus(): { running: boolean; pid: number | null; log: string } {
-  const pid = readPid();
-  const running = pid !== null && isProcessRunning(pid);
   let log = '';
-  try {
-    const content = fs.readFileSync(LOG_FILE, 'utf-8');
-    const lines = content.split('\n');
-    log = lines.slice(-80).join('\n');
-  } catch { /* no log */ }
+  let running = statusStr !== 'paused';
+  const pid = running ? 1 : null; // Representing PM2 daemon Active state
 
-  if (!running && pid !== null) {
-    try { fs.unlinkSync(PID_FILE); } catch { /* ok */ }
+  try {
+    const rawHb = fs.readFileSync(HEARTBEAT_FILE, 'utf-8');
+    const hb = JSON.parse(rawHb);
+    const dateStr = new Date(hb.ts * 1000).toLocaleString('zh-CN');
+    
+    if (Date.now() / 1000 - hb.ts > 120 && running) {
+       // If no heartbeat for 2 minutes and it claims to be running, it might be dead
+       log = `[${dateStr}] 警告: 离线超过 2 分钟，后台守护进程可能意外退出。\n最后信息: ${hb.msg}`;
+       running = false;
+    } else {
+       log = `[${dateStr}] 守护进程心跳: ${hb.msg}`;
+    }
+  } catch {
+    log = statusStr === 'paused' ? '系统已暂停' : '守护进程启动中，等待心跳信号...';
   }
 
-  return { running, pid: running ? pid : null, log };
+  // If paused, prepend a clear message
+  if (statusStr === 'paused') {
+    log = `[已暂停] 生产管道目前处于中断状态。\n${log}`;
+  } else {
+    log = `[运行中] (后台 PM2 7x24 常驻调度模式)\n${log}`;
+  }
+
+  return { running, pid, log };
 }
 
 export async function GET(req: NextRequest) {
@@ -70,65 +59,24 @@ export async function POST(req: NextRequest) {
   const action = url.searchParams.get('action') || 'start';
 
   if (action !== 'start' && action !== 'stop') {
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    return NextResponse.json({ error: '无效的操作指令' }, { status: 400 });
   }
 
-  if (action === 'stop') {
-    const pid = readPid();
-    if (pid && isProcessRunning(pid)) {
-      try {
-        if (process.platform === 'win32') {
-          execSync(`taskkill /PID ${pid} /T /F`, { timeout: 5000 });
-        } else {
-          process.kill(pid, 'SIGTERM');
-        }
-      } catch { /* already dead */ }
-      try { fs.unlinkSync(PID_FILE); } catch { /* ok */ }
+  try {
+    const dir = path.dirname(STATUS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+    if (action === 'stop') {
+      fs.writeFileSync(STATUS_FILE, 'paused');
+      return NextResponse.json({ success: true, message: '已请求中断 Pipeline' });
     }
-    return NextResponse.json({ success: true, message: 'Pipeline stopped' });
+
+    if (action === 'start') {
+      fs.writeFileSync(STATUS_FILE, 'running');
+      return NextResponse.json({ success: true, pid: 1, message: '已请求恢复 Pipeline' });
+    }
+  } catch (err: any) {
+    return NextResponse.json({ error: '状态写入失败: ' + err.message }, { status: 500 });
   }
-
-  const status = getStatus();
-  if (status.running) {
-    return NextResponse.json({ error: 'Pipeline is already running', pid: status.pid }, { status: 409 });
-  }
-
-  const modeRaw = url.searchParams.get('mode') || 'all';
-  if (!VALID_MODES.includes(modeRaw as typeof VALID_MODES[number])) {
-    return NextResponse.json({ error: 'Invalid mode' }, { status: 400 });
-  }
-
-  const articles = clampInt(url.searchParams.get('articles'), MIN_COUNT, MAX_ARTICLES, 10);
-  const flash = clampInt(url.searchParams.get('flash'), MIN_COUNT, MAX_FLASH, 15);
-
-  const args = ['-m', 'pipeline.run'];
-  if (modeRaw === 'articles') {
-    args.push('--articles-only', '--articles', String(articles));
-  } else if (modeRaw === 'flash') {
-    args.push('--flash-only', '--flash', String(flash));
-  } else {
-    args.push('--articles', String(articles), '--flash', String(flash));
-  }
-
-  const logStream = fs.createWriteStream(LOG_FILE, { flags: 'w' });
-  const child = spawn('python', args, {
-    cwd: process.cwd(),
-    detached: true,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-
-  child.stdout?.pipe(logStream);
-  child.stderr?.pipe(logStream);
-  child.unref();
-
-  if (child.pid) {
-    fs.writeFileSync(PID_FILE, String(child.pid));
-  }
-
-  child.on('exit', () => {
-    try { fs.unlinkSync(PID_FILE); } catch { /* ok */ }
-    logStream.end();
-  });
-
-  return NextResponse.json({ success: true, pid: child.pid, message: 'Pipeline started' });
 }
+

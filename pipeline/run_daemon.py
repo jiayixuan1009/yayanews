@@ -16,6 +16,8 @@
 import os
 import sys
 import time
+import json
+from pathlib import Path
 from redis import Redis
 from rq import Queue
 from pipeline.tasks import task_run_articles_and_translate, task_run_flash
@@ -49,16 +51,51 @@ def main():
         flush=True,
     )
 
+    data_dir = Path("data")
+    data_dir.mkdir(exist_ok=True)
+    status_file = data_dir / "daemon_status.txt"
+    heartbeat_file = data_dir / "daemon_heartbeat.txt"
+
+    if not status_file.exists():
+        status_file.write_text("running")
+
+    def write_heartbeat(msg="idle"):
+        try:
+            state = {
+                "ts": time.time(),
+                "msg": msg
+            }
+            heartbeat_file.write_text(json.dumps(state))
+        except Exception:
+            pass
+
     while True:
+        try:
+            status = status_file.read_text().strip()
+        except Exception:
+            status = "running"
+            
+        if status == "paused":
+            write_heartbeat("Paused by admin")
+            time.sleep(5)
+            continue
+
         now = time.time()
+        msg = "waiting"
+        
         if now >= next_flash:
+            msg = f"Dispatching {FLASH_COUNT} flash items"
             print(f"[Dispatch] Enqueue Flash ({FLASH_COUNT}) @ {time.strftime('%H:%M:%S')}", flush=True)
             q.enqueue(task_run_flash, kwargs={"count": FLASH_COUNT}, job_timeout=600)
             next_flash = now + FLASH_SEC
+            
         if now >= next_article:
+            msg = f"Dispatching {ARTICLE_COUNT} articles"
             print(f"[Dispatch] Enqueue Articles ({ARTICLE_COUNT}) @ {time.strftime('%H:%M:%S')}", flush=True)
             q.enqueue(task_run_articles_and_translate, kwargs={"batch_size": ARTICLE_COUNT}, job_timeout=3600)
             next_article = now + ARTICLE_SEC
+
+        write_heartbeat(msg)
         time.sleep(SLEEP_SEC)
 
 if __name__ == "__main__":
