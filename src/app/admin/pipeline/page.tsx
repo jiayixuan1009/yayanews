@@ -362,7 +362,7 @@ export default function PipelinePage() {
         <p className="text-xs text-slate-500 mt-2">注：上述配置会在下次点击【总开关】启动时，写入后台 PM2 守护进程生效。</p>
       </div>
 
-      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 w-full lg:w-1/2">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-white">守护进程实时心跳 (Daemon Heartbeat)</h3>
           {status.running && (
@@ -374,7 +374,7 @@ export default function PipelinePage() {
         </div>
         <pre
           ref={logRef}
-          className={`h-[1600px] overflow-y-auto rounded-lg bg-slate-950 border p-4 text-xs font-mono whitespace-pre-wrap ${
+          className={`h-[800px] overflow-y-auto rounded-lg bg-slate-950 border p-4 text-xs font-mono whitespace-pre-wrap ${
             isPaused ? 'border-amber-500/50 text-amber-200' : isOffline ? 'border-red-500/50 text-red-400' : 'border-emerald-500/50 text-emerald-500'
           }`}
         >
