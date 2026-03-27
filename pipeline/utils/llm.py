@@ -89,6 +89,18 @@ def batch_translate(items: list[dict], batch_size: int = 8) -> list[dict]:
     return results
 
 
+def get_embedding(text: str, model: str = "text-embedding-3-small") -> list[float]:
+    """请求大模型的文本嵌入接口向量化内容，以备写入 pgvector"""
+    if not text:
+        return []
+    client = get_client()
+    try:
+        res = client.embeddings.create(input=[text], model=model)
+        return res.data[0].embedding
+    except Exception as e:
+        log.warning(f"Embedding failed: {e}")
+        return []
+
 def compute_similarity(text_a: str, text_b: str) -> float:
     """基于字符级 n-gram 的 Jaccard 相似度。
     返回 0.0~1.0，越高越相似。用于重复率门控，无需外部依赖。
