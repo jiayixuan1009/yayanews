@@ -156,7 +156,7 @@ const STAGE_LABELS: Record<string, string> = {
   seo: 'SEO', publish: '发布', fetch: '拉取', translate: '翻译',
 };
 
-export default function SpeedDashboard() {
+export default function SpeedView() {
   const [stats, setStats] = useState<SpeedStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'overview' | 'runs'>('overview');
@@ -487,9 +487,9 @@ export default function SpeedDashboard() {
           {/* Legend */}
           <div className="flex flex-wrap items-center gap-3 mt-4 text-[10px] text-slate-500">
             {Object.entries(STAGE_LABELS).map(([k, v]) => (
-              <span key={k} className="flex items-center gap-1">
-                <span className={`h-2 w-2 rounded-full ${STAGE_COLORS[k]}`} />{v}
-              </span>
+               <span key={k} className="flex items-center gap-1">
+                 <span className={`h-2 w-2 rounded-full ${STAGE_COLORS[k]}`} />{v}
+               </span>
             ))}
           </div>
         </div>

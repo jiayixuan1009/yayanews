@@ -34,7 +34,7 @@ interface ListResult {
   pageSize: number;
 }
 
-export default function FlashPage() {
+export default function FlashView() {
   const [data, setData] = useState<ListResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
