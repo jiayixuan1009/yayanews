@@ -13,16 +13,17 @@ import FlashView from './components/views/FlashView';
 export default function AdminSPA() {
   const [activeTab, setActiveTab] = useState('pipeline');
 
-  let Content = DashboardView;
-  switch (activeTab) {
-    case 'pipeline': Content = PipelineView; break;
-    case 'analytics': Content = AnalyticsView; break;
-    case 'speed': Content = SpeedView; break;
-    case 'benchmark': Content = BenchmarkView; break;
-    case 'articles': Content = ArticlesView; break;
-    case 'flash': Content = FlashView; break;
-    case 'dashboard':
-    default: Content = DashboardView; break;
+  function renderView() {
+    switch (activeTab) {
+      case 'pipeline':  return <PipelineView />;
+      case 'analytics': return <AnalyticsView />;
+      case 'speed':     return <SpeedView />;
+      case 'benchmark': return <BenchmarkView />;
+      case 'articles':  return <ArticlesView />;
+      case 'flash':     return <FlashView />;
+      case 'dashboard':
+      default:          return <DashboardView onNavigate={setActiveTab} />;
+    }
   }
 
   return (
@@ -36,9 +37,10 @@ export default function AdminSPA() {
           </a>
         </header>
         <main className="flex-1 overflow-y-auto p-6">
-          <Content onNavigate={setActiveTab} />
+          {renderView()}
         </main>
       </div>
     </div>
   );
 }
+
