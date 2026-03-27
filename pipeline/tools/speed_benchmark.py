@@ -5,7 +5,7 @@
   1. 从文章标题提取搜索关键词
   2. 用 Google News RSS 搜索相同新闻
   3. 解析竞品发布时间
-  4. 计算时间差并入库
+  4. 计算时间差并入库 (PostgreSQL)
 
 使用方式：
   python -m pipeline.tools.speed_benchmark              # 检测最近 20 篇
@@ -15,15 +15,16 @@
 import argparse
 import re
 import time
-import sqlite3
 import urllib.parse
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 import feedparser
 import requests
+from psycopg2.extras import RealDictCursor
 
-from pipeline.config.settings import DB_PATH, SITE_URL
+from pipeline.config.settings import SITE_URL
+from pipeline.utils.database import get_pool
 from pipeline.utils.logger import get_logger
 
 log = get_logger("speed_benchmark")
@@ -33,13 +34,6 @@ GOOGLE_NEWS_RSS = "https://news.google.com/rss/search"
 USER_AGENT = "Mozilla/5.0 (compatible; YayaNews-Benchmark/1.0)"
 REQUEST_TIMEOUT = 15
 SEARCH_DELAY = 2.0
-
-
-def _get_conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    return conn
 
 
 def _extract_keywords(title: str) -> str:
@@ -173,51 +167,54 @@ def benchmark_article(article_id: int, title: str, published_at: str) -> dict:
     }
 
 
-def _save_result(conn: sqlite3.Connection, article_id: int, title: str,
-                 published_at: str, result: dict):
-    conn.execute("""
-        INSERT INTO speed_benchmarks
-        (article_id, article_title, our_published_at, competitor_title,
-         competitor_source, competitor_url, competitor_published_at,
-         diff_seconds, search_query, result_count, status, error_message)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        article_id, title, published_at,
-        result.get("competitor_title"),
-        result.get("competitor_source"),
-        result.get("competitor_url"),
-        result.get("competitor_published_at"),
-        result.get("diff_seconds"),
-        result.get("search_query", ""),
-        result.get("result_count", 0),
-        result["status"],
-        result.get("error", ""),
-    ))
+def _save_result(conn, article_id: int, title: str, published_at: str, result: dict):
+    """将对比结果写入 PostgreSQL speed_benchmarks 表。"""
+    with conn.cursor() as cur:
+        cur.execute("""
+            INSERT INTO speed_benchmarks
+            (article_id, article_title, our_published_at, competitor_title,
+             competitor_source, competitor_url, competitor_published_at,
+             diff_seconds, search_query, result_count, status, error_message)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            article_id, title, published_at,
+            result.get("competitor_title"),
+            result.get("competitor_source"),
+            result.get("competitor_url"),
+            result.get("competitor_published_at"),
+            result.get("diff_seconds"),
+            result.get("search_query", ""),
+            result.get("result_count", 0),
+            result["status"],
+            result.get("error", ""),
+        ))
     conn.commit()
 
 
 def run_for_article(article_id: int):
     """对指定文章执行对比并入库。"""
-    conn = _get_conn()
+    conn = get_pool().getconn()
     try:
-        row = conn.execute(
-            "SELECT id, title, published_at FROM articles WHERE id = ? AND status = 'published'",
-            (article_id,)
-        ).fetchone()
-        if not row:
-            print(f"Article {article_id} not found or not published.")
-            return
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "SELECT id, title, published_at FROM articles WHERE id = %s AND status = 'published'",
+                (article_id,)
+            )
+            row = cur.fetchone()
+            if not row:
+                print(f"Article {article_id} not found or not published.")
+                return
 
-        existing = conn.execute(
-            "SELECT 1 FROM speed_benchmarks WHERE article_id = ? AND status = 'done'",
-            (article_id,)
-        ).fetchone()
-        if existing:
-            print(f"Article {article_id} already benchmarked, skipping.")
-            return
+            cur.execute(
+                "SELECT 1 FROM speed_benchmarks WHERE article_id = %s AND status = 'done'",
+                (article_id,)
+            )
+            if cur.fetchone():
+                print(f"Article {article_id} already benchmarked, skipping.")
+                return
 
-        result = benchmark_article(row["id"], row["title"], row["published_at"])
-        _save_result(conn, row["id"], row["title"], row["published_at"], result)
+        result = benchmark_article(row["id"], row["title"], str(row["published_at"]))
+        _save_result(conn, row["id"], row["title"], str(row["published_at"]), result)
 
         diff = result.get("diff_seconds")
         if diff is not None:
@@ -226,32 +223,35 @@ def run_for_article(article_id: int):
         else:
             print(f"  [{row['id']}] {result['status']} | {result.get('error', 'no competitor time')}")
     finally:
-        conn.close()
+        get_pool().putconn(conn)
 
 
 def run_batch(limit: int = 20, hours: Optional[int] = None):
     """批量检测最近发布的文章。"""
-    conn = _get_conn()
+    conn = get_pool().getconn()
     try:
-        sql = """
-            SELECT a.id, a.title, a.published_at FROM articles a
-            LEFT JOIN speed_benchmarks sb ON a.id = sb.article_id AND sb.status = 'done'
-            WHERE a.status = 'published' AND sb.id IS NULL
-        """
-        params: list = []
-        if hours:
-            sql += " AND a.published_at >= datetime('now', '+8 hours', ?)"
-            params.append(f"-{hours} hours")
-        sql += " ORDER BY a.published_at DESC LIMIT ?"
-        params.append(limit)
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            sql = """
+                SELECT a.id, a.title, a.published_at FROM articles a
+                LEFT JOIN speed_benchmarks sb ON a.id = sb.article_id AND sb.status = 'done'
+                WHERE a.status = 'published' AND sb.id IS NULL
+            """
+            params: list = []
+            if hours:
+                sql += " AND a.published_at >= (NOW() - INTERVAL '%s hours')"
+                params.append(hours)
+            sql += " ORDER BY a.published_at DESC LIMIT %s"
+            params.append(limit)
 
-        rows = conn.execute(sql, params).fetchall()
+            cur.execute(sql, params)
+            rows = cur.fetchall()
+
         print(f"\n[Speed Benchmark] 待检测: {len(rows)} 篇\n")
 
         for i, row in enumerate(rows, 1):
             print(f"({i}/{len(rows)}) {row['title'][:50]}...")
-            result = benchmark_article(row["id"], row["title"], row["published_at"])
-            _save_result(conn, row["id"], row["title"], row["published_at"], result)
+            result = benchmark_article(row["id"], row["title"], str(row["published_at"]))
+            _save_result(conn, row["id"], row["title"], str(row["published_at"]), result)
 
             diff = result.get("diff_seconds")
             if diff is not None:
@@ -265,7 +265,7 @@ def run_batch(limit: int = 20, hours: Optional[int] = None):
 
         print(f"\n[Speed Benchmark] 完成: {len(rows)} 篇")
     finally:
-        conn.close()
+        get_pool().putconn(conn)
 
 
 if __name__ == "__main__":
