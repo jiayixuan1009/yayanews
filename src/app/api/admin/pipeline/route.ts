@@ -5,8 +5,13 @@ import { requireAuth } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
-const STATUS_FILE = path.join(process.cwd(), 'data', 'daemon_status.txt');
-const HEARTBEAT_FILE = path.join(process.cwd(), 'data', 'daemon_heartbeat.txt');
+// Next.js standalone mode changes process.cwd() to .next/standalone, so we must compensate.
+const basePath = process.cwd().includes('.next')
+  ? path.join(process.cwd(), '..', '..')
+  : process.cwd();
+
+const STATUS_FILE = path.join(basePath, 'data', 'daemon_status.txt');
+const HEARTBEAT_FILE = path.join(basePath, 'data', 'daemon_heartbeat.txt');
 
 function getStatus() {
   let statusStr = 'running';
