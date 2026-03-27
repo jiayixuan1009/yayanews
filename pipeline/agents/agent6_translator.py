@@ -1,13 +1,14 @@
 """
 Agent 6: 英文双语翻译 (English Translator)
 
-基于现存的中文深度文章，调用 LLM 完整重构英文原生版，并注入 SQLite (lang='en')。
+基于现存的中文深度文章，调用 LLM 完整重构英文原生版，并注入 PostgreSQL (lang='en')。
 """
 import json
 import time
 from pipeline.utils.llm import chat
 from pipeline.utils.logger import get_logger, step_print
-from pipeline.utils.database import get_conn, insert_article, insert_tags
+from pipeline.utils.database import get_pool, insert_article, insert_tags
+from psycopg2.extras import RealDictCursor
 from pipeline.config.settings import PIPELINE_LLM_WORKERS
 
 log = get_logger("agent6")
@@ -15,36 +16,32 @@ log = get_logger("agent6")
 def _get_translation_candidates(limit: int = 5) -> list[dict]:
     """
     Search PostgreSQL for high-quality Chinese articles that lack an English translation counterpart.
-    
-    This function specifically targets 'published' articles and ensures their slug does not 
-    already exist with an '-en' suffix.
-    
+
     Args:
         limit (int): Maximum number of candidate articles to pull per execution cycle.
-        
+
     Returns:
-        list[dict]: A list of SQLite/PG row dictionaries representing untranslated articles.
+        list[dict]: A list of PG row dictionaries representing untranslated articles.
     """
-    conn = get_conn()
+    conn = get_pool().getconn()
     try:
-        # 获取最新的中文文章
-        # 通过 LIKE '%-en' 匹配现存的翻译稿 slug，过滤掉已经翻译过的内容
-        rows = conn.execute(
-            """
-            SELECT * FROM articles 
-            WHERE lang = 'zh' 
-              AND article_type != 'flash'
-              AND status = 'published'
-              AND slug NOT LIKE '%-en'
-              AND slug NOT IN (
-                  SELECT REPLACE(slug, '-en', '') FROM articles WHERE lang = 'en'
-              )
-            ORDER BY published_at DESC LIMIT ?
-            """, (limit,)
-        ).fetchall()
-        return [dict(r) for r in rows]
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT * FROM articles
+                WHERE lang = 'zh'
+                  AND article_type != 'flash'
+                  AND status = 'published'
+                  AND slug NOT LIKE '%%-en'
+                  AND slug NOT IN (
+                      SELECT REPLACE(slug, '-en', '') FROM articles WHERE lang = 'en'
+                  )
+                ORDER BY published_at DESC LIMIT $1
+                """, (limit,)
+            )
+            return [dict(r) for r in cur.fetchall()]
     finally:
-        conn.close()
+        get_pool().putconn(conn)
 
 def _translate_article(zh_article: dict) -> dict:
     prompt = f"""You are an expert bilingual financial journalist for YayaNews. 

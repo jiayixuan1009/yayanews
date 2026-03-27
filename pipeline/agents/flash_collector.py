@@ -23,7 +23,7 @@ from pipeline.config.settings import (
     FLASH_CHANNELS, FLASH_CONCURRENCY, FLASH_TRANSLATE_BATCH, FLASH_WS_DRAIN_MAX,
 )
 from pipeline.utils.ws_flash_buffer import drain_ws_buffer
-from pipeline.utils.database import insert_flash, get_conn, now_cn, check_semantic_duplicate
+from pipeline.utils.database import insert_flash, now_cn, check_semantic_duplicate, get_pool
 from pipeline.utils.llm import chat, batch_translate, compute_similarity, get_embedding
 from pipeline.utils.logger import get_logger, step_print
 
@@ -60,14 +60,21 @@ def _is_degraded(name: str) -> bool:
 
 
 def _get_recent_flash_texts(limit: int = 200) -> list[str]:
-    conn = get_conn()
+    """从 PostgreSQL 读取最近快讯标题+内容，用于本地 N-gram 去重"""
+    conn = get_pool().getconn()
     try:
-        rows = conn.execute(
-            "SELECT title, content FROM flash_news ORDER BY published_at DESC LIMIT ?", (limit,)
-        ).fetchall()
-        return [f"{r['title']} {r.get('content', '')}" for r in rows]
+        from psycopg2.extras import RealDictCursor
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "SELECT title, content FROM flash_news ORDER BY published_at DESC LIMIT %s",
+                (limit,)
+            )
+            return [f"{r['title']} {r.get('content', '')}" for r in cur.fetchall()]
+    except Exception as e:
+        log.warning(f"Failed to fetch recent flash texts: {e}")
+        return []
     finally:
-        conn.close()
+        get_pool().putconn(conn)
 
 
 def _categorize(text: str) -> int:
