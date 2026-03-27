@@ -20,7 +20,7 @@ import json
 from pathlib import Path
 from redis import Redis
 from rq import Queue
-from pipeline.tasks import task_run_articles_and_translate, task_run_flash
+from pipeline.tasks import task_collect_and_enqueue_articles, task_run_flash
 
 FLASH_SEC = int(os.environ.get("DAEMON_FLASH_SEC", "60"))
 ARTICLE_SEC = int(os.environ.get("DAEMON_ARTICLE_SEC", "1800"))
@@ -65,7 +65,11 @@ def main():
         try:
             state = {
                 "ts": time.time(),
-                "msg": msg
+                "msg": msg,
+                "queued": len(q),
+                "started": q.started_job_registry.count,
+                "failed": q.failed_job_registry.count,
+                "finished": q.finished_job_registry.count
             }
             heartbeat_file.write_text(json.dumps(state))
         except Exception:
@@ -116,9 +120,9 @@ def main():
             
         if now >= next_article:
             if mode in ["all", "articles"]:
-                msg = f"Dispatching {dyn_articles} articles"
-                print(f"[Dispatch] Enqueue Articles ({dyn_articles}) @ {time.strftime('%H:%M:%S')}", flush=True)
-                q.enqueue(task_run_articles_and_translate, kwargs={"batch_size": dyn_articles}, job_timeout=3600)
+                msg = f"Dispatching collection for {dyn_articles} topics"
+                print(f"[Dispatch] Enqueue Topic Collection ({dyn_articles}) @ {time.strftime('%H:%M:%S')}", flush=True)
+                q.enqueue(task_collect_and_enqueue_articles, kwargs={"batch_size": dyn_articles}, job_timeout=600)
             next_article = now + ARTICLE_SEC
 
         write_heartbeat(msg)

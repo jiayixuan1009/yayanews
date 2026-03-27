@@ -32,8 +32,98 @@ from pipeline.utils.logger import step_print
 from pipeline.tools.speed_benchmark import run_for_article
 
 
+def run_collect_topics(batch_size: int = 10):
+    """单独运行选题采集阶段，供颗粒化队列调度使用。"""
+    step_print("文章 Pipeline [解耦] - 选题采集", f"请求大小: {batch_size}")
+    topics = collect(batch_size=batch_size)
+    if not topics:
+        print("\n[Pipeline] 无选题可用。")
+    return topics
+
+def run_single_article(topic: dict):
+    """颗粒化执行：对单一选题执行完整生成发布链路（生成 → 审核 → SEO → 发布 → 翻译）。"""
+    started_at = now_cn()
+    start = time.time()
+    stage_timings = {}
+    
+    title = topic.get('title', 'Unknown')
+    step_print("单篇文章 Pipeline 启动", f"选题: {title[:30]}...")
+    
+    # 因为底层 Agent 接收的是列表，所以包一层
+    topics = [topic]
+
+    # Step 2: 内容生成
+    t = time.time()
+    drafts = generate(topics)
+    stage_timings["generate"] = round(time.time() - t, 2)
+    if not drafts:
+        print(f"\n[Pipeline Single] 草稿生成失败: {title}")
+        return None
+
+    # Step 3: 质量审核
+    t = time.time()
+    reviewed = review(drafts)
+    stage_timings["review"] = round(time.time() - t, 2)
+    if not reviewed:
+        print(f"\n[Pipeline Single] 草稿未通过审核: {title}")
+        return None
+
+    # Step 4: SEO 优化
+    t = time.time()
+    optimized = optimize(reviewed)
+    stage_timings["seo"] = round(time.time() - t, 2)
+    if not optimized:
+        print(f"\n[Pipeline Single] SEO 优化失败: {title}")
+        return None
+
+    # Step 5: 入库发布
+    t = time.time()
+    published = publish(optimized)
+    stage_timings["publish"] = round(time.time() - t, 2)
+    
+    if not published:
+        print(f"\n[Pipeline Single] 数据库写入/发布失败: {title}")
+        return None
+
+    # Step 6: 英文转译
+    t = time.time()
+    print(f"\n{'#'*30}\n  启动 Agent 6 英文转译子流 (Single)\n{'#'*30}")
+    translations = translate_queue(batch_size=1)
+    stage_timings["translate"] = round(time.time() - t, 2)
+
+    elapsed = time.time() - start
+    stage_timings["total"] = round(elapsed, 2)
+    step_print("单篇文章 Pipeline 完成", f"耗时 {elapsed:.1f}s")
+    
+    # 记录流水线数据
+    insert_pipeline_run(
+        run_type="single_article",
+        started_at=started_at,
+        finished_at=now_cn(),
+        total_seconds=elapsed,
+        items_requested=1,
+        items_produced=1,
+        stage_timings=stage_timings,
+    )
+    
+    # 后台线程跑时效对比
+    def _bench_bg():
+        import time as _t
+        art = published[0]
+        aid = art.get("article_id") or art.get("id")
+        if aid and aid > 0:
+            try:
+                run_for_article(aid)
+            except Exception as e:
+                print(f"  [Benchmark] Article {aid} failed: {e}")
+            _t.sleep(2)
+
+    threading.Thread(target=_bench_bg, daemon=True).start()
+    
+    return published[0]
+
 def run_article_pipeline(batch_size: int = 10):
-    """运行文章生产流水线：采集 → 生成 → 审核 → SEO → 发布。"""
+    """[兼容 CLI] 运行传统整批文章生产流水线：采集 → 生成 → 审核 → SEO → 发布。"""
     started_at = now_cn()
     start = time.time()
     stage_timings = {}
