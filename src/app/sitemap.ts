@@ -2,6 +2,8 @@ import { MetadataRoute } from 'next';
 import { getRecentArticlesForSitemap, getTopics, getCategories, getTagsForSitemap } from '@/lib/queries';
 import { siteConfig } from '@/lib/types';
 
+export const dynamic = 'force-dynamic';
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = siteConfig.siteUrl;
 
@@ -17,7 +19,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/privacy`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.4 },
   ];
 
-  const categories = await getCategories();
+  const [categories, articles, topics, tagRows] = await Promise.all([
+    getCategories().catch(() => []),
+    getRecentArticlesForSitemap().catch(() => []),
+    getTopics(100).catch(() => []),
+    getTagsForSitemap().catch(() => []),
+  ]);
+
   const categoryPages: MetadataRoute.Sitemap = categories.map(c => ({
     url: `${baseUrl}/news/${c.slug}`,
     lastModified: new Date(),
@@ -25,7 +33,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  const articles = await getRecentArticlesForSitemap();
   const articlePages: MetadataRoute.Sitemap = articles.map(a => ({
     url: `${baseUrl}/article/${a.slug}`,
     lastModified: new Date(a.updated_at),
@@ -33,7 +40,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  const topics = await getTopics(100);
   const topicPages: MetadataRoute.Sitemap = topics.map(t => ({
     url: `${baseUrl}/topics/${t.slug}`,
     lastModified: new Date(),
@@ -41,7 +47,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  const tagRows = await getTagsForSitemap();
   const tagPages: MetadataRoute.Sitemap = tagRows.map(t => ({
     url: `${baseUrl}/tag/${t.slug}`,
     lastModified: new Date(t.updated_at),
