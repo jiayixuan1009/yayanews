@@ -68,7 +68,7 @@ function StatCard({ label, value, sub, color }: { label: string; value: string |
   );
 }
 
-export default function BenchmarkPage() {
+export default function BenchmarkView() {
   const [data, setData] = useState<BenchmarkData | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);

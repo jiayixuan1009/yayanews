@@ -58,7 +58,7 @@ function Card({
   );
 }
 
-export default function AdminAnalyticsPage() {
+export default function AnalyticsView() {
   const [range, setRange] = useState<7 | 14 | 30>(14);
   const [data, setData] = useState<GaTrafficResponse | null>(null);
   const [loading, setLoading] = useState(true);

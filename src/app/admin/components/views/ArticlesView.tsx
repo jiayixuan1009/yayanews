@@ -35,7 +35,7 @@ interface ListResult {
   pageSize: number;
 }
 
-export default function ArticlesPage() {
+export default function ArticlesView() {
   const [data, setData] = useState<ListResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
