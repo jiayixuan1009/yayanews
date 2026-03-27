@@ -14,14 +14,19 @@ fi
 
 npm run build
 
+# standalone 模式需要手动复制 public 和 static 目录
+cp -r public .next/standalone/public
+cp -r .next/static .next/standalone/.next/static
+
 if command -v pm2 >/dev/null 2>&1; then
-  if pm2 describe yayanews-web >/dev/null 2>&1; then
-    pm2 restart yayanews-web
+  if pm2 describe yayanews >/dev/null 2>&1; then
+    pm2 restart yayanews
   else
-    pm2 start node_modules/next/dist/bin/next --name yayanews-web -- start -H 0.0.0.0 -p 3000
+    pm2 start .next/standalone/server.js --name yayanews
   fi
   pm2 save
 else
   echo "未安装 PM2：请先 npm install -g pm2 后重新执行本脚本"
 fi
-echo "完成。请确认 Nginx 反代 127.0.0.1:3000（见 deploy/nginx-yayanews.conf）"
+echo "完成。请确认 Nginx 反代 127.0.0.1:3002（见 deploy/nginx-yayanews.conf）"
+

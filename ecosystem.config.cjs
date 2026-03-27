@@ -15,12 +15,11 @@ module.exports = {
     {
       name: "yayanews",
       cwd: root,
-      script: "node_modules/.bin/next",
-      args: "start",
+      script: ".next/standalone/server.js",
       autorestart: true,
       max_restarts: 20,
       min_uptime: "10s",
-      env: { NODE_ENV: "production", PORT: 3002 },
+      env: { NODE_ENV: "production", PORT: 3002, HOSTNAME: "0.0.0.0" },
     },
     {
       name: "yaya-finnhub-ws",
