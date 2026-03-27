@@ -50,8 +50,13 @@ RSS_FEEDS = [
 
 # ── 中文快讯 RSS（无需英译中，降低延迟与 LLM 消耗）──
 CN_FLASH_RSS_FEEDS = [
+    # 美股/宏观
     {"url": "https://www.chinanews.com.cn/rss/finance.xml", "category": "us-stock"},
     {"url": "http://finance.people.com.cn/rss/finance.xml", "category": "us-stock"},
+    # 港股
+    {"url": "http://www.aastocks.com/sc/resources/news-rss.php", "category": "hk-stock"},
+    {"url": "https://www1.hkexnews.hk/api/v1/rss?lang=zh", "category": "hk-stock"},
+    {"url": "http://rss.sina.com.cn/roll/finance/hk/hot_roll.xml", "category": "hk-stock"},
 ]
 
 # ══════════════════════════════════════════════════════════════
