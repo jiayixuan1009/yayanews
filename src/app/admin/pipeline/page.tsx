@@ -19,6 +19,12 @@ interface QueueItem {
   published_at?: string | null;
 }
 
+interface SourceActivity {
+  source: string;
+  last_seen: string;
+  count_24h: number;
+}
+
 const ARTICLE_STEPS = [
   { key: 'collect', label: '选题采集', sub: 'Agent 1 · RSS + LLM' },
   { key: 'generate', label: '内容生成', sub: 'Agent 2' },
@@ -45,9 +51,10 @@ function inferArticleStep(log: string): number {
 
 export default function PipelinePage() {
   const [status, setStatus] = useState<PipelineStatus>({ running: false, pid: null, log: '' });
-  const [queues, setQueues] = useState<{ pending: QueueItem[]; published: QueueItem[] }>({
+  const [queues, setQueues] = useState<{ pending: QueueItem[]; published: QueueItem[]; sources: SourceActivity[] }>({
     pending: [],
     published: [],
+    sources: [],
   });
   const [loading, setLoading] = useState(false);
   const logRef = useRef<HTMLPreElement>(null);
@@ -66,10 +73,11 @@ export default function PipelinePage() {
   const fetchQueues = useCallback(() => {
     adminFetch('/api/admin/pipeline-queues')
       .then(r => r.json())
-      .then((data: { pending?: QueueItem[]; published?: QueueItem[] }) => {
+      .then((data: { pending?: QueueItem[]; published?: QueueItem[]; sources?: SourceActivity[] }) => {
         setQueues({
           pending: data.pending || [],
           published: data.published || [],
+          sources: data.sources || [],
         });
       })
       .catch(() => {});
@@ -200,6 +208,41 @@ export default function PipelinePage() {
               </div>
             );
           })}
+        </div>
+
+        <h3 className="text-sm font-semibold text-white pt-2 border-t border-slate-800 mt-6">数据源实时监控 (Active Channels)</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          {queues.sources.length === 0 ? (
+            <div className="col-span-full py-2 text-xs text-slate-500 text-center">暂无数据源活动记录</div>
+          ) : (
+            queues.sources.map(s => {
+              const secondsAgo = (Date.now() - new Date(s.last_seen).getTime()) / 1000;
+              const isBlinking = secondsAgo < 15; // Pulse if updated within the last 15 seconds!
+              return (
+                <div
+                  key={s.source}
+                  className={`relative overflow-hidden rounded-lg border px-3 py-2 transition-all ${
+                    isBlinking
+                      ? 'border-emerald-500 bg-emerald-950/40 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                      : 'border-slate-700 bg-slate-800/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[11px] font-bold tracking-wide uppercase ${isBlinking ? 'text-emerald-400' : 'text-slate-300'}`}>
+                      {s.source}
+                    </span>
+                    {isBlinking && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between text-[10px]">
+                    <span className="text-slate-500">24H: <span className="text-slate-400">{s.count_24h}</span></span>
+                    <span className={isBlinking ? 'text-emerald-500/80' : 'text-slate-600'}>
+                      {isBlinking ? 'Acquiring...' : `${Math.floor(secondsAgo / 60)}m ago`}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 
