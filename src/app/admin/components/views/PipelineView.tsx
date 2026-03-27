@@ -185,10 +185,10 @@ export default function PipelineView() {
     return (
       <div key={def.id} className={`relative rounded-md border p-2 transition-all duration-300 ${borderClass} ${bgClass}`}>
         <div className="flex justify-between items-center mb-1">
-          <span className={`text-[10px] font-bold tracking-wide ${textTitleClass}`}>{def.id}</span>
+          <span className={`text-xs font-bold tracking-wide ${textTitleClass}`}>{def.id}</span>
           {isBlinking && <span className={`h-1.5 w-1.5 rounded-full ${styles.dot}`} />}
         </div>
-        <div className="flex justify-between items-center text-[9px]">
+        <div className="flex justify-between items-center text-[11px]">
           <span className="text-slate-500">24H: <span className="text-slate-400">{dbRecord?.count_24h || 0}</span></span>
           <span className={timeClass}>
             {isBlinking ? 'Fetch...' : dbRecord ? (secondsAgo < 60 ? '< 1m' : `${Math.floor(secondsAgo / 60)}m`) : 'Idle'}
@@ -202,13 +202,13 @@ export default function PipelineView() {
     <div className="flex flex-col gap-3 min-h-[calc(100vh-100px)] lg:max-h-[calc(100vh-60px)]">
       {/* 1. Header & Switch */}
       <div className="flex items-center justify-between bg-slate-900/80 border border-slate-800 px-4 py-2 rounded-lg shrink-0">
-        <h2 className="text-sm font-bold text-white flex items-center gap-2">
+        <h2 className="text-base font-bold text-white flex items-center gap-2">
           内容生产 Pipeline
-          <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono font-normal">Daemon Mode</span>
+          <span className="text-xs bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono font-normal">Daemon Mode</span>
         </h2>
         
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-medium text-slate-400">总开关状态</span>
+          <span className="text-xs font-medium text-slate-400">总开关状态</span>
           <button
             onClick={status.running ? handleStop : handleStart}
             disabled={loading || isOffline}
@@ -231,7 +231,7 @@ export default function PipelineView() {
       {/* 2. Top Factory Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
         <div className="rounded-lg border border-primary-500/30 bg-primary-950/10 p-2.5 flex flex-col justify-center relative overflow-hidden">
-          <div className="text-[10px] font-medium text-primary-300 flex items-center gap-1.5 mb-0.5">
+          <div className="text-xs font-medium text-primary-300 flex items-center gap-1.5 mb-0.5">
             <span className={`h-1.5 w-1.5 rounded-full ${status.metrics?.started ? 'bg-primary-400 animate-pulse' : 'bg-slate-600'}`} />
             当前创作中 (Worker)
           </div>
@@ -240,19 +240,19 @@ export default function PipelineView() {
           </div>
         </div>
         <div className="rounded-lg border border-slate-700/50 bg-slate-800/30 p-2.5 flex flex-col justify-center">
-           <div className="text-[10px] font-medium text-slate-400 flex items-center gap-1.5 mb-0.5">
+           <div className="text-xs font-medium text-slate-400 flex items-center gap-1.5 mb-0.5">
              <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />排队等待中 (Queued)
            </div>
            <div className="text-xl font-bold text-slate-300 font-mono leading-none">{status.metrics?.queued || 0}</div>
         </div>
         <div className="rounded-lg border border-red-900/30 bg-red-950/10 p-2.5 flex flex-col justify-center">
-           <div className="text-[10px] font-medium text-red-400 flex items-center gap-1.5 mb-0.5">
+           <div className="text-xs font-medium text-red-400 flex items-center gap-1.5 mb-0.5">
              <span className="h-1.5 w-1.5 rounded-full bg-red-500/50" />死信异常 (Failed)
            </div>
            <div className="text-xl font-bold text-red-400 font-mono leading-none">{status.metrics?.failed || 0}</div>
         </div>
         <div className="rounded-lg border border-emerald-900/30 bg-emerald-950/10 p-2.5 flex flex-col justify-center">
-           <div className="text-[10px] font-medium text-emerald-500 flex items-center gap-1.5 mb-0.5">
+           <div className="text-xs font-medium text-emerald-500 flex items-center gap-1.5 mb-0.5">
              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500/50" />历史已投递 (Finished)
            </div>
            <div className="text-xl font-bold text-emerald-400 font-mono leading-none">{status.metrics?.finished || 0}</div>
@@ -264,17 +264,17 @@ export default function PipelineView() {
          {/* Column 1: Sources & Flash */}
          <div className="flex flex-col gap-3 lg:overflow-y-auto pr-1">
             <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-               <h3 className="text-[11px] font-semibold text-white mb-2 pb-1 border-b border-slate-800 flex items-center justify-between">
+               <h3 className="text-sm font-semibold text-white mb-2 pb-1 border-b border-slate-800 flex items-center justify-between">
                  <span>API 通道雷达矩阵</span>
-                 <span className="text-[9px] text-cyan-500 font-normal">Blue Matrix</span>
+                 <span className="text-xs text-cyan-500 font-normal">Blue Matrix</span>
                </h3>
                <div className="grid grid-cols-2 gap-2">
                  {apiSources.map(s => renderSourceCard(s, false))}
                </div>
                
-               <h3 className="text-[11px] font-semibold text-white mt-3 mb-2 pb-1 border-b border-slate-800 flex items-center justify-between">
+               <h3 className="text-sm font-semibold text-white mt-3 mb-2 pb-1 border-b border-slate-800 flex items-center justify-between">
                  <span>RSS 通道雷达矩阵</span>
-                 <span className="text-[9px] text-amber-500 font-normal">Amber Matrix</span>
+                 <span className="text-xs text-amber-500 font-normal">Amber Matrix</span>
                </h3>
                <div className="grid grid-cols-2 gap-2">
                  {rssSources.map(s => renderSourceCard(s, true))}
@@ -282,14 +282,14 @@ export default function PipelineView() {
             </div>
 
             <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-               <h3 className="text-[11px] font-semibold text-white mb-2">快讯流水线流程</h3>
+               <h3 className="text-sm font-semibold text-white mb-2">快讯流水线流程</h3>
                <div className="flex gap-2">
                  {FLASH_STEPS.map((s, i) => {
                     const active = flashRunning && i === 1;
                     const hot = flashRunning && i === 0;
                     return (
                       <div key={s.key} className={`rounded border p-1.5 flex-1 ${hot || active ? 'border-amber-600/40 bg-amber-950/20' : 'border-slate-800 bg-slate-800/20'}`}>
-                        <div className="text-[10px] font-medium text-slate-300 text-center">{s.label}</div>
+                        <div className="text-xs font-medium text-slate-300 text-center">{s.label}</div>
                       </div>
                     );
                  })}
@@ -301,17 +301,17 @@ export default function PipelineView() {
          <div className="flex flex-col gap-3 min-h-0">
             <div className="rounded-lg border border-amber-900/30 bg-slate-900/50 p-3 flex flex-col flex-1 min-h-[150px]">
               <div className="flex justify-between mb-2 shrink-0">
-                <h3 className="text-[11px] font-semibold text-amber-300">待处理队列 (Draft/Review)</h3>
-                <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 rounded">{queues.pending.length}</span>
+                <h3 className="text-sm font-semibold text-amber-300">待处理队列 (Draft/Review)</h3>
+                <span className="text-xs text-slate-500 bg-slate-800 px-1.5 rounded">{queues.pending.length}</span>
               </div>
               <ul className="overflow-y-auto space-y-1.5 pr-1 flex-1">
                 {queues.pending.length === 0 ? (
-                  <li className="text-slate-600 text-[10px] py-2 text-center">暂无待审任务</li>
+                  <li className="text-slate-600 text-xs py-2 text-center">暂无待审任务</li>
                 ) : (
                   queues.pending.map(a => (
                     <li key={a.id} className="flex justify-between gap-2 border-b border-slate-800/50 pb-1.5">
-                      <span className="text-[11px] text-slate-300 line-clamp-1 flex-1" title={a.title}>{a.title}</span>
-                      <span className="shrink-0 text-[9px] uppercase text-slate-500">{a.status}</span>
+                      <span className="text-sm text-slate-300 line-clamp-1 flex-1" title={a.title}>{a.title}</span>
+                      <span className="shrink-0 text-xs uppercase text-slate-500">{a.status}</span>
                     </li>
                   ))
                 )}
@@ -319,19 +319,19 @@ export default function PipelineView() {
             </div>
             <div className="rounded-lg border border-emerald-900/30 bg-slate-900/50 p-3 flex flex-col flex-1 min-h-[150px]">
               <div className="flex justify-between mb-2 shrink-0">
-                <h3 className="text-[11px] font-semibold text-emerald-300">历史已投递 (Finished)</h3>
-                <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 rounded">{queues.published.length}</span>
+                <h3 className="text-sm font-semibold text-emerald-300">历史已投递 (Finished)</h3>
+                <span className="text-xs text-slate-500 bg-slate-800 px-1.5 rounded">{queues.published.length}</span>
               </div>
               <ul className="overflow-y-auto space-y-1.5 pr-1 flex-1">
                 {queues.published.length === 0 ? (
-                  <li className="text-slate-600 text-[10px] py-2 text-center">暂无发布记录</li>
+                  <li className="text-slate-600 text-xs py-2 text-center">暂无发布记录</li>
                 ) : (
                   queues.published.map(a => (
                     <li key={a.id} className="border-b border-slate-800/50 pb-1.5 flex justify-between gap-1 items-center">
-                      <a href={`/article/${a.slug}`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-slate-300 hover:text-primary-400 line-clamp-1 flex-1" title={a.title}>
+                      <a href={`/article/${a.slug}`} target="_blank" rel="noopener noreferrer" className="text-sm text-slate-300 hover:text-primary-400 line-clamp-1 flex-1" title={a.title}>
                         {a.title}
                       </a>
-                      <div className="text-[9px] text-slate-600 shrink-0">{a.published_at?.slice(11, 16)}</div>
+                      <div className="text-xs text-slate-600 shrink-0">{a.published_at?.slice(11, 16)}</div>
                     </li>
                   ))
                 )}
@@ -342,28 +342,28 @@ export default function PipelineView() {
          {/* Column 3: Config & Heartbeat Log */}
          <div className="flex flex-col gap-3 min-h-[300px]">
             <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-2.5 shrink-0">
-              <h3 className="text-[11px] font-semibold text-slate-300 mb-1.5">运行时配置</h3>
+              <h3 className="text-sm font-semibold text-slate-300 mb-1.5">运行时配置</h3>
               <div className="flex gap-2">
                  <div className="flex-1">
-                   <select value={mode} onChange={e => setMode(e.target.value as any)} disabled={status.running} className="w-full rounded text-[10px] bg-slate-800 border-slate-700 p-1 text-slate-300 outline-none focus:border-primary-500 h-[24px]">
+                   <select value={mode} onChange={e => setMode(e.target.value as any)} disabled={status.running} className="w-full rounded text-xs bg-slate-800 border-slate-700 p-1 text-slate-300 outline-none focus:border-primary-500 h-[24px]">
                      <option value="all">文章 + 快讯</option>
                      <option value="articles">仅文章出稿</option>
                      <option value="flash">仅快讯采集</option>
                    </select>
                  </div>
-                 {mode !== 'flash' && <div className="w-[60px]"><input type="number" min={1} max={50} value={articles} onChange={e => setArticles(e.target.value)} disabled={status.running} title="文章并发" className="w-full rounded text-[10px] bg-slate-800 border-slate-700 p-1 text-center text-slate-300 h-[24px]" /></div>}
-                 {mode !== 'articles' && <div className="w-[60px]"><input type="number" min={1} max={100} value={flash} onChange={e => setFlash(e.target.value)} disabled={status.running} title="快讯并发" className="w-full rounded text-[10px] bg-slate-800 border-slate-700 p-1 text-center text-slate-300 h-[24px]" /></div>}
+                 {mode !== 'flash' && <div className="w-[60px]"><input type="number" min={1} max={50} value={articles} onChange={e => setArticles(e.target.value)} disabled={status.running} title="文章并发" className="w-full rounded text-xs bg-slate-800 border-slate-700 p-1 text-center text-slate-300 h-[24px]" /></div>}
+                 {mode !== 'articles' && <div className="w-[60px]"><input type="number" min={1} max={100} value={flash} onChange={e => setFlash(e.target.value)} disabled={status.running} title="快讯并发" className="w-full rounded text-xs bg-slate-800 border-slate-700 p-1 text-center text-slate-300 h-[24px]" /></div>}
               </div>
             </div>
             
             <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-0 flex flex-col flex-1 overflow-hidden">
                <div className="p-2 border-b border-slate-800/50 bg-slate-950/30 flex justify-between items-center shrink-0">
-                 <h3 className="text-[11px] font-semibold text-slate-300">守护进程实时控制台</h3>
+                 <h3 className="text-sm font-semibold text-slate-300">守护进程实时控制台</h3>
                  {status.running && <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" title="侦听中" />}
                </div>
                <pre
                  ref={logRef}
-                 className={`flex-1 overflow-y-auto p-2 text-[10px] font-mono leading-tight whitespace-pre-wrap bg-[#0c1017] ${
+                 className={`flex-1 overflow-y-auto p-2 text-xs font-mono leading-tight whitespace-pre-wrap bg-[#0c1017] ${
                    isPaused ? 'text-amber-300/80' : isOffline ? 'text-red-400' : 'text-emerald-400/80'
                  }`}
                >
