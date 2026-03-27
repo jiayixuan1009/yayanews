@@ -204,7 +204,7 @@ def slug_exists(slug: str) -> bool:
         with conn.cursor() as cur:
             cur.execute("SELECT 1 FROM articles WHERE slug = %s", (slug,))
             return cur.fetchone() is not None
-    except:
+    except Exception:
         return False
     finally:
         get_pool().putconn(conn)
@@ -215,7 +215,7 @@ def title_exists(title: str) -> bool:
         with conn.cursor() as cur:
             cur.execute("SELECT 1 FROM articles WHERE title = %s", (title,))
             return cur.fetchone() is not None
-    except:
+    except Exception:
         return False
     finally:
         get_pool().putconn(conn)
@@ -226,7 +226,7 @@ def get_recent_titles(limit: int = 50) -> list[str]:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("SELECT title FROM articles ORDER BY created_at DESC LIMIT %s", (limit,))
             return [r["title"] for r in cur.fetchall()]
-    except:
+    except Exception:
         return []
     finally:
         get_pool().putconn(conn)
@@ -237,7 +237,7 @@ def get_recent_flashes(limit: int = 50) -> list[str]:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("SELECT title FROM flash_news ORDER BY created_at DESC LIMIT %s", (limit,))
             return [r["title"] for r in cur.fetchall()]
-    except:
+    except Exception:
         return []
     finally:
         get_pool().putconn(conn)
