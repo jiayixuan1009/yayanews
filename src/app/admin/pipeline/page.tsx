@@ -25,6 +25,19 @@ interface SourceActivity {
   count_24h: number;
 }
 
+const KNOWN_SOURCES = [
+  { id: 'Finnhub', type: 'API' },
+  { id: 'NewsAPI', type: 'API' },
+  { id: 'Marketaux', type: 'API' },
+  { id: 'Polygon', type: 'API' },
+  { id: 'AlphaVantage', type: 'API' },
+  { id: 'CoinGecko', type: 'API' },
+  { id: 'CryptoCompare', type: 'API' },
+  { id: 'CN_Sina', type: 'API/Spider' },
+  { id: 'CN_RSS', type: 'RSS' },
+  { id: 'RSS', type: 'RSS' },
+];
+
 const ARTICLE_STEPS = [
   { key: 'collect', label: '选题采集', sub: 'Agent 1 · RSS + LLM' },
   { key: 'generate', label: '内容生成', sub: 'Agent 2' },
@@ -214,39 +227,46 @@ export default function PipelinePage() {
           })}
         </div>
 
-        <h3 className="text-sm font-semibold text-white pt-2 border-t border-slate-800 mt-6">数据源实时监控 (Active Channels)</h3>
+        <h3 className="text-sm font-semibold text-white pt-2 border-t border-slate-800 mt-6">数据源雷达矩阵 (Data Source Matrix)</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-          {queues.sources.length === 0 ? (
-            <div className="col-span-full py-2 text-xs text-slate-500 text-center">暂无数据源活动记录</div>
-          ) : (
-            queues.sources.map(s => {
-              const secondsAgo = (Date.now() - new Date(s.last_seen).getTime()) / 1000;
-              const isBlinking = secondsAgo < 15; // Pulse if updated within the last 15 seconds!
-              return (
-                <div
-                  key={s.source}
-                  className={`relative overflow-hidden rounded-lg border px-3 py-2 transition-all ${
-                    isBlinking
-                      ? 'border-emerald-500 bg-emerald-950/40 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-                      : 'border-slate-700 bg-slate-800/40'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className={`text-[11px] font-bold tracking-wide uppercase ${isBlinking ? 'text-emerald-400' : 'text-slate-300'}`}>
-                      {s.source}
+          {KNOWN_SOURCES.map(def => {
+            const dbRecord = queues.sources?.find(s => s.source.toLowerCase() === def.id.toLowerCase());
+            const secondsAgo = dbRecord ? (Date.now() - new Date(dbRecord.last_seen).getTime()) / 1000 : Infinity;
+            
+            // Highlight: Less than 30s ago -> highly active / pulsing!
+            const isBlinking = secondsAgo < 30;
+            // Online: Has fired within the last 2 hours.
+            const isOnline = secondsAgo < 7200;
+
+            return (
+              <div
+                key={def.id}
+                className={`relative overflow-hidden rounded-lg border px-3 py-2 transition-all ${
+                  isBlinking
+                    ? 'border-emerald-500 bg-emerald-950/40 shadow-[0_0_15px_rgba(16,185,129,0.3)] scale-105 z-10'
+                    : isOnline
+                    ? 'border-emerald-900/40 bg-slate-800/60'
+                    : 'border-slate-800 bg-slate-900/40 opacity-70'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className={`text-[11px] font-bold tracking-wide uppercase ${isBlinking ? 'text-emerald-400' : isOnline ? 'text-slate-300' : 'text-slate-500'}`}>
+                      {def.id}
                     </span>
-                    {isBlinking && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+                    <span className="text-[8px] text-slate-600 mt-0.5">{def.type}</span>
                   </div>
-                  <div className="mt-1.5 flex items-center justify-between text-[10px]">
-                    <span className="text-slate-500">24H: <span className="text-slate-400">{s.count_24h}</span></span>
-                    <span className={isBlinking ? 'text-emerald-500/80' : 'text-slate-600'}>
-                      {isBlinking ? 'Acquiring...' : `${Math.floor(secondsAgo / 60)}m ago`}
-                    </span>
-                  </div>
+                  {isBlinking && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,1)]" />}
                 </div>
-              );
-            })
-          )}
+                <div className="mt-1.5 flex items-center justify-between text-[10px]">
+                  <span className="text-slate-500">24H: <span className="text-slate-400 font-mono">{dbRecord?.count_24h || 0}</span></span>
+                  <span className={isBlinking ? 'text-emerald-500/90 font-bold' : isOnline ? 'text-slate-400' : 'text-slate-600'}>
+                    {isBlinking ? 'Fetching...' : dbRecord ? (secondsAgo < 60 ? '< 1 min' : `${Math.floor(secondsAgo / 60)}m ago`) : 'Idle'}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
