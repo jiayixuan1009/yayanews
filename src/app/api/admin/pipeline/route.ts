@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
       const articles = parseInt(url.searchParams.get('articles') || '10', 10);
       const flash = parseInt(url.searchParams.get('flash') || '15', 10);
       
-      fs.writeFileSync(CONFIG_FILE, JSON.stringify({ mode, articles, flash }));
+      fs.writeFileSync(CONFIG_FILE, JSON.stringify({ mode, articles, flash, timestamp: Date.now() }));
       fs.writeFileSync(STATUS_FILE, 'running');
       return NextResponse.json({ success: true, pid: 1, message: '已请求恢复 Pipeline' });
     }

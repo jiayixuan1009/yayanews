@@ -44,6 +44,7 @@ def main():
     now = time.time()
     next_flash = now
     next_article = now + 120
+    last_config_ts = 0
 
     print(
         f"[run_daemon_rq] flash every {FLASH_SEC}s x {FLASH_COUNT}, "
@@ -94,6 +95,15 @@ def main():
                 mode = cfg.get("mode", "all")
                 dyn_flash = int(cfg.get("flash", FLASH_COUNT))
                 dyn_articles = int(cfg.get("articles", ARTICLE_COUNT))
+                
+                # If the UI just submitted a new config (timestamp changed), force immediate execution!
+                cfg_ts = cfg.get("timestamp", 0)
+                if cfg_ts > last_config_ts:
+                    print(f"[run_daemon] Detected new UI config at {cfg_ts}. Forcing immediate dispatch!", flush=True)
+                    last_config_ts = cfg_ts
+                    next_flash = now
+                    next_article = now
+                    
         except Exception as e:
             print(f"[run_daemon] Failed to read config: {e}")
         
