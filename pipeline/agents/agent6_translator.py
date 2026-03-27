@@ -13,7 +13,18 @@ from pipeline.config.settings import PIPELINE_LLM_WORKERS
 log = get_logger("agent6")
 
 def _get_translation_candidates(limit: int = 5) -> list[dict]:
-    """抽取近期尚未拥有对应英文版的中文深度文章"""
+    """
+    Search PostgreSQL for high-quality Chinese articles that lack an English translation counterpart.
+    
+    This function specifically targets 'published' articles and ensures their slug does not 
+    already exist with an '-en' suffix.
+    
+    Args:
+        limit (int): Maximum number of candidate articles to pull per execution cycle.
+        
+    Returns:
+        list[dict]: A list of SQLite/PG row dictionaries representing untranslated articles.
+    """
     conn = get_conn()
     try:
         # 获取最新的中文文章
@@ -85,6 +96,17 @@ Output JSON Format ONLY:
     return None
 
 def translate_queue(batch_size: int = 5) -> list[dict]:
+    """
+    The orchestrator queue for Agent 6. Processes up to `batch_size` Chinese articles,
+    mutates them into native English formats via the LLM pipeline, and synchronizes 
+    them back to the PostgreSQL database with `lang='en'`.
+    
+    Args:
+        batch_size (int): Max concurrent translation tasks.
+        
+    Returns:
+        list[dict]: Output metadata of all successfully translated and ingested English articles.
+    """
     Candidates = _get_translation_candidates(limit=batch_size)
     if not Candidates:
         print("\n[Agent 6] 无需翻译的文章。")

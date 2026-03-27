@@ -23,8 +23,8 @@ from pipeline.config.settings import (
     FLASH_CHANNELS, FLASH_CONCURRENCY, FLASH_TRANSLATE_BATCH, FLASH_WS_DRAIN_MAX,
 )
 from pipeline.utils.ws_flash_buffer import drain_ws_buffer
-from pipeline.utils.database import insert_flash, get_conn, now_cn
-from pipeline.utils.llm import chat, batch_translate, compute_similarity
+from pipeline.utils.database import insert_flash, get_conn, now_cn, check_semantic_duplicate
+from pipeline.utils.llm import chat, batch_translate, compute_similarity, get_embedding
 from pipeline.utils.logger import get_logger, step_print
 
 log = get_logger("flash")
@@ -592,13 +592,25 @@ def collect_flash(count: int = 10) -> list[dict]:
         if not title:
             continue
             
-        # Semantic Deduplication: Skip if N-gram similarity > 0.45
+        # Semantic Deduplication: Two-Tier Defense
         is_duplicate = False
         item_full_text = f"{title} {item.get('content', '')}"
+        
+        # 1. 第一条防线：本地字面 N-gram 近似匹配（过滤 0.45 以上高度相似，速度极快）
         for ex_text in existing_texts:
             if compute_similarity(item_full_text, ex_text) > 0.45:
                 is_duplicate = True
                 break
+                
+        # 2. 第二条防线：pgvector 语义查重（过滤 0.85 以上深度洗稿内容）
+        embedding = None
+        if not is_duplicate:
+            embedding = get_embedding(item_full_text)
+            if embedding:
+                dup_record = check_semantic_duplicate(embedding, threshold=0.85)
+                if dup_record:
+                    log.info(f"pgvector 拦截洗稿快讯: {title[:20]} <=> {dup_record['title'][:20]}")
+                    is_duplicate = True
         
         if is_duplicate:
             continue
@@ -615,6 +627,7 @@ def collect_flash(count: int = 10) -> list[dict]:
             source_url=item.get("source_url"),
             subcategory=subcategory,
             collected_at=item.get("collected_at"),
+            embedding=embedding,
         )
         if fid > 0:
             inserted += 1
@@ -645,6 +658,7 @@ def collect_flash(count: int = 10) -> list[dict]:
             cat_id = CATEGORIES.get(cat_override, CATEGORIES["crypto"])["id"] if cat_override else 2
 
             subcat = _detect_subcategory(title, cat_id)
+            fallback_embed = get_embedding(item_full_text)
             fid = insert_flash(
                 title=title,
                 content=item.get("content", ""),
@@ -653,6 +667,7 @@ def collect_flash(count: int = 10) -> list[dict]:
                 source="AI",
                 subcategory=subcat,
                 collected_at=now_cn(),
+                embedding=fallback_embed,
             )
             if fid > 0:
                 inserted += 1

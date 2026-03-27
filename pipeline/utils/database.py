@@ -12,6 +12,10 @@ log = get_logger("db")
 
 TZ_CN = timezone(timedelta(hours=8))
 DB_URL = os.environ.get("DATABASE_URL", "postgresql://yayanews:yayanews_master@127.0.0.1:5432/yayanews")
+try:
+    from pgvector.psycopg2 import register_vector
+except ImportError:
+    pass
 
 redis_client = None
 try:
@@ -50,7 +54,8 @@ def insert_article(
     source_url: str = "",
     subcategory: str = "",
     collected_at: Optional[str] = None,
-    lang: str = "zh"
+    lang: str = "zh",
+    embedding: Optional[list[float]] = None
 ) -> int:
     ts = now_cn()
     conn = get_pool().getconn()
@@ -60,13 +65,13 @@ def insert_article(
                 """INSERT INTO articles
                 (title, slug, summary, content, category_id, author, status, article_type,
                  sentiment, tickers, key_points, source, source_url, subcategory,
-                 collected_at, published_at, created_at, updated_at, lang)
+                 collected_at, published_at, created_at, updated_at, lang, embedding)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s,
-                        %s, %s, %s, %s, %s) RETURNING id""",
+                        %s, %s, %s, %s, %s, %s) RETURNING id""",
                 (title, slug, summary, content, category_id, author, status, article_type,
                  sentiment, tickers, key_points, source, source_url, subcategory,
-                 collected_at or ts, published_at or ts, ts, ts, lang)
+                 collected_at or ts, published_at or ts, ts, ts, lang, embedding)
             )
             article_id = cur.fetchone()[0]
         conn.commit()
@@ -125,15 +130,16 @@ def insert_flash(
     subcategory: str = "",
     collected_at: Optional[str] = None,
     lang: str = "zh",
+    embedding: Optional[list[float]] = None,
 ) -> int:
     ts = now_cn()
     conn = get_pool().getconn()
     try:
         with conn.cursor() as cur:
             cur.execute(
-                """INSERT INTO flash_news (title, content, category_id, importance, source, source_url, subcategory, collected_at, published_at, created_at, lang)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
-                (title, content, category_id, importance, source, source_url, subcategory, collected_at or ts, ts, ts, lang),
+                """INSERT INTO flash_news (title, content, category_id, importance, source, source_url, subcategory, collected_at, published_at, created_at, lang, embedding)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+                (title, content, category_id, importance, source, source_url, subcategory, collected_at or ts, ts, ts, lang, embedding),
             )
             fid = cur.fetchone()[0]
         conn.commit()
@@ -233,5 +239,32 @@ def get_recent_flashes(limit: int = 50) -> list[str]:
             return [r["title"] for r in cur.fetchall()]
     except:
         return []
+    finally:
+        get_pool().putconn(conn)
+
+def check_semantic_duplicate(embedding: list[float], threshold: float = 0.85) -> dict:
+    """利用 pgvector 计算余弦相似度（<->/1-<=>）侦测近义洗稿"""
+    if not embedding:
+        return None
+    conn = get_pool().getconn()
+    try:
+        from pgvector.psycopg2 import register_vector
+        register_vector(conn)
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            # PostgreSQL pgvector <=> 返回余弦距离 (cosine distance), 1 - cosine_distance 即为相似度
+            cur.execute("""
+                SELECT id, title, slug, 1 - (embedding <=> %s::vector) AS similarity 
+                FROM articles
+                WHERE embedding IS NOT NULL 
+                ORDER BY embedding <=> %s::vector ASC 
+                LIMIT 1
+            """, (embedding, embedding))
+            row = cur.fetchone()
+            if row and row["similarity"] >= threshold:
+                return dict(row)
+            return None
+    except Exception as e:
+        log.warning(f"Semantic deduplication query failed: {e}")
+        return None
     finally:
         get_pool().putconn(conn)
