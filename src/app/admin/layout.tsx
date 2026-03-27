@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import AdminSidebar from './components/AdminSidebar';
 import AdminAuthGate from './components/AdminAuthGate';
+import '../globals.css';
 
 export const metadata: Metadata = {
   title: 'YayaNews Admin',
