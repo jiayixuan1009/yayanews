@@ -42,6 +42,7 @@ export default function FlashPage() {
   const [subcategory, setSubcategory] = useState('');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [lang, setLang] = useState<string>('all');
   const [expanded, setExpanded] = useState<number | null>(null);
 
   const fetchList = useCallback(() => {
@@ -50,12 +51,13 @@ export default function FlashPage() {
     if (category) params.set('category', category);
     if (subcategory) params.set('subcategory', subcategory);
     if (search) params.set('search', search);
+    if (lang && lang !== 'all') params.set('lang', lang);
 
     adminFetch(`/api/admin/flash?${params}`)
       .then(r => r.json())
       .then(setData)
       .finally(() => setLoading(false));
-  }, [page, category, subcategory, search]);
+  }, [page, category, subcategory, search, lang]);
 
   useEffect(() => { fetchList(); }, [fetchList]);
 
@@ -83,6 +85,34 @@ export default function FlashPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
+        {/* Language Toggle Buttons */}
+        <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700 mr-2">
+          <button
+            onClick={() => { setLang('all'); setPage(1); }}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              lang === 'all' ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            全部
+          </button>
+          <button
+            onClick={() => { setLang('zh'); setPage(1); }}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              lang === 'zh' ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            中文
+          </button>
+          <button
+            onClick={() => { setLang('en'); setPage(1); }}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              lang === 'en' ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            English
+          </button>
+        </div>
+
         <select
           value={category}
           onChange={e => { setCategory(e.target.value); setSubcategory(''); setPage(1); }}
@@ -150,6 +180,9 @@ export default function FlashPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs text-slate-500">#{item.id}</span>
+                      <span className="inline-block rounded bg-slate-800 px-1.5 py-0.5 text-[10px] uppercase font-bold text-slate-400">
+                        {item.lang || 'zh'}
+                      </span>
                       <span className={`h-2 w-2 rounded-full ${CATEGORY_COLORS[getCategorySlug(item.category_name)] || 'bg-slate-500'}`} />
                       <span className="text-xs text-slate-500">{item.category_name || '-'}</span>
                       {item.importance !== 'normal' && (

@@ -24,29 +24,36 @@ export interface DashboardStats {
   processingStats: ProcessingStats;
 }
 
-export async function getDashboardStats(): Promise<DashboardStats> {
-  const [{ c: totalArticles }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM articles");
-  const [{ c: totalFlash }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM flash_news");
-  const [{ c: totalViews }] = await queryAll<{ c: number }>("SELECT COALESCE(SUM(view_count),0)::int as c FROM articles");
+export async function getDashboardStats(lang?: string): Promise<DashboardStats> {
+  const langCondA = lang && lang !== 'all' ? `WHERE lang = '${lang}'` : '';
+  const langCondAndA = lang && lang !== 'all' ? `AND lang = '${lang}'` : '';
+  const langCondF = lang && lang !== 'all' ? `WHERE lang = '${lang}'` : '';
+  const langCondAndF = lang && lang !== 'all' ? `AND lang = '${lang}'` : '';
+  const langCondAndAc = lang && lang !== 'all' ? `AND a.lang = '${lang}'` : '';
+  const langCondAndFc = lang && lang !== 'all' ? `AND f.lang = '${lang}'` : '';
+  const [{ c: totalArticles }] = await queryAll<{ c: number }>(`SELECT COUNT(*)::int as c FROM articles ${langCondA}`);
+  const [{ c: totalFlash }] = await queryAll<{ c: number }>(`SELECT COUNT(*)::int as c FROM flash_news ${langCondF}`);
+  const [{ c: totalViews }] = await queryAll<{ c: number }>(`SELECT COALESCE(SUM(view_count),0)::int as c FROM articles ${langCondA}`);
 
   const [{ c: todayArticles }] = await queryAll<{ c: number }>(
-    "SELECT COUNT(*)::int as c FROM articles WHERE date(created_at) = CURRENT_DATE"
+    `SELECT COUNT(*)::int as c FROM articles WHERE date(created_at) = CURRENT_DATE ${langCondAndA}`
   );
 
   const [{ c: todayFlash }] = await queryAll<{ c: number }>(
-    "SELECT COUNT(*)::int as c FROM flash_news WHERE date(published_at) = CURRENT_DATE"
+    `SELECT COUNT(*)::int as c FROM flash_news WHERE date(published_at) = CURRENT_DATE ${langCondAndF}`
   );
 
   const categoryStats = await queryAll<DashboardStats['categoryStats'][0]>(`
     SELECT c.slug, c.name,
-      (SELECT COUNT(*)::int FROM articles a WHERE a.category_id=c.id) as articles,
-      (SELECT COUNT(*)::int FROM flash_news f WHERE f.category_id=c.id) as flash
+      (SELECT COUNT(*)::int FROM articles a WHERE a.category_id=c.id ${langCondAndAc}) as articles,
+      (SELECT COUNT(*)::int FROM flash_news f WHERE f.category_id=c.id ${langCondAndFc}) as flash
     FROM categories c ORDER BY c.sort_order
   `);
 
   const recentArticles = await queryAll<Article & { category_name: string; category_slug: string }>(`
     SELECT a.*, c.name as category_name, c.slug as category_slug
     FROM articles a LEFT JOIN categories c ON a.category_id=c.id
+    ${lang && lang !== 'all' ? `WHERE a.lang = '${lang}'` : ''}
     ORDER BY a.created_at DESC LIMIT 10
   `);
 
@@ -57,8 +64,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     FROM (
       SELECT generate_series(CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE, '1 day')::date AS date
     ) d
-    LEFT JOIN (SELECT date(created_at) as dt, COUNT(*)::int as cnt FROM articles GROUP BY dt) ac ON ac.dt=d.date
-    LEFT JOIN (SELECT date(published_at) as dt, COUNT(*)::int as cnt FROM flash_news GROUP BY dt) fc ON fc.dt=d.date
+    LEFT JOIN (SELECT date(created_at) as dt, COUNT(*)::int as cnt FROM articles ${langCondA} GROUP BY dt) ac ON ac.dt=d.date
+    LEFT JOIN (SELECT date(published_at) as dt, COUNT(*)::int as cnt FROM flash_news ${langCondF} GROUP BY dt) fc ON fc.dt=d.date
     ORDER BY d.date
   `);
 
@@ -90,6 +97,7 @@ export interface AdminArticleListParams {
   subcategory?: string;
   status?: string;
   search?: string;
+  lang?: string;
 }
 
 export interface AdminArticleListResult {
@@ -124,6 +132,10 @@ export async function getAdminArticles(params: AdminArticleListParams = {}): Pro
     where += ` AND (a.title ILIKE $${paramIdx} OR a.summary ILIKE $${paramIdx})`;
     binds.push(`%${params.search}%`);
     paramIdx++;
+  }
+  if (params.lang && params.lang !== 'all') {
+    where += ` AND a.lang = $${paramIdx++}`;
+    binds.push(params.lang);
   }
 
   const [{ c: total }] = await queryAll<{ c: number }>(`
@@ -169,6 +181,7 @@ export interface AdminFlashListParams {
   category?: string;
   subcategory?: string;
   search?: string;
+  lang?: string;
 }
 
 export interface AdminFlashListResult {
@@ -199,6 +212,10 @@ export async function getAdminFlash(params: AdminFlashListParams = {}): Promise<
     where += ` AND (f.title ILIKE $${paramIdx} OR f.content ILIKE $${paramIdx})`;
     binds.push(`%${params.search}%`);
     paramIdx++;
+  }
+  if (params.lang && params.lang !== 'all') {
+    where += ` AND f.lang = $${paramIdx++}`;
+    binds.push(params.lang);
   }
 
   const [{ c: total }] = await queryAll<{ c: number }>(`

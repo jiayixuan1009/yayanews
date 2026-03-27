@@ -62,13 +62,15 @@ function MiniBar({ value, max, color }: { value: number; max: number; color: str
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lang, setLang] = useState<string>('all');
 
   useEffect(() => {
-    adminFetch('/api/admin/stats')
+    setLoading(true);
+    adminFetch(`/api/admin/stats?lang=${lang}`)
       .then(r => r.json())
       .then(setStats)
       .finally(() => setLoading(false));
-  }, []);
+  }, [lang]);
 
   if (loading) {
     return (
@@ -85,7 +87,37 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold text-white">数据概览</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-white">数据概览</h2>
+        
+        {/* Language Toggle Buttons */}
+        <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700">
+          <button
+            onClick={() => setLang('all')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              lang === 'all' ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            全部
+          </button>
+          <button
+            onClick={() => setLang('zh')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              lang === 'zh' ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            中文
+          </button>
+          <button
+            onClick={() => setLang('en')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              lang === 'en' ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            English
+          </button>
+        </div>
+      </div>
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
@@ -203,7 +235,12 @@ export default function AdminDashboard() {
               {stats.recentArticles.map(a => (
                 <tr key={a.id} className="text-slate-300 hover:bg-slate-800/30">
                   <td className="py-2 text-slate-500">#{a.id}</td>
-                  <td className="py-2 max-w-xs truncate">{a.title}</td>
+                  <td className="py-2 max-w-xs truncate">
+                    <span className="mr-2 inline-block rounded bg-slate-800 px-1.5 py-0.5 text-[10px] uppercase font-bold text-slate-400">
+                      {a.lang || 'zh'}
+                    </span>
+                    {a.title}
+                  </td>
                   <td className="py-2">
                     <span className={`inline-block h-2 w-2 rounded-full mr-1.5 ${CATEGORY_COLORS[a.category_slug || ''] || 'bg-slate-500'}`} />
                     {a.category_name || '-'}

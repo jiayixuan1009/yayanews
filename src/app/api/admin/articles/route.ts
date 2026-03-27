@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
       subcategory: sp.get('subcategory') || undefined,
       status: sp.get('status') || undefined,
       search: sp.get('search') || undefined,
+      lang: sp.get('lang') || undefined,
     });
     return NextResponse.json(result);
   } catch (e: unknown) {

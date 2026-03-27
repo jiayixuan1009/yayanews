@@ -44,6 +44,7 @@ export default function ArticlesPage() {
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [lang, setLang] = useState<string>('all');
   const [selected, setSelected] = useState<Article | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
@@ -54,12 +55,13 @@ export default function ArticlesPage() {
     if (subcategory) params.set('subcategory', subcategory);
     if (status) params.set('status', status);
     if (search) params.set('search', search);
+    if (lang && lang !== 'all') params.set('lang', lang);
 
     adminFetch(`/api/admin/articles?${params}`)
       .then(r => r.json())
       .then(setData)
       .finally(() => setLoading(false));
-  }, [page, category, subcategory, status, search]);
+  }, [page, category, subcategory, status, search, lang]);
 
   useEffect(() => { fetchList(); }, [fetchList]);
 
@@ -98,6 +100,34 @@ export default function ArticlesPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
+        {/* Language Toggle Buttons */}
+        <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700 mr-2">
+          <button
+            onClick={() => { setLang('all'); setPage(1); }}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              lang === 'all' ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            全部
+          </button>
+          <button
+            onClick={() => { setLang('zh'); setPage(1); }}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              lang === 'zh' ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            中文
+          </button>
+          <button
+            onClick={() => { setLang('en'); setPage(1); }}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              lang === 'en' ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            English
+          </button>
+        </div>
+
         <select
           value={category}
           onChange={e => { setCategory(e.target.value); setSubcategory(''); setPage(1); }}
@@ -160,6 +190,7 @@ export default function ArticlesPage() {
               <thead>
                 <tr className="text-xs text-slate-500 border-b border-slate-800 bg-slate-900/80">
                   <th className="text-left px-4 py-3 font-medium w-12">ID</th>
+                  <th className="text-left px-4 py-3 font-medium w-16">语言</th>
                   <th className="text-left px-4 py-3 font-medium">标题</th>
                   <th className="text-left px-4 py-3 font-medium w-20">分类</th>
                   <th className="text-left px-4 py-3 font-medium w-16">情感</th>
@@ -174,6 +205,11 @@ export default function ArticlesPage() {
                 {data?.articles.map(a => (
                   <tr key={a.id} className="text-slate-300 hover:bg-slate-800/30 cursor-pointer" onClick={() => openDetail(a.id)}>
                     <td className="px-4 py-3 text-slate-500">#{a.id}</td>
+                    <td className="px-4 py-3">
+                      <span className="inline-block rounded bg-slate-800 px-1.5 py-0.5 text-[10px] uppercase font-bold text-slate-400">
+                        {a.lang || 'zh'}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 max-w-md truncate font-medium">{a.title}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${CATEGORY_COLORS[a.category_slug || ''] || 'bg-slate-700 text-slate-400'}`}>
@@ -252,6 +288,9 @@ export default function ArticlesPage() {
                 </div>
                 <div className="p-6 space-y-4">
                   <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="rounded-full bg-slate-800 px-2.5 py-1 font-medium text-slate-300 uppercase">
+                      {selected.lang || 'zh'}
+                    </span>
                     <span className={`rounded-full px-2.5 py-1 font-medium ${CATEGORY_COLORS[selected.category_slug || ''] || 'bg-slate-700 text-slate-400'}`}>
                       {selected.category_name}
                     </span>

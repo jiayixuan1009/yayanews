@@ -39,6 +39,7 @@ export interface Article {
   category_slug?: string;
   tags?: Tag[];
   processing_seconds?: number | null;
+  lang?: string;
 }
 
 export interface SubCategory {
@@ -68,6 +69,7 @@ export interface FlashNews {
   created_at?: string;
   category_name?: string;
   processing_seconds?: number | null;
+  lang?: string;
 }
 
 export interface Topic {
