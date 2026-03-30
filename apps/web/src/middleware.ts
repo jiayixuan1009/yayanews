@@ -5,13 +5,19 @@ const locales = ['zh', 'en'];
 const defaultLocale = 'zh';
 
 function getLocale(request: NextRequest): string {
-  // Only respect an explicit user choice stored in cookie;
-  // otherwise always default to Chinese (zh)
+  // 1. Respect explicit user choice (set by LangSwitcher)
   if (request.cookies.has('NEXT_LOCALE')) {
     const cookieLocale = request.cookies.get('NEXT_LOCALE')?.value;
     if (cookieLocale && locales.includes(cookieLocale)) {
       return cookieLocale;
     }
+  }
+
+  // 2. Detect browser language
+  const acceptLang = request.headers.get('accept-language');
+  if (acceptLang) {
+    if (acceptLang.startsWith('en')) return 'en';
+    if (acceptLang.startsWith('zh')) return 'zh';
   }
 
   return defaultLocale;
