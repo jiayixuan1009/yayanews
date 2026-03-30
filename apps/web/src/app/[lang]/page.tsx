@@ -35,7 +35,7 @@ const LiveTicker = dynamic(() => import('@/components/LiveTicker'), {
   ),
 });
 
-export const revalidate = 15;
+export const revalidate = 0;
 
 export default async function HomePage({ params: { lang } }: { params: { lang: string } }) {
   const dict = await getDictionary(lang as any);
