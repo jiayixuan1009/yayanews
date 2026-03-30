@@ -65,6 +65,7 @@ module.exports = {
       autorestart: true,
       max_restarts: 20,
       min_uptime: "30s",
+      max_memory_restart: "400M",
       env: mergedEnv,
     },
     {
@@ -95,6 +96,7 @@ module.exports = {
       autorestart: true,
       max_restarts: 20,
       min_uptime: "10s",
+      max_memory_restart: "800M",
       env: mergedEnv,
     },
   ],
