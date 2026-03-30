@@ -82,6 +82,7 @@ module.exports = {
       script: pythonBin,
       args: "-m pipeline.worker",
       interpreter: "none",
+      instances: 4,
       autorestart: true,
       max_restarts: 20,
       min_uptime: "10s",
