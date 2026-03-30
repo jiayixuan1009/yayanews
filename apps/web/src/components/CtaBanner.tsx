@@ -1,4 +1,4 @@
-import { siteConfig } from '@/lib/types';
+import { siteConfig } from '@yayanews/types';
 import MallardDuck from '@/components/MallardDuck';
 
 export default function CtaBanner({ dict = {} }: { dict?: any }) {

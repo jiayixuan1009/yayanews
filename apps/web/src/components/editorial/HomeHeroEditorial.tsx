@@ -3,7 +3,7 @@ import Image from 'next/image';
 import MallardDuck from '@/components/MallardDuck';
 import { getArticleCoverSrc } from '@/lib/article-image';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
-import { siteConfig, type Article } from '@/lib/types';
+import { siteConfig, type Article } from '@yayanews/types';
 
 type Props = {
   lead: Article | undefined;

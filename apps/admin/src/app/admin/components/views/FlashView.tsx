@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import type { FlashNews } from '@/lib/types';
-import { DERIVATIVES_SUBCATEGORIES } from '@/lib/types';
+import type { FlashNews } from '@yayanews/types';
+import { DERIVATIVES_SUBCATEGORIES } from '@yayanews/types';
 import { adminFetch } from '@/lib/admin-fetch';
 
 const CATEGORIES = [

@@ -1,6 +1,6 @@
 import LocalizedLink from '@/components/LocalizedLink';
 import Image from 'next/image';
-import type { Article } from '@/lib/types';
+import type { Article } from '@yayanews/types';
 import { getArticleCoverSrc, articleHasRealCover } from '@/lib/article-image';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
 

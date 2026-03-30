@@ -21,7 +21,7 @@ import CategoryChipsRow from '@/components/editorial/CategoryChipsRow';
 import TopicBanner from '@/components/editorial/TopicBanner';
 import RightRailPanel from '@/components/editorial/RightRailPanel';
 import SectionHeader from '@/components/editorial/SectionHeader';
-import { siteConfig } from '@/lib/types';
+import { siteConfig } from '@yayanews/types';
 
 const LiveTicker = dynamic(() => import('@/components/LiveTicker'), {
   ssr: false,

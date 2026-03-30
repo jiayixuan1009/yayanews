@@ -1,5 +1,5 @@
-import { queryAll, queryGet, queryRun } from './db';
-import type { Article, FlashNews, Category } from './types';
+import { queryAll, queryGet, queryRun } from '@yayanews/database';
+import type { Article, FlashNews, Category } from '@yayanews/types';
 
 /* ── Dashboard 统计 ── */
 

@@ -77,6 +77,15 @@ module.exports = {
       env: mergedEnv,
     },
     {
+      name: "yaya-admin",
+      cwd: root,
+      script: "apps/admin/.next/standalone/apps/admin/server.js",
+      autorestart: true,
+      max_restarts: 20,
+      min_uptime: "10s",
+      env: { ...mergedEnv, NODE_ENV: "production", PORT: 3003, HOSTNAME: "0.0.0.0" },
+    },
+    {
       name: "yaya-pipeline-worker",
       cwd: path.join(root, "apps", "pipeline"),
       script: pythonBin,

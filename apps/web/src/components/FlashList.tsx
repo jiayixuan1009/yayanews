@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { FlashNews } from '@/lib/types';
+import type { FlashNews } from '@yayanews/types';
 import { getImportanceDot } from '@/lib/ui-utils';
 
 export default function FlashList({ items: initialItems, compact = false }: { items: FlashNews[]; compact?: boolean }) {

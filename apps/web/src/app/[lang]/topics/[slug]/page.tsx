@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import LocalizedLink from '@/components/LocalizedLink';
 import { notFound } from 'next/navigation';
 import { getTopicBySlug, getTopics } from '@/lib/queries';
-import { siteConfig } from '@/lib/types';
+import { siteConfig } from '@yayanews/types';
 import ArticleCard from '@/components/ArticleCard';
 
 interface Props {

@@ -1,5 +1,5 @@
 import LocalizedLink from '@/components/LocalizedLink';
-import { siteConfig } from '@/lib/types';
+import { siteConfig } from '@yayanews/types';
 
 export default function Footer({ lang = 'zh', dict }: { lang?: string, dict: Record<string, string> }) {
   const footerColumns = {

@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 import { getRecentArticlesForSitemap, getTopics, getCategories, getTagsForSitemap } from '@/lib/queries';
-import { siteConfig } from '@/lib/types';
+import { siteConfig } from '@yayanews/types';
 
 export const dynamic = 'force-dynamic';
 

@@ -1,4 +1,4 @@
-import type { FlashNews } from '@/lib/types';
+import type { FlashNews } from '@yayanews/types';
 import SectionHeader from './SectionHeader';
 
 type Props = {

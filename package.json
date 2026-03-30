@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @yayanews/web",
-    "build": "npm run build -w @yayanews/web && node infra/scripts/copy-standalone.mjs",
+    "build": "npm run build -w @yayanews/web && npm run build -w @yayanews/admin && node infra/scripts/copy-standalone.mjs",
     "start": "npm run start -w @yayanews/web",
     "lint": "npm run lint -w @yayanews/web",
     "db:init": "node infra/scripts/init-db.mjs",

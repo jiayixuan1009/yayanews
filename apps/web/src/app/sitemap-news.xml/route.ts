@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getNewsArticlesLast48h } from '@/lib/queries';
-import { siteConfig } from '@/lib/types';
+import { siteConfig } from '@yayanews/types';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
