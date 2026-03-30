@@ -5,6 +5,7 @@ node_modules/
 .next/
 out/
 dist/
+backups/
 
 # ── TypeScript 缓存 ──
 *.tsbuildinfo
