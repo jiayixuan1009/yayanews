@@ -2,14 +2,6 @@ import fs from 'fs';
 import path from 'path';
 
 const rootDir = process.cwd();
-const webAppDir = path.join(rootDir, 'apps', 'web');
-const standaloneDir = path.join(webAppDir, '.next', 'standalone');
-
-// 只有开启了 standalone 输出才会生成该目录
-if (!fs.existsSync(standaloneDir)) {
-  console.log('Standalone mode not detected. Skipping static copy.');
-  process.exit(0);
-}
 
 function copyRecursiveSync(src, dest) {
   if (!fs.existsSync(src)) return;
@@ -27,31 +19,30 @@ function copyRecursiveSync(src, dest) {
   }
 }
 
-// 拷贝 .next/static 到 .next/standalone/apps/web/.next/static
-const nextStaticSrc = path.join(webAppDir, '.next', 'static');
-const nextStaticDest = path.join(standaloneDir, 'apps', 'web', '.next', 'static');
-console.log('Copying static assets to standalone directory...');
-copyRecursiveSync(nextStaticSrc, nextStaticDest);
+function processApp(appName) {
+  const appDir = path.join(rootDir, 'apps', appName);
+  const standaloneDir = path.join(appDir, '.next', 'standalone');
 
-// 拷贝 public 文件夹到 .next/standalone/apps/web/public
-const publicSrc = path.join(webAppDir, 'public');
-const publicDest = path.join(standaloneDir, 'apps', 'web', 'public');
-if (fs.existsSync(publicSrc)) {
-  copyRecursiveSync(publicSrc, publicDest);
+  if (!fs.existsSync(standaloneDir)) {
+    console.log(`[${appName}] Standalone not found, skipping.`);
+    return;
+  }
+
+  const staticSrc = path.join(appDir, '.next', 'static');
+  const staticDest = path.join(standaloneDir, 'apps', appName, '.next', 'static');
+  console.log(`[${appName}] Copying static assets to standalone...`);
+  copyRecursiveSync(staticSrc, staticDest);
+
+  const publicSrc = path.join(appDir, 'public');
+  const publicDest = path.join(standaloneDir, 'apps', appName, 'public');
+  if (fs.existsSync(publicSrc)) {
+    console.log(`[${appName}] Copying public assets to standalone...`);
+    copyRecursiveSync(publicSrc, publicDest);
+  }
+
+  console.log(`[${appName}] ✅ Successfully prepared standalone directory.`);
 }
 
-console.log('✅ Successfully prepared Next.js standalone directory for monorepo web app.');
-
-// ─── Admin App ─────────────────────────────────────────────────────────────
-const adminAppDir = path.join(rootDir, 'apps', 'admin');
-const adminStandaloneDir = path.join(adminAppDir, '.next', 'standalone');
-
-if (fs.existsSync(adminStandaloneDir)) {
-  const adminStaticSrc = path.join(adminAppDir, '.next', 'static');
-  const adminStaticDest = path.join(adminStandaloneDir, 'apps', 'admin', '.next', 'static');
-  console.log('Copying admin static assets to standalone...');
-  copyRecursiveSync(adminStaticSrc, adminStaticDest);
-  console.log('✅ Successfully prepared Next.js standalone directory for admin app.');
-} else {
-  console.log('Admin standalone not found, skipping (run npm run build -w @yayanews/admin first).');
-}
+console.log('--- Preparing Standalone Builds ---');
+processApp('web');
+processApp('admin');

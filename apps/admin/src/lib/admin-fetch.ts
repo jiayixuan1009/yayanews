@@ -13,5 +13,14 @@ export async function adminFetch(url: string, options: RequestInit = {}): Promis
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
-  return fetch(url, { ...options, headers });
+  
+  // Smoothly upgrade legacy fetch URLs (/api/admin/*) to the correct basePath URL (/admin/api/*)
+  let finalUrl = url;
+  if (finalUrl.startsWith('/api/admin/')) {
+    finalUrl = finalUrl.replace('/api/admin/', '/admin/api/');
+  } else if (finalUrl === '/api/admin') {
+    finalUrl = '/admin/api';
+  }
+  
+  return fetch(finalUrl, { ...options, headers });
 }

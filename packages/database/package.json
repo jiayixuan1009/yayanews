@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "scripts": {
+    "db:init": "node scripts/init-db.mjs",
+    "db:seed": "node scripts/seed-data.mjs"
+  },
   "dependencies": {
     "pg": "^8.20.0"
   },

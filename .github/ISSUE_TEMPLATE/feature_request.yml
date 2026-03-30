@@ -1,0 +1,38 @@
+name: ✨ 灵感与需求备忘 (Feature Request)
+description: 先在纸上画大饼：记录未来打算做的功能。
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 💡 目前的痛点或者脑门一闪的灵感是什么？
+      description: 为什么必须要加上这个功能？
+      placeholder: |
+        - 现在每次行情波动都需要去刷库...
+        - 想把 Finnhub API 增加一个...
+    validations:
+      required: true
+      
+  - type: dropdown
+    id: impact
+    attributes:
+      label: 🎯 业务侧边际归类 (Scope)
+      description: 它属于前置看板的功能，还是爬虫的进化？
+      options:
+        - Web / UI 改版
+        - 后台 Admin 接新的 API 数据图谱
+        - 爬虫 Pipeline (例如大模型抽取新的情绪标的)
+        - DB / Schema 扩展需求
+        - SEO / Metadata 相关提升
+        - CI/CD 工具流脚本升级
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 🛠 初步落地方案构想 (Implementation Thought)
+      description: 大概说说怎么在代码层或表结构上干？
+      placeholder: |
+        需要在 packages/database 加一张表...
+        然后暴露到 web/api...

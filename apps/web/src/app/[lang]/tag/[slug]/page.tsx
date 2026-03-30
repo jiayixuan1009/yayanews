@@ -14,15 +14,16 @@ import ChannelHeader from '@/components/editorial/ChannelHeader';
 import RightRailPanel from '@/components/editorial/RightRailPanel';
 import SectionHeader from '@/components/editorial/SectionHeader';
 
+import { createMetadata } from '@yayanews/seo';
+
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const tag = await getTagBySlug(params.slug);
   if (!tag) return {};
-  return {
+  return createMetadata({
     title: `标签：${tag.name}`,
     description: `浏览与「${tag.name}」相关的 YayaNews 资讯稿件`,
-    alternates: { canonical: `/tag/${params.slug}` },
-    openGraph: { title: `标签：${tag.name} | YayaNews`, description: `相关资讯聚合` },
-  };
+    url: `/tag/${params.slug}`,
+  });
 }
 
 export const revalidate = 120;

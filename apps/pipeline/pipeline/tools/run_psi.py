@@ -14,14 +14,14 @@ PageSpeed Insights API 跑分并写入 psi_reports。
 import argparse
 import json
 import os
-import sqlite3
 import sys
 from datetime import datetime
 from pathlib import Path
 import requests
 
+from pipeline.utils.database import get_pool
+
 PROJECT = Path(__file__).resolve().parent.parent.parent
-DB_PATH = PROJECT / "data" / "yayanews.db"
 
 SITE_URL = os.environ.get("SITE_URL", "https://yayanews.cryptooptiontool.com").rstrip("/")
 API_KEY = os.environ.get("GOOGLE_PAGESPEED_API_KEY", "")
@@ -34,25 +34,30 @@ DEFAULT_PATHS = [
 ]
 
 
-def ensure_table(conn: sqlite3.Connection):
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS psi_reports (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          page_key TEXT NOT NULL,
-          url TEXT NOT NULL,
-          strategy TEXT NOT NULL DEFAULT 'mobile',
-          performance_score INTEGER,
-          lcp_ms REAL,
-          fcp_ms REAL,
-          ttfb_ms REAL,
-          cls REAL,
-          raw_json TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-        """
-    )
-    conn.commit()
+def ensure_table():
+    conn = get_pool().getconn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS psi_reports (
+                  id SERIAL PRIMARY KEY,
+                  page_key TEXT NOT NULL,
+                  url TEXT NOT NULL,
+                  strategy TEXT NOT NULL DEFAULT 'mobile',
+                  performance_score INTEGER,
+                  lcp_ms REAL,
+                  fcp_ms REAL,
+                  ttfb_ms REAL,
+                  cls REAL,
+                  raw_json TEXT,
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+        conn.commit()
+    finally:
+        get_pool().putconn(conn)
 
 
 def run_one(url: str, strategy: str = "mobile") -> dict:
@@ -117,17 +122,23 @@ def main():
     if args.dry_run or not rows:
         return
 
-    conn = sqlite3.connect(str(DB_PATH))
-    ensure_table(conn)
-    for row in rows:
-        conn.execute(
-            """INSERT INTO psi_reports
-            (page_key, url, strategy, performance_score, lcp_ms, fcp_ms, ttfb_ms, cls, raw_json, created_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?)""",
-            (*row, ts),
-        )
-    conn.commit()
-    conn.close()
+    conn = get_pool().getconn()
+    try:
+        ensure_table()
+        with conn.cursor() as cur:
+            for row in rows:
+                cur.execute(
+                    """INSERT INTO psi_reports
+                    (page_key, url, strategy, performance_score, lcp_ms, fcp_ms, ttfb_ms, cls, raw_json, created_at)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                    (*row, ts),
+                )
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print(f"DB Error: {e}", file=sys.stderr)
+    finally:
+        get_pool().putconn(conn)
     print(f"已写入 {len(rows)} 条 psi_reports")
 
 

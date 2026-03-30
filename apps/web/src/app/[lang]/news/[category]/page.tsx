@@ -28,15 +28,16 @@ const categoryMeta: Record<string, { title: string; desc: string; label: string;
   other: { title: 'The Open Brief', desc: '跨市场、跨主题的补充档案与综合编辑整理。', label: 'Desk', quote: 'What matters rarely fits one beat.' },
 };
 
+import { createMetadata } from '@yayanews/seo';
+
 export function generateMetadata({ params }: { params: { category: string } }): Metadata {
   const meta = categoryMeta[params.category];
   if (!meta) return {};
-  return {
+  return createMetadata({
     title: meta.title,
     description: meta.desc,
-    alternates: { canonical: `/news/${params.category}` },
-    openGraph: { title: `${meta.title} | YayaNews`, description: meta.desc },
-  };
+    url: `/news/${params.category}`,
+  });
 }
 
 export function generateStaticParams() {

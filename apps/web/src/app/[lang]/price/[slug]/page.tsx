@@ -15,17 +15,18 @@ async function fetchCoinMeta(slug: string) {
   }
 }
 
+import { createMetadata } from '@yayanews/seo';
+
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const j = await fetchCoinMeta(params.slug);
   const name = j?.name ?? params.slug;
   const sym = j?.symbol?.toUpperCase() ?? '';
   const title = sym ? `${name} (${sym}) 价格行情` : `${name} 价格行情`;
-  return {
+  return createMetadata({
     title,
     description: `${name} 实时价格、市值与 24 小时涨跌 · YayaNews 行情`,
-    alternates: { canonical: `/price/${params.slug}` },
-    openGraph: { title: `${title} | YayaNews`, description: '加密货币实时价格与市场数据' },
-  };
+    url: `/price/${params.slug}`,
+  });
 }
 
 export const revalidate = 120;

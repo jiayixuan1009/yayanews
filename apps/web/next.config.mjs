@@ -131,9 +131,6 @@ const nextConfig = {
       ...config.resolve.alias,
       '@': path.resolve(__dirname, 'src'),
     };
-    if (isServer) {
-      config.externals = [...(config.externals || []), 'better-sqlite3'];
-    }
     return config;
   },
 };
