@@ -1,41 +1,112 @@
-# 🚀 YayaNews 生产引擎架构手册 (Production Manual)
-> 本手册为高可用、高并发环境下的灾难恢复与操作说明指南。包含最新的 PostgreSQL 主从链路与 Redis Pub/Sub 极速网关定义。
+# YayaNews 📰
 
-## 📍 1. 核心链路架构 (The Trinity Architecture)
+> 金融新闻自动采集、AI 加工、双语发布平台
 
-系统由三路高速管道并行驱动：
-1. **写流管道 (PostgreSQL Master)**: 由 6 台连轴转的 Python Agents 驱动，利用 `psycopg2` 疯狂拉取、重写、双语翻译并推库。通过 `pipeline/run.py` 调度。
-2. **读流管道 (Next.js SSR/ISR + PG)**: 使用 App Router Server Components 与底层纯异步 `pg` 连接池连接，所有客户端流量被缓冲。
-3. **极速广播管道 (Redis 0.1s WebSocket)**: 由 `ws-server.js` (PM2 App: `yaya-ws-gateway`) 常驻。Agent 在插入数据的同一皮秒，向 Redis 网关注入 JSON。WebSocket 会不经过 DB 直接把快讯射向所有客户端。
+[![CI](https://github.com/jiayixuan1009/yayanews1/actions/workflows/ci.yml/badge.svg)](https://github.com/jiayixuan1009/yayanews1/actions/workflows/ci.yml)
 
-## 📍 2. 生产环境总控面板 (PM2 Ecosystem)
-所有服务器后端的进程都被锁定在 `ecosystem.config.cjs`，操作密码如下：
+🌐 **线上地址**: [yayanews.cryptooptiontool.com](https://yayanews.cryptooptiontool.com)
 
-- 全局重启大盘：`pm2 restart ecosystem.config.cjs` 或 `pm2 restart all`
-- 查看 Agent 抓取日志：`pm2 logs yaya-finnhub-ws` 或 `pm2 logs yaya-pipeline-daemon`
-- 监控 WebSocket 直播推流：`pm2 logs yaya-ws-gateway`
+## ✨ 功能特性
 
-当前部署的服务有：
-- `yayanews`: Node.js Next.js 生产 Web
-- `yaya-pipeline-daemon`: Python Agent 核心排班调度引擎
-- `yaya-finnhub-ws`: Finnhub 金融极速监听插口
-- `yaya-ws-gateway`: Native Node.js Redis-订阅与 WebSocket 广播中心
+- **多源采集** — Finnhub、MarketAux、CryptoCompare 等金融数据源
+- **AI 加工管线** — 6 个 Agent 串行处理：采集 → 改写 → 审核 → SEO → 发布 → 翻译
+- **实时快讯** — Finnhub WebSocket + Redis Pub/Sub 实时推送
+- **双语支持** — 中英文 i18n 路由，自动翻译
+- **语义去重** — pgvector 向量相似度检测，避免重复内容
+- **管理后台** — 实时监控管线状态、队列指标、内容管理
 
-## 📍 3. 环境配置 (Env Vars)
-在部署节点（如 Ubuntu 24.04），需要维持：
+## 🚀 快速开始
+
+### 前提条件
+
+- Node.js >= 18.17.0
+- Python 3.10+
+- PostgreSQL 16（含 pgvector 扩展）
+- Redis 7
+
+### 本地开发
+
 ```bash
-DATABASE_URL="postgresql://yayanews:REDACTED@127.0.0.1:5432/yayanews"
-LLM_API_KEY="sk-xxx"
-FINNHUB_KEY="xxxxxx"
+# 1. 克隆仓库
+git clone https://github.com/jiayixuan1009/yayanews1.git
+cd yayanews1
+
+# 2. 配置环境变量
+cp .env.example .env
+# 编辑 .env，填入 API Key 等
+
+# 3. 安装依赖
+npm install
+pip install -r pipeline/requirements.txt
+
+# 4. 初始化数据库
+npm run db:init
+
+# 5. 启动 Next.js 开发服务器
+npm run dev
+
+# 6. 启动 Pipeline（另一个终端）
+python -m pipeline.run_daemon
 ```
 
-## 📍 4. 灾难急救措施 (Disaster Recovery Protocols)
-**状态 1：快讯突然停止更新**
-1. 检查 Redis：`sudo systemctl status redis-server`
-2. 检查 Finnhub daemon：`pm2 logs yaya-finnhub-ws --lines 50`
+### 可用脚本
 
-**状态 2：网站全部白屏报错 `500` / Connection Refused**
-1. Postgres 是否宕机：`sudo systemctl restart postgresql`
-2. 检查 Node 连接池错误：`pm2 logs yayanews`
+```bash
+npm run dev          # Next.js 开发服务器
+npm run build        # 构建生产版本
+npm run start        # 启动生产服务器
+npm run lint         # 代码检查
+npm run db:init      # 初始化数据库
+npm run db:seed      # 填充测试数据
+npm run covers:assign # 批量分配文章封面
+```
 
-> Created by the Official Proactive Vibe Partner Agent. 🤖
+## 📁 项目结构
+
+```
+├── src/              # Next.js 前端（App Router, i18n）
+├── pipeline/         # Python 内容管线（6 Agents）
+├── deploy/           # 部署配置（Nginx, PM2, 脚本）
+├── scripts/          # 工具脚本
+├── docs/             # 项目文档
+└── public/           # 静态资源
+```
+
+详见 [docs/architecture.md](docs/architecture.md)
+
+## 🖥️ 生产环境
+
+### PM2 进程管理
+
+```bash
+# 启动所有服务
+pm2 start ecosystem.config.cjs
+
+# 查看状态
+pm2 status
+
+# 查看日志
+pm2 logs yayanews
+pm2 logs yaya-pipeline-daemon
+
+# 重启
+pm2 restart all
+```
+
+### 灾难恢复
+
+| 症状 | 排查步骤 |
+|------|----------|
+| 快讯停止更新 | `sudo systemctl status redis-server` → `pm2 logs yaya-finnhub-ws` |
+| 网站 500 错误 | `sudo systemctl status postgresql` → `pm2 logs yayanews` |
+| 管线停滞 | `pm2 logs yaya-pipeline-daemon` → 检查 LLM API Key |
+
+详见 [docs/deployment.md](docs/deployment.md)
+
+## 📝 版本日志
+
+见 [CHANGELOG.md](CHANGELOG.md)
+
+## 📄 License
+
+Private - All Rights Reserved
