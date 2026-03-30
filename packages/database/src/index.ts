@@ -1,10 +1,15 @@
-import { Pool } from 'pg';
+import { Pool, types } from 'pg';
+
+// 禁用 Date 对象转换，原样返回时间字符串，保证前端 `.slice(0, 16)` 不报错
+types.setTypeParser(1114, str => str); // timestamp
+types.setTypeParser(1184, str => str); // timestamptz
+types.setTypeParser(1082, str => str); // date
 
 let pool: Pool | null = null;
 
 export function getDb(): Pool {
   if (!pool) {
-    const connectionString = process.env.DATABASE_URL || 'postgresql://yayanews:Jia1009al@127.0.0.1:5432/yayanews';
+    const connectionString = process.env.DATABASE_URL;
     pool = new Pool({
       connectionString,
       max: 20,
