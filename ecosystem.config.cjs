@@ -39,7 +39,7 @@ module.exports = {
     {
       name: "yayanews",
       cwd: root,
-      script: "apps/web/.next/standalone/apps/web/server.js",
+      script: ".next/standalone/server.js",
       autorestart: true,
       max_restarts: 20,
       min_uptime: "10s",

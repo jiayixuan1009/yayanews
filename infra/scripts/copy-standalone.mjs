@@ -21,17 +21,22 @@ function copyRecursiveSync(src, dest) {
 
 function processApp(appName) {
   const appDir = path.join(rootDir, 'apps', appName);
-  const standaloneDir = path.join(appDir, '.next', 'standalone');
+  let standaloneDir = path.join(appDir, '.next', 'standalone');
 
   if (!fs.existsSync(standaloneDir)) {
-    console.log(`[${appName}] Standalone not found, skipping.`);
-    return;
+    standaloneDir = path.join(rootDir, '.next', 'standalone');
+    if (!fs.existsSync(standaloneDir)) {
+      console.log(`[${appName}] Standalone not found at local or root, skipping.`);
+      return;
+    }
   }
 
   const staticSrc = path.join(appDir, '.next', 'static');
   const staticDest = path.join(standaloneDir, 'apps', appName, '.next', 'static');
-  console.log(`[${appName}] Copying static assets to standalone...`);
-  copyRecursiveSync(staticSrc, staticDest);
+  if (fs.existsSync(staticSrc)) {
+    console.log(`[${appName}] Copying static assets to standalone...`);
+    copyRecursiveSync(staticSrc, staticDest);
+  }
 
   const publicSrc = path.join(appDir, 'public');
   const publicDest = path.join(standaloneDir, 'apps', appName, 'public');
