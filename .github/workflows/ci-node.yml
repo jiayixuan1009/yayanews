@@ -25,10 +25,30 @@ jobs:
     name: Build & Typings Verification
     runs-on: ubuntu-latest
     
-    # 模拟真实连入配置但全丢空指针，以暴露出强行在外部打包代码中读 DB 的错
+    # 为 Next.js SSG 阶段提供真实的空数据库和缓存池以防止静态构建时连接报错
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: fakeuser
+          POSTGRES_PASSWORD: fakepassword
+          POSTGRES_DB: yayanews
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
     env:
       DATABASE_URL: "REDACTED"
       REDIS_URL: "REDACTED"
+      SKIP_DB_INIT: "true"
 
     steps:
       - name: 检出源码

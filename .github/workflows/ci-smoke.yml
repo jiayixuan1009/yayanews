@@ -18,7 +18,26 @@ jobs:
     name: 架构唤醒测试 (PM2 模拟器)
     runs-on: ubuntu-latest
     
-    # 因为这是测试项目起不来的根本，需要注入测试环境变量防止连库挂起
+    # 因为这是测试项目起不来的根本，需要真实依赖进行健康探测
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: fakeuser
+          POSTGRES_PASSWORD: fakepassword
+          POSTGRES_DB: yayanews
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
     env:
       DATABASE_URL: "REDACTED"
       REDIS_URL: "REDACTED"
