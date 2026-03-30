@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Analytics from '@/components/Analytics';
 import '../globals.css';
+import { getDictionary } from '@/lib/dictionaries';
 
 const googleSiteVer = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim();
 const bingSiteVer = process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION?.trim();
@@ -63,13 +64,14 @@ export const metadata: Metadata = {
   ...(siteVerification ? { verification: siteVerification } : {}),
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
   params,
 }: {
   children: React.ReactNode;
   params: { lang: string };
 }) {
+  const dict = await getDictionary(params.lang as any);
   return (
     <html lang={params.lang}>
       <head>
@@ -84,9 +86,9 @@ export default function RootLayout({
       </head>
       <body className="flex min-h-screen flex-col bg-[#f6f3ee] font-body text-slate-900">
         <Analytics />
-        <Header lang={params.lang} />
+        <Header lang={params.lang} dict={dict.nav} />
         <main className="flex-1">{children}</main>
-        <Footer lang={params.lang} />
+        <Footer lang={params.lang} dict={dict.footer} />
       </body>
     </html>
   );

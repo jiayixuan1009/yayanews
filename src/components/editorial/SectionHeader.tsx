@@ -12,7 +12,7 @@ export default function SectionHeader({
   title,
   emphasis = 'default',
   actionHref,
-  actionLabel = '更多',
+  actionLabel = '→',
   className = '',
 }: Props) {
   return (

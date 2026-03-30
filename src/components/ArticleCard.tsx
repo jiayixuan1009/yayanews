@@ -15,19 +15,19 @@ function getCategoryBadgeClass(slug?: string): string {
   }
 }
 
-function getReadTime(type: string): string {
+function getReadTime(type: string, dict: Record<string, any>): string {
   switch (type) {
-    case 'deep': return '8分钟';
-    default: return '3分钟';
+    case 'deep': return `8 ${dict.common?.minute || 'min'}`;
+    default: return `3 ${dict.common?.minute || 'min'}`;
   }
 }
 
-function DepthBadge({ type }: { type: string }) {
+function DepthBadge({ type, dict }: { type: string, dict: Record<string, any> }) {
   if (type !== 'deep') return null;
-  return <span className="badge ml-1.5 border-violet-200 bg-violet-50 text-violet-700">深度研报</span>;
+  return <span className="badge ml-1.5 border-violet-200 bg-violet-50 text-violet-700">{dict.article?.deepDive || '深度研报'}</span>;
 }
 
-export default function ArticleCard({ article, featured = false, priority = false }: { article: Article; featured?: boolean; priority?: boolean }) {
+export default function ArticleCard({ article, featured = false, priority = false, dict = {} }: { article: Article; featured?: boolean; priority?: boolean; dict?: any }) {
   const coverSrc = getArticleCoverSrc(article.cover_image);
   const coverOpt = isRemoteImageOptimizable(coverSrc);
   const hasRealCover = articleHasRealCover(article.cover_image);
@@ -53,9 +53,9 @@ export default function ArticleCard({ article, featured = false, priority = fals
           <div className="flex flex-col justify-between p-4 sm:p-6 lg:p-10">
             <div>
               <div className="flex flex-wrap items-center gap-1.5">
-                {article.category_name && <span className={getCategoryBadgeClass(article.category_slug)}>{article.category_name}</span>}
-                <DepthBadge type={article.article_type} />
-                {!hasRealCover && <span className="badge border-amber-200 bg-amber-50 text-amber-700">待配图</span>}
+                {article.category_name && <span className={getCategoryBadgeClass(article.category_slug)}>{dict.nav?.[article.category_slug || ''] || article.category_name}</span>}
+                <DepthBadge type={article.article_type} dict={dict} />
+                {!hasRealCover && <span className="badge border-amber-200 bg-amber-50 text-amber-700">{dict.article?.noImage || '待配图'}</span>}
               </div>
               <p className="mt-5 font-label text-[11px] font-semibold uppercase tracking-[0.2em] text-[#667067]">Lead report</p>
               <h2 className="mt-3 max-w-[10ch] font-display text-[2rem] font-semibold leading-[0.94] tracking-[-0.055em] text-[#101713] group-hover:text-[#1d5c4f] sm:text-[2.4rem] lg:text-[4.15rem]">
@@ -67,9 +67,9 @@ export default function ArticleCard({ article, featured = false, priority = fals
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span className="font-semibold text-[#14261f]">{article.author}</span>
                 <span>{article.published_at?.slice(0, 16)}</span>
-                <span>{getReadTime(article.article_type)}</span>
+                <span>{getReadTime(article.article_type, dict)}</span>
               </div>
-              {article.source && article.source !== 'YayaNews' ? <div className="mt-2">来源: {article.source}</div> : null}
+              {article.source && article.source !== 'YayaNews' ? <div className="mt-2">{dict.common?.source || '来源'}: {article.source}</div> : null}
             </div>
           </div>
         </div>
@@ -81,9 +81,9 @@ export default function ArticleCard({ article, featured = false, priority = fals
     <LocalizedLink href={`/article/${article.slug}`} className="group grid gap-3 sm:gap-5 border-t border-[#ddd5ca] py-4 sm:py-6 first:border-t-0 first:pt-0 sm:grid-cols-[minmax(0,1fr)_196px] sm:items-start">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1.5">
-          {article.category_name && <span className={getCategoryBadgeClass(article.category_slug)}>{article.category_name}</span>}
-          <DepthBadge type={article.article_type} />
-          {!hasRealCover && <span className="badge border-amber-200 bg-amber-50 text-amber-700">待配图</span>}
+          {article.category_name && <span className={getCategoryBadgeClass(article.category_slug)}>{dict.nav?.[article.category_slug || ''] || article.category_name}</span>}
+          <DepthBadge type={article.article_type} dict={dict} />
+          {!hasRealCover && <span className="badge border-amber-200 bg-amber-50 text-amber-700">{dict.article?.noImage || '待配图'}</span>}
         </div>
         <h3 className="mt-3 max-w-[28ch] font-display text-[1.6rem] font-semibold leading-[1.02] tracking-[-0.045em] text-[#13211b] group-hover:text-[#1d5c4f] line-clamp-3 sm:text-[1.82rem]">
           {article.title}
@@ -92,8 +92,8 @@ export default function ArticleCard({ article, featured = false, priority = fals
         <div className="mt-3 sm:mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[#ece4d8] pt-3 text-[11px] uppercase tracking-[0.16em] text-[#667067]">
           <span className="font-semibold text-[#14261f]">{article.author}</span>
           <span>{article.published_at?.slice(0, 16)}</span>
-          <span>{getReadTime(article.article_type)}</span>
-          {article.source && article.source !== 'YayaNews' && <span>来源: {article.source}</span>}
+          <span>{getReadTime(article.article_type, dict)}</span>
+          {article.source && article.source !== 'YayaNews' && <span>{dict.common?.source || '来源'}: {article.source}</span>}
         </div>
       </div>
       <div className="relative order-first aspect-[4/3] overflow-hidden border border-[#d8d1c5] bg-[#ece6dc] sm:order-last sm:h-[138px] sm:w-[196px] sm:aspect-auto">

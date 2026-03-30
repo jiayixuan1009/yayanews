@@ -4,14 +4,16 @@ import SectionHeader from './SectionHeader';
 type Props = {
   items: FlashNews[];
   title?: string;
+  emptyText?: string;
+  actionLabel?: string;
 };
 
-export default function BreakingStreamBlock({ items, title = '快讯热流' }: Props) {
+export default function BreakingStreamBlock({ items, title = '快讯热流', emptyText = '暂无快讯', actionLabel = '全部' }: Props) {
   return (
     <section className="yn-panel p-4 sm:p-5">
-      <SectionHeader title={title} emphasis="strong" actionHref="/flash" />
+      <SectionHeader title={title} emphasis="strong" actionHref="/flash" actionLabel={actionLabel} />
       {items.length === 0 ? (
-        <p className="py-6 text-center text-sm text-slate-500">暂无快讯</p>
+        <p className="py-6 text-center text-sm text-slate-500">{emptyText}</p>
       ) : (
         <ul className="divide-y divide-[#ece4d8]">
           {items.map(item => (

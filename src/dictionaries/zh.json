@@ -8,8 +8,18 @@
     "crypto": "加密货币",
     "derivatives": "衍生品",
     "hkStock": "港股",
-    "guide": "投资指南",
-    "about": "关于我们"
+    "guide": "指南",
+    "about": "关于我们",
+    "us-stock": "美股",
+    "hk-stock": "港股",
+    "ai": "AI资讯",
+    "other": "其他",
+    "topics": "专题",
+    "signIn": "注册",
+    "subscribe": "订阅",
+    "searchArchive": "搜索内容",
+    "marketIntelligence": "市场情报版",
+    "dailyDispatch": "每日金融简报"
   },
   "home": {
     "flashTitle": "7×24 滚动快讯",
@@ -30,7 +40,18 @@
     "guideDesc": "从零了解美股、港股、加密货币与衍生品基础；编辑向结构，非营销落地页。",
     "guideTitle": "新手指南",
     "newestTitle": "最新资讯",
-    "moreList": "更多列表"
+    "moreList": "更多列表",
+    "spotlightTitle": "政治光谱",
+    "moreArticlesBtn": "查看更多资讯",
+    "liveTicker": "实时行情",
+    "mascotDesc": "我们把高频市场噪声整理成更适合阅读的判断顺序：先脉络，再证据，最后是动作信号。",
+    "noLead": "头条稿件准备中",
+    "readDigest": "阅读摘要",
+    "hotStream": "热门追踪",
+    "investigativeFeature": "深度调查",
+    "featuredReport": "精选研报",
+    "mascotCorner": "小鸭专栏：",
+    "dailyCurations": "每日精选"
   },
   "news": {
     "todayFocus": "今日焦点",
@@ -47,6 +68,7 @@
   },
   "article": {
     "deepDive": "深度稿",
+    "noImage": "待配图",
     "bullish": "偏多",
     "bearish": "偏空",
     "neutral": "中性",
@@ -83,7 +105,25 @@
     "desc": "YayaNews 是领先的专业金融新闻资讯平台，为您提供全球财经动态、加密货币快讯、深度市场分析及投资指南。",
     "links": "快速链接",
     "contact": "联系我们",
-    "rights": "保留所有权利"
+    "rights": "保留所有权利",
+    "slogan1": "每日早报",
+    "slogan2": "金融新闻编辑台。把美股、港股、加密货币与衍生品的重要变化，整理成更有版面感和连续性的阅读体验。",
+    "emailLabel": "邮件地址",
+    "joinBtn": "加入订阅",
+    "copyrightSlogan": "编辑档案库致力于为您提供信号、背景与连贯性。",
+    "officialSite": "官网",
+    "tradingSite": "交易",
+    "topicsLink": "专题",
+    "colOrg": "组织机构",
+    "colAbout": "关于我们",
+    "colGuide": "编辑准则",
+    "colMasthead": "管理层",
+    "colContact": "联系我们",
+    "colCov": "内容覆盖",
+    "colLegal": "法律事务",
+    "colPrivacy": "隐私政策",
+    "colTerms": "服务条款",
+    "colCookie": "Cookie 政策"
   },
   "common": {
     "readMore": "阅读全文",
@@ -96,6 +136,13 @@
     "all": "全部",
     "prevPage": "← 上一页",
     "nextPage": "下一页 →",
-    "pageIndicator": "第 {page} / {totalPages} 页"
+    "pageIndicator": "第 {page} / {totalPages} 页",
+    "minute": "分钟"
+  },
+  "cta": {
+    "tag": "交易入口",
+    "title": "BiyaPay 全球资产",
+    "desc": "安全便捷的多市场通道；与正文阅读区视觉分离。",
+    "btn": "前往交易"
   }
 }

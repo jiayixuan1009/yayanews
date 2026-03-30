@@ -27,7 +27,7 @@ const LiveTicker = dynamic(() => import('@/components/LiveTicker'), {
   ssr: false,
   loading: () => (
     <div className="flex items-center gap-6 py-3">
-      <span className="flex-shrink-0 font-label text-xs font-semibold uppercase tracking-[0.14em] text-[#1d5c4f]">实时行情</span>
+      <span className="flex-shrink-0 font-label text-xs font-semibold uppercase tracking-[0.14em] text-[#1d5c4f]">Live Ticker</span>
       {[1, 2, 3, 4].map(i => (
         <span key={i} className="h-4 w-28 flex-shrink-0 animate-pulse rounded bg-[#e5ddd2]" />
       ))}
@@ -54,11 +54,11 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
     description: c.description ?? '',
   }));
   const categoryEntries = hasAi
-    ? [FLASH_ENTRY, ...restEntries]
-    : [FLASH_ENTRY, ...restEntries.slice(0, pos), AI_ENTRY, ...restEntries.slice(pos)];
+    ? [ { name: dict.nav.flash || '快讯', slug: 'flash', href: '/flash' }, ...restEntries]
+    : [ { name: dict.nav.flash || '快讯', slug: 'flash', href: '/flash' }, ...restEntries.slice(0, pos), { name: dict.nav.ai || 'AI资讯', slug: 'ai', href: '/news/ai' }, ...restEntries.slice(pos)];
 
   const chipItems = categoryEntries.map(e => ({
-    name: e.name,
+    name: (dict.nav as any)[e.slug] || e.name,
     slug: e.slug,
     href: e.href,
   }));
@@ -78,11 +78,11 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
     <>
       <SiteLiveSubscriber />
 
-      <HomeHeroEditorial lead={lead} secondaries={secondaries} />
+      <HomeHeroEditorial lead={lead} secondaries={secondaries} dict={dict} />
 
       <section className="border-b border-[#ddd5ca] bg-white/90">
         <div className="container-main py-2 text-sm">
-          <LiveTicker />
+          <LiveTicker title={dict.home.liveTicker} />
         </div>
       </section>
 
@@ -91,7 +91,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
             <span className="yn-meta">{dict.home.channelNav}</span>
             <LocalizedLink href="/news" className="font-label text-xs font-semibold uppercase tracking-[0.14em] text-[#1d5c4f] hover:text-[#143d33]">
-              资讯总览
+              {dict.home.newsOverview || '资讯总览'}
             </LocalizedLink>
           </div>
           <CategoryChipsRow items={chipItems} />
@@ -101,7 +101,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
       <div className="container-main py-5 md:py-8 lg:py-10">
         <div className="grid gap-5 md:gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-12">
           <div className="space-y-5 md:space-y-8 lg:col-span-8 lg:space-y-10">
-            <BreakingStreamBlock items={flashStream} />
+            <BreakingStreamBlock items={flashStream} title={dict.home.flashTitle} emptyText={dict.news.noFlash || '暂无快讯'} actionLabel={dict.common.all || '全部'} />
 
             {leadTopic ? (
               <TopicBanner
@@ -113,7 +113,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
 
             {spotlightArticles.length > 0 ? (
               <section className="border border-[#ddd5ca] bg-white px-4 py-5 md:px-5 md:py-6 sm:px-7">
-                <SectionHeader title="The Political Compass" emphasis="strong" />
+                <SectionHeader title={dict.home.spotlightTitle || "The Political Compass"} emphasis="strong" />
                 <div className="mt-5 grid gap-6 md:grid-cols-3">
                   {spotlightArticles.slice(0, 3).map(item => (
                     <LocalizedLink key={item.id} href={`/article/${item.slug}`} className="group block border-t border-[#e9e2d6] pt-4 md:border-t-0 md:pt-0">
@@ -141,7 +141,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
               {listArticles.length > 0 ? (
                 <div className="space-y-3">
                   {listArticles.map(a => (
-                    <ArticleCard key={a.id} article={a} />
+                    <ArticleCard key={a.id} article={a} dict={dict} />
                   ))}
                 </div>
               ) : (
@@ -154,7 +154,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
                 <SectionHeader title={dict.home.editorsPicks} emphasis="default" />
                 <div className="grid gap-3 sm:grid-cols-2">
                   {moreArticles.map(a => (
-                    <ArticleCard key={a.id} article={a} />
+                    <ArticleCard key={a.id} article={a} dict={dict} />
                   ))}
                 </div>
               </section>
@@ -162,7 +162,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
 
             <div className="text-center">
               <LocalizedLink href="/news" className="btn-primary text-sm">
-                查看更多资讯
+                {dict.home.moreArticlesBtn || '查看更多资讯'}
               </LocalizedLink>
             </div>
           </div>
@@ -228,14 +228,14 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
               </RightRailPanel>
             ) : null}
 
-            <CtaBanner />
+            <CtaBanner dict={dict} />
 
             <RightRailPanel title={dict.home.guideTitle} accent>
               <p className="font-body leading-7 text-slate-600">
-                从零了解美股、港股、加密货币与衍生品基础；编辑向结构，非营销落地页。
+                {dict.home.guideDesc}
               </p>
               <LocalizedLink href="/guide" className="mt-4 inline-block font-label text-xs font-semibold uppercase tracking-[0.14em] text-[#1d5c4f] hover:text-[#143d33]">
-                进入指南 →
+                {dict.home.enterGuide}
               </LocalizedLink>
             </RightRailPanel>
           </aside>

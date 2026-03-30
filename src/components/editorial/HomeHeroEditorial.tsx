@@ -8,19 +8,20 @@ import { siteConfig, type Article } from '@/lib/types';
 type Props = {
   lead: Article | undefined;
   secondaries: Article[];
+  dict?: any;
 };
 
-function HeroMeta({ article }: { article: Article }) {
+function HeroMeta({ article, dict }: { article: Article; dict?: any }) {
   return (
     <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] uppercase tracking-[0.16em] text-[#667067]">
       <span className="font-semibold text-[#14261f]">{article.author}</span>
-      <span>{article.article_type === 'deep' ? '14 min read' : '6 min read'}</span>
+      <span>{article.article_type === 'deep' ? `14 ${dict?.common?.minute || 'min read'}` : `6 ${dict?.common?.minute || 'min read'}`}</span>
       <span>{article.view_count}</span>
     </div>
   );
 }
 
-function SecondaryFeature({ article }: { article: Article }) {
+function SecondaryFeature({ article, dict }: { article: Article; dict?: any }) {
   const cover = getArticleCoverSrc(article.cover_image);
   const optimizable = isRemoteImageOptimizable(cover);
   return (
@@ -29,7 +30,7 @@ function SecondaryFeature({ article }: { article: Article }) {
         <Image src={cover} alt={article.title} fill sizes="(max-width: 768px) 100vw, 26vw" className="object-cover transition duration-500 group-hover:scale-[1.02]" unoptimized={!optimizable} />
       </div>
       <div>
-        {article.category_name ? <span className="yn-meta text-[#1d5c4f]">{article.category_name}</span> : null}
+        {article.category_name ? <span className="yn-meta text-[#1d5c4f]">{dict?.nav?.[article.category_slug || ''] || article.category_name}</span> : null}
         <h3 className="mt-2 font-display text-[1.65rem] font-semibold leading-[1.05] tracking-[-0.03em] text-[#101a15] group-hover:text-[#1d5c4f] sm:text-[1.9rem]">
           {article.title}
         </h3>
@@ -39,7 +40,7 @@ function SecondaryFeature({ article }: { article: Article }) {
   );
 }
 
-export default function HomeHeroEditorial({ lead, secondaries }: Props) {
+export default function HomeHeroEditorial({ lead, secondaries, dict = {} }: Props) {
   const leadCover = lead ? getArticleCoverSrc(lead.cover_image) : null;
   const leadCoverOptimizable = leadCover ? isRemoteImageOptimizable(leadCover) : false;
   const hotItems = secondaries.slice(0, 4);
@@ -54,8 +55,8 @@ export default function HomeHeroEditorial({ lead, secondaries }: Props) {
               <MallardDuck size="sm" />
             </span>
             <div>
-              <p className="yn-meta text-[#1d5c4f]">The Living Archive</p>
-              <p className="text-xs text-slate-500">Curated Intelligence</p>
+              <p className="yn-meta text-[#1d5c4f]">{dict.home?.livingArchive || 'The Living Archive'}</p>
+              <p className="text-xs text-slate-500">{dict.home?.curatedIntel || 'Curated Intelligence'}</p>
             </div>
           </div>
           <span className="hidden text-xs text-slate-500 sm:block">{siteConfig.siteName}</span>
@@ -66,14 +67,14 @@ export default function HomeHeroEditorial({ lead, secondaries }: Props) {
             <div className="grid gap-4 md:gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)_280px] xl:items-start">
               <div>
                 <div className="mb-3 inline-flex rounded-[2px] bg-[#91f78e]/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1d5c4f]">
-                  {lead.article_type === 'deep' ? 'Investigative feature' : 'Featured report'}
+                  {lead.article_type === 'deep' ? (dict.home?.investigativeFeature || 'Investigative feature') : (dict.home?.featuredReport || 'Featured report')}
                 </div>
                 <LocalizedLink href={`/article/${lead.slug}`} className="group block">
                   <h1 className="max-w-[9ch] font-display text-[2.2rem] md:text-[2.9rem] font-semibold leading-[0.93] tracking-[-0.055em] text-[#111713] group-hover:text-[#1d5c4f] sm:text-[4rem] lg:text-[4.7rem] xl:text-[5.2rem]">
                     {lead.title}
                   </h1>
                   {lead.summary ? <p className="mt-5 max-w-[34ch] font-body text-[1rem] leading-8 text-slate-700 sm:text-[1.08rem] sm:leading-9">{lead.summary}</p> : null}
-                  <HeroMeta article={lead} />
+                  <HeroMeta article={lead} dict={dict} />
                 </LocalizedLink>
               </div>
 
@@ -89,7 +90,7 @@ export default function HomeHeroEditorial({ lead, secondaries }: Props) {
               <div className="space-y-4 xl:pt-2">
                 <div className="border border-[#ddd5ca] bg-[#f1eeea] px-4 py-5 sm:px-5">
                   <div className="mb-3 flex items-center justify-between gap-3">
-                    <h2 className="font-display text-[1.75rem] font-semibold leading-none tracking-[-0.04em] text-[#1a1c1c] sm:text-[2rem]">Hot Stream</h2>
+                    <h2 className="font-display text-[1.75rem] font-semibold leading-none tracking-[-0.04em] text-[#1a1c1c] sm:text-[2rem]">{dict.home?.hotStream || 'Hot Stream'}</h2>
                     <span className="text-[#1d5c4f]">⚡</span>
                   </div>
                   <ol className="space-y-4">
@@ -101,7 +102,7 @@ export default function HomeHeroEditorial({ lead, secondaries }: Props) {
                             {item.title}
                           </h3>
                           <div className="mt-2 flex flex-wrap gap-x-2 text-[11px] uppercase tracking-[0.16em] text-[#7b807b]">
-                            <span>{item.category_name || 'YayaNews'}</span>
+                            <span>{dict.nav?.[item.category_slug || ''] || item.category_name || 'YayaNews'}</span>
                             <span>{item.published_at?.slice(0, 10)}</span>
                           </div>
                         </LocalizedLink>
@@ -113,17 +114,17 @@ export default function HomeHeroEditorial({ lead, secondaries }: Props) {
                 <div className="overflow-hidden border border-[#0e4739] bg-[#034433] text-white shadow-[0_16px_40px_rgba(3,68,51,0.18)]">
                   <div className="flex items-start justify-between gap-4 p-5 pb-3">
                     <div>
-                      <h3 className="font-display text-[1.75rem] font-semibold leading-[1.02] tracking-[-0.04em] sm:text-[1.9rem]">Mascot Corner:</h3>
-                      <p className="font-display text-[1.75rem] font-semibold leading-[1.02] tracking-[-0.04em] sm:text-[1.9rem]">Daily Curations</p>
+                      <h3 className="font-display text-[1.75rem] font-semibold leading-[1.02] tracking-[-0.04em] sm:text-[1.9rem]">{dict.home?.mascotCorner || 'Mascot Corner:'}</h3>
+                      <p className="font-display text-[1.75rem] font-semibold leading-[1.02] tracking-[-0.04em] sm:text-[1.9rem]">{dict.home?.dailyCurations || 'Daily Curations'}</p>
                     </div>
                     <MallardDuck size="md" />
                   </div>
                   <div className="px-5 pb-5">
                     <p className="max-w-[28ch] text-sm leading-7 text-emerald-50/85">
-                      我们把高频市场噪声整理成更适合阅读的判断顺序：先脉络，再证据，最后是动作信号。
+                      {dict.home?.mascotDesc || 'Curating high-frequency market noise into a readable order of judgment: context, evidence, and finally action signals.'}
                     </p>
                     <LocalizedLink href="/guide" className="mt-5 inline-flex items-center justify-center rounded-[2px] bg-[#91f78e] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0d3f30] hover:bg-[#7be978]">
-                      Read digest
+                      {dict.home?.readDigest || 'Read digest'}
                     </LocalizedLink>
                   </div>
                 </div>
@@ -132,12 +133,12 @@ export default function HomeHeroEditorial({ lead, secondaries }: Props) {
 
             {lowerFeatures.length > 0 ? (
               <div className="mt-5 md:mt-8 grid gap-4 md:gap-6 lg:grid-cols-2 lg:gap-8">
-                {lowerFeatures.map(item => <SecondaryFeature key={item.id} article={item} />)}
+                {lowerFeatures.map(item => <SecondaryFeature key={item.id} article={item} dict={dict} />)}
               </div>
             ) : null}
           </>
         ) : (
-          <div className="rounded-[2px] border border-[#ddd5ca] bg-white p-8 text-center text-sm text-slate-500">头条稿件准备中</div>
+          <div className="rounded-[2px] border border-[#ddd5ca] bg-white p-8 text-center text-sm text-slate-500">{dict.home?.noLead || 'Headline article in preparation'}</div>
         )}
       </div>
     </section>

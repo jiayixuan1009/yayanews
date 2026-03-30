@@ -9,7 +9,17 @@
     "derivatives": "Derivatives",
     "hkStock": "HK Stocks",
     "guide": "Guides",
-    "about": "About"
+    "about": "About",
+    "us-stock": "US Stocks",
+    "hk-stock": "HK Stocks",
+    "ai": "AI News",
+    "other": "Other",
+    "topics": "Topics",
+    "signIn": "Sign In",
+    "subscribe": "Subscribe",
+    "searchArchive": "Search archive",
+    "marketIntelligence": "Market intelligence edition",
+    "dailyDispatch": "Daily Financial Dispatch"
   },
   "home": {
     "flashTitle": "24H Flash News",
@@ -30,7 +40,18 @@
     "guideDesc": "Learn the basics of US Stocks, Crypto, and Derivatives from scratch.",
     "guideTitle": "Beginner's Guide",
     "newestTitle": "Latest Reports",
-    "moreList": "More Reports"
+    "moreList": "More Reports",
+    "spotlightTitle": "The Political Compass",
+    "moreArticlesBtn": "View More News",
+    "liveTicker": "Live Ticker",
+    "mascotDesc": "We curate high-frequency market noise into a readable order of judgment: context, evidence, and finally action signals.",
+    "noLead": "Headline article in preparation",
+    "readDigest": "Read digest",
+    "hotStream": "Hot Stream",
+    "investigativeFeature": "Investigative feature",
+    "featuredReport": "Featured report",
+    "mascotCorner": "Mascot Corner:",
+    "dailyCurations": "Daily Curations"
   },
   "news": {
     "todayFocus": "Today's Focus",
@@ -47,6 +68,7 @@
   },
   "article": {
     "deepDive": "Deep Dive",
+    "noImage": "No Image",
     "bullish": "Bullish",
     "bearish": "Bearish",
     "neutral": "Neutral",
@@ -83,7 +105,25 @@
     "desc": "YayaNews is a leading professional financial news platform, delivering global financial updates, crypto dynamics, and in-depth analysis.",
     "links": "Quick Links",
     "contact": "Contact Us",
-    "rights": "All Rights Reserved"
+    "rights": "All Rights Reserved",
+    "slogan1": "The daily edition",
+    "slogan2": "Financial news editorial desk. Curating major changes in US stocks, HK stocks, crypto, and derivatives into a more structured and continuous reading experience.",
+    "emailLabel": "Email Address",
+    "joinBtn": "Join the Brief",
+    "copyrightSlogan": "The editorial archive is curated for signal, context and continuity.",
+    "officialSite": "Official Website",
+    "tradingSite": "Trading",
+    "topicsLink": "Topics",
+    "colOrg": "Organization",
+    "colAbout": "About Us",
+    "colGuide": "Editorial Guidelines",
+    "colMasthead": "Masthead",
+    "colContact": "Contact",
+    "colCov": "Coverage",
+    "colLegal": "Legal",
+    "colPrivacy": "Privacy Policy",
+    "colTerms": "Terms of Service",
+    "colCookie": "Cookie Policy"
   },
   "common": {
     "readMore": "Read More",
@@ -96,6 +136,13 @@
     "all": "All",
     "prevPage": "← Previous",
     "nextPage": "Next →",
-    "pageIndicator": "Page {page} / {totalPages}"
+    "pageIndicator": "Page {page} / {totalPages}",
+    "minute": "min"
+  },
+  "cta": {
+    "tag": "Trading Portal",
+    "title": "BiyaPay Global Assets",
+    "desc": "Secure and convenient multi-market channels; visually distinct from reading experience.",
+    "btn": "Trade Now"
   }
 }

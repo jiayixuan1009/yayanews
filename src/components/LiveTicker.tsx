@@ -18,7 +18,7 @@ interface TickerItem {
 const COIN_IDS = 'bitcoin,ethereum,solana,ripple';
 const REFRESH_INTERVAL = 30_000;
 
-export default function LiveTicker() {
+export default function LiveTicker({ title = '实时行情' }: { title?: string }) {
   const [tickers, setTickers] = useState<TickerItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -66,7 +66,7 @@ export default function LiveTicker() {
   if (loading) {
     return (
       <div className="flex items-center gap-6 overflow-x-auto py-3 scrollbar-hide">
-        <span className="flex-shrink-0 font-semibold text-accent-400">实时行情</span>
+        <span className="flex-shrink-0 font-semibold text-accent-400">{title}</span>
         {[1, 2, 3, 4].map(i => (
           <span key={i} className="flex-shrink-0 h-4 w-28 animate-pulse rounded bg-slate-700" />
         ))}
@@ -76,7 +76,7 @@ export default function LiveTicker() {
 
   return (
     <div className="flex items-center gap-6 overflow-x-auto py-3 scrollbar-hide">
-      <span className="flex-shrink-0 font-semibold text-accent-400">实时行情</span>
+      <span className="flex-shrink-0 font-semibold text-accent-400">{title}</span>
       {tickers.map(t => {
         const isUp = t.change >= 0;
         const color = isUp ? 'text-green-400' : 'text-red-400';
