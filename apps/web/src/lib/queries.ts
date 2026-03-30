@@ -6,6 +6,22 @@ export async function getCategories(): Promise<Category[]> {
   return await queryAll('SELECT * FROM categories ORDER BY sort_order') as Category[];
 }
 
+/** 强制安全的日期格式化器，无论传来 Date 还是 String 都能防爆 */
+function safeDateStr(d: any): any {
+  if (!d) return d;
+  if (typeof d === 'string') return d.replace('T', ' ');
+  if (typeof d?.toISOString === 'function') {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+  return String(d);
+}
+
+function formatArticleDates(a: any) {
+  if (!a) return a;
+  return { ...a, published_at: safeDateStr(a.published_at), created_at: safeDateStr(a.created_at) };
+}
+
 /** 按固定栏目顺序排序：快讯、美股、港股、衍生品、加密货币、其他（未在顺序中的排在最后） */
 export async function getCategoriesOrdered(): Promise<Category[]> {
   const list = await getCategories();
@@ -51,7 +67,7 @@ export async function getPublishedArticles(lang: string = 'zh', limit = 20, offs
   const articles = await queryAll<Article>(sql, params);
   const result: Article[] = [];
   for (const a of articles) {
-    result.push({ ...a, tags: await getArticleTags(a.id) });
+    result.push(formatArticleDates({ ...a, tags: await getArticleTags(a.id) }));
   }
   return result;
 }
@@ -79,7 +95,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | undefine
     article.tags = await getArticleTags(article.id);
     await queryAll('UPDATE articles SET view_count = view_count + 1 WHERE id = $1', [article.id]);
   }
-  return article;
+  return formatArticleDates(article);
 }
 
 export async function getArticleTags(articleId: number): Promise<Tag[]> {
@@ -92,21 +108,23 @@ export async function getArticleTags(articleId: number): Promise<Tag[]> {
 
 export async function getRelatedArticles(articleId: number, categoryId: number | null, limit = 5): Promise<Article[]> {
   if (categoryId) {
-    return await queryAll(`
+    const list = await queryAll(`
       SELECT a.*, c.name as category_name, c.slug as category_slug
       FROM articles a
       LEFT JOIN categories c ON a.category_id = c.id
       WHERE a.id != $1 AND a.status = 'published' AND a.category_id = $2
       ORDER BY a.published_at DESC LIMIT $3
     `, [articleId, categoryId, limit]) as Article[];
+    return list.map(formatArticleDates);
   }
-  return await queryAll(`
+  const list2 = await queryAll(`
     SELECT a.*, c.name as category_name, c.slug as category_slug
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
     WHERE a.id != $1 AND a.status = 'published'
     ORDER BY a.published_at DESC LIMIT $2
   `, [articleId, limit]) as Article[];
+  return list2.map(formatArticleDates);
 }
 
 export async function getFlashMaxId(lang: string = 'zh', categorySlug?: string): Promise<number> {
@@ -132,21 +150,23 @@ export async function getPublishedArticleMaxId(lang: string = 'zh'): Promise<num
 
 export async function getFlashNews(lang: string = 'zh', limit = 50, categorySlug?: string): Promise<FlashNews[]> {
   if (categorySlug) {
-    return await queryAll(`
+    const list = await queryAll(`
       SELECT f.*, c.name as category_name
       FROM flash_news f
       LEFT JOIN categories c ON f.category_id = c.id
       WHERE c.slug = $1 AND f.lang = $2
       ORDER BY f.published_at DESC LIMIT $3
     `, [categorySlug, lang, limit]) as FlashNews[];
+    return list.map(formatArticleDates);
   }
-  return await queryAll(`
+  const list2 = await queryAll(`
     SELECT f.*, c.name as category_name
     FROM flash_news f
     LEFT JOIN categories c ON f.category_id = c.id
     WHERE f.lang = $1
     ORDER BY f.published_at DESC LIMIT $2
   `, [lang, limit]) as FlashNews[];
+  return list2.map(formatArticleDates);
 }
 
 export async function getTopics(limit = 20): Promise<Topic[]> {
