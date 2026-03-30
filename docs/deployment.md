@@ -19,7 +19,7 @@
 ```bash
 # 1. 克隆代码
 cd /var/www
-git clone https://github.com/jiayixuan1009/yayanews1.git yayanews
+git clone https://github.com/jiayixuan1009/yayanews.git yayanews
 cd yayanews
 
 # 2. 配置环境变量

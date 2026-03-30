@@ -2,7 +2,7 @@
 
 > 金融新闻自动采集、AI 加工、双语发布平台
 
-[![CI](https://github.com/jiayixuan1009/yayanews1/actions/workflows/ci.yml/badge.svg)](https://github.com/jiayixuan1009/yayanews1/actions/workflows/ci.yml)
+[![CI](https://github.com/jiayixuan1009/yayanews/actions/workflows/ci.yml/badge.svg)](https://github.com/jiayixuan1009/yayanews/actions/workflows/ci.yml)
 
 🌐 **线上地址**: [yayanews.cryptooptiontool.com](https://yayanews.cryptooptiontool.com)
 
@@ -28,8 +28,8 @@
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/jiayixuan1009/yayanews1.git
-cd yayanews1
+git clone https://github.com/jiayixuan1009/yayanews.git
+cd yayanews
 
 # 2. 配置环境变量
 cp .env.example .env
