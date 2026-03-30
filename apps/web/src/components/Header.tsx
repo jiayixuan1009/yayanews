@@ -4,6 +4,7 @@ import LocalizedLink from '@/components/LocalizedLink';
 import { usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { siteConfig } from '@yayanews/types';
+import LangSwitcher from '@/components/LangSwitcher';
 import { ORDERED_NAV_CATEGORIES } from '@/lib/constants';
 
 const primaryNav = [
@@ -48,6 +49,7 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
                 {dict[item.key] || item.key}
               </LocalizedLink>
             ))}
+            <LangSwitcher lang={lang} />
           </div>
         </div>
       </div>
@@ -69,6 +71,7 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
+          <LangSwitcher lang={lang} />
           <a href={siteConfig.parentSite} target="_blank" rel="noopener noreferrer" className="font-label text-[11px] font-semibold uppercase tracking-[0.16em] text-[#4f5551] hover:text-[#101713]">
             {dict.signIn || 'Sign In'}
           </a>
@@ -138,7 +141,8 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
                 {dict[item.key] || item.key}
               </LocalizedLink>
             ))}
-            <div className="mt-3 flex gap-3">
+            <div className="mt-3 flex items-center gap-3">
+              <LangSwitcher lang={lang} />
               <a href={siteConfig.tradingSite} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center border border-[#0d3b30] bg-[#0d3b30] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white">
                 {dict.subscribe || 'Subscribe'}
               </a>
