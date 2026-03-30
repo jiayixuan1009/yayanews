@@ -91,3 +91,19 @@ INSERT INTO categories (name, slug, description, sort_order) VALUES
 ('衍生品', 'derivatives', '衍生品与大宗商品资讯', 3),
 ('港股', 'hk-stock', '港股市场资讯', 4)
 ON CONFLICT (slug) DO NOTHING;
+
+-- enable pgvector
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- add missing columns to articles
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS sentiment TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS tickers TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS key_points TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS source TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_url TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS subcategory TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS embedding vector(1536);
+
+-- add missing columns to flash_news
+ALTER TABLE flash_news ADD COLUMN IF NOT EXISTS subcategory TEXT;
+ALTER TABLE flash_news ADD COLUMN IF NOT EXISTS embedding vector(1536);
