@@ -7,7 +7,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # ── 项目路径 ──
-PROJECT_ROOT = Path(__file__).parent.parent.parent
+# __file__ is apps/pipeline/pipeline/config/settings.py
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
 load_dotenv(PROJECT_ROOT / ".env")
 
 DB_PATH = PROJECT_ROOT / "data" / "yayanews.db"
