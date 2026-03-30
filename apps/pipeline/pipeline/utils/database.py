@@ -37,8 +37,27 @@ _pool = None
 def get_pool():
     global _pool
     if _pool is None:
-        _pool = ThreadedConnectionPool(1, 20, DB_URL)
+        _pool = ThreadedConnectionPool(1, 10, DB_URL)
     return _pool
+
+def get_conn():
+    """从连接池获取一个经过健康检查的连接（防止跨公网 TCP 被防火墙静默杀死）。"""
+    pool = get_pool()
+    conn = pool.getconn()
+    try:
+        # 快速探活：如果连接已死，这行会抛 OperationalError
+        conn.isolation_level
+        cur = conn.cursor()
+        cur.execute("SELECT 1")
+        cur.close()
+    except Exception:
+        # 连接已死，关掉残骸并重新拿一个
+        try:
+            pool.putconn(conn, close=True)
+        except Exception:
+            pass
+        conn = pool.getconn()
+    return conn
 
 def insert_article(
     title: str,
@@ -61,7 +80,7 @@ def insert_article(
     embedding: Optional[list[float]] = None
 ) -> int:
     ts = now_cn()
-    conn = get_pool().getconn()
+    conn = get_conn()
     try:
         with conn.cursor() as cur:
             cur.execute(
@@ -120,7 +139,7 @@ def update_article_full(
     embedding: Optional[list[float]] = None
 ) -> bool:
     ts = now_cn()
-    conn = get_pool().getconn()
+    conn = get_conn()
     try:
         with conn.cursor() as cur:
             cur.execute("""
@@ -156,7 +175,7 @@ def update_article_full(
 
 def update_article_status(article_id: int, status: str, title: str = None) -> bool:
     ts = now_cn()
-    conn = get_pool().getconn()
+    conn = get_conn()
     try:
         with conn.cursor() as cur:
             if title:
@@ -174,7 +193,7 @@ def update_article_status(article_id: int, status: str, title: str = None) -> bo
 def insert_tags(article_id: int, tag_names: list[str]):
     if not tag_names or article_id <= 0:
         return
-    conn = get_pool().getconn()
+    conn = get_conn()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             for name in tag_names:
@@ -208,7 +227,7 @@ def insert_flash(
     embedding: Optional[list[float]] = None,
 ) -> int:
     ts = now_cn()
-    conn = get_pool().getconn()
+    conn = get_conn()
     try:
         with conn.cursor() as cur:
             cur.execute(
@@ -247,7 +266,7 @@ def insert_pipeline_run(
     error_count: int = 0,
     notes: str = "",
 ) -> int:
-    conn = get_pool().getconn()
+    conn = get_conn()
     try:
         with conn.cursor() as cur:
             cur.execute(
@@ -274,7 +293,7 @@ def insert_pipeline_run(
         get_pool().putconn(conn)
 
 def slug_exists(slug: str) -> bool:
-    conn = get_pool().getconn()
+    conn = get_conn()
     try:
         with conn.cursor() as cur:
             cur.execute("SELECT 1 FROM articles WHERE slug = %s", (slug,))
@@ -285,7 +304,7 @@ def slug_exists(slug: str) -> bool:
         get_pool().putconn(conn)
 
 def title_exists(title: str) -> bool:
-    conn = get_pool().getconn()
+    conn = get_conn()
     try:
         with conn.cursor() as cur:
             cur.execute("SELECT 1 FROM articles WHERE title = %s", (title,))
@@ -296,7 +315,7 @@ def title_exists(title: str) -> bool:
         get_pool().putconn(conn)
 
 def get_recent_titles(limit: int = 50) -> list[str]:
-    conn = get_pool().getconn()
+    conn = get_conn()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("SELECT title FROM articles ORDER BY created_at DESC LIMIT %s", (limit,))
@@ -307,7 +326,7 @@ def get_recent_titles(limit: int = 50) -> list[str]:
         get_pool().putconn(conn)
 
 def get_recent_flashes(limit: int = 50) -> list[str]:
-    conn = get_pool().getconn()
+    conn = get_conn()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("SELECT title FROM flash_news ORDER BY created_at DESC LIMIT %s", (limit,))
@@ -321,7 +340,7 @@ def check_semantic_duplicate(embedding: list[float], threshold: float = 0.85) ->
     """利用 pgvector 计算余弦相似度（<->/1-<=>）侦测近义洗稿"""
     if not embedding:
         return None
-    conn = get_pool().getconn()
+    conn = get_conn()
     try:
         from pgvector.psycopg2 import register_vector
         register_vector(conn)
