@@ -18,14 +18,29 @@ export function getDb(): Pool {
   return pool;
 }
 
+function convertDates(obj: any): any {
+  if (obj instanceof Date) {
+    // Return standard format like 2026-03-30 22:40:35 used in Postgres strings
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${obj.getFullYear()}-${pad(obj.getMonth()+1)}-${pad(obj.getDate())} ${pad(obj.getHours())}:${pad(obj.getMinutes())}:${pad(obj.getSeconds())}`;
+  }
+  if (Array.isArray(obj)) return obj.map(convertDates);
+  if (obj && typeof obj === 'object') {
+    const res: any = {};
+    for (const k in obj) res[k] = convertDates(obj[k]);
+    return res;
+  }
+  return obj;
+}
+
 export async function queryAll<T>(text: string, params: unknown[] = []): Promise<T[]> {
   const { rows } = await getDb().query(text, params);
-  return rows as T[];
+  return convertDates(rows) as T[];
 }
 
 export async function queryGet<T>(text: string, params: unknown[] = []): Promise<T | undefined> {
   const { rows } = await getDb().query(text, params);
-  return rows[0] as T | undefined;
+  return convertDates(rows[0]) as T | undefined;
 }
 
 /** Returns number of rows affected (for INSERT/UPDATE/DELETE). */
