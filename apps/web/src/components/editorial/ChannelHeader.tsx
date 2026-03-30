@@ -1,4 +1,4 @@
-import type { Article } from '@/lib/types';
+import type { Article } from '@yayanews/types';
 import Image from 'next/image';
 import LocalizedLink from '@/components/LocalizedLink';
 import { getArticleCoverSrc } from '@/lib/article-image';

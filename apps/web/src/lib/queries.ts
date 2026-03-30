@@ -1,5 +1,5 @@
-import { queryAll, queryGet } from './db';
-import type { Article, FlashNews, Category, Topic, Guide, Tag } from './types';
+import { queryAll, queryGet } from '@yayanews/database';
+import type { Article, FlashNews, Category, Topic, Guide, Tag } from '@yayanews/types';
 import { CATEGORY_DISPLAY_ORDER } from './constants';
 
 export async function getCategories(): Promise<Category[]> {

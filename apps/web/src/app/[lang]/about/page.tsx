@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import LocalizedLink from '@/components/LocalizedLink';
-import { siteConfig } from '@/lib/types';
+import { siteConfig } from '@yayanews/types';
 
 export const metadata: Metadata = {
   title: '关于我们',

@@ -3,7 +3,7 @@
 import LocalizedLink from '@/components/LocalizedLink';
 import { usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import { siteConfig } from '@/lib/types';
+import { siteConfig } from '@yayanews/types';
 import { ORDERED_NAV_CATEGORIES } from '@/lib/constants';
 
 const primaryNav = [

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { siteConfig } from '@/lib/types';
+import { siteConfig } from '@yayanews/types';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Analytics from '@/components/Analytics';

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import LocalizedLink from '@/components/LocalizedLink';
-import type { FlashNews, Category } from '@/lib/types';
+import type { FlashNews, Category } from '@yayanews/types';
 import CtaBanner from '@/components/CtaBanner';
 import { getImportanceDot } from '@/lib/ui-utils';
 

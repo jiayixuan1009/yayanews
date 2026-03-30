@@ -41,3 +41,17 @@ if (fs.existsSync(publicSrc)) {
 }
 
 console.log('✅ Successfully prepared Next.js standalone directory for monorepo web app.');
+
+// ─── Admin App ─────────────────────────────────────────────────────────────
+const adminAppDir = path.join(rootDir, 'apps', 'admin');
+const adminStandaloneDir = path.join(adminAppDir, '.next', 'standalone');
+
+if (fs.existsSync(adminStandaloneDir)) {
+  const adminStaticSrc = path.join(adminAppDir, '.next', 'static');
+  const adminStaticDest = path.join(adminStandaloneDir, 'apps', 'admin', '.next', 'static');
+  console.log('Copying admin static assets to standalone...');
+  copyRecursiveSync(adminStaticSrc, adminStaticDest);
+  console.log('✅ Successfully prepared Next.js standalone directory for admin app.');
+} else {
+  console.log('Admin standalone not found, skipping (run npm run build -w @yayanews/admin first).');
+}

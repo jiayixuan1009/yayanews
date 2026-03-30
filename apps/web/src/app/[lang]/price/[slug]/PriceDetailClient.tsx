@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import LocalizedLink from '@/components/LocalizedLink';
-import { siteConfig } from '@/lib/types';
+import { siteConfig } from '@yayanews/types';
 
 type CoinDetail = {
   id: string;

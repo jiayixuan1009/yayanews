@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next';
-import { siteConfig } from '@/lib/types';
+import { siteConfig } from '@yayanews/types';
 
 export default function robots(): MetadataRoute.Robots {
   return {

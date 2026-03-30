@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { Article } from '@/lib/types';
-import { DERIVATIVES_SUBCATEGORIES } from '@/lib/types';
+import type { Article } from '@yayanews/types';
+import { DERIVATIVES_SUBCATEGORIES } from '@yayanews/types';
 import ArticleCard from './ArticleCard';
 
 interface Props {

@@ -17,7 +17,7 @@ import ArticleCard from '@/components/ArticleCard';
 import RightRailPanel from '@/components/editorial/RightRailPanel';
 import TopicBridge from '@/components/editorial/TopicBridge';
 import SectionHeader from '@/components/editorial/SectionHeader';
-import { siteConfig, type Article } from '@/lib/types';
+import { siteConfig, type Article } from '@yayanews/types';
 import { sanitizeHtml } from '@/lib/sanitize';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
 

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import LocalizedLink from '@/components/LocalizedLink';
 import Image from 'next/image';
-import { siteConfig } from '@/lib/types';
+import { siteConfig } from '@yayanews/types';
 
 interface CoinData {
   id: string;

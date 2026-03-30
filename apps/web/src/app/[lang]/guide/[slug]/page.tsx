@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import LocalizedLink from '@/components/LocalizedLink';
 import { notFound } from 'next/navigation';
 import { getGuideBySlug, getGuides } from '@/lib/queries';
-import { siteConfig } from '@/lib/types';
+import { siteConfig } from '@yayanews/types';
 import CtaBanner from '@/components/CtaBanner';
 import { sanitizeHtml } from '@/lib/sanitize';
 
