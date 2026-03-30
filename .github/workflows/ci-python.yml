@@ -1,0 +1,33 @@
+name: 🐍 Pipeline Dependency check
+
+on:
+  pull_request:
+    paths:
+      - 'apps/pipeline/**'
+  push:
+    branches: [ main ]
+    paths:
+      - 'apps/pipeline/**'
+
+jobs:
+  python-env-isolation:
+    name: Requirements Missing Verifier
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 收取爬虫分支
+        uses: actions/checkout@v4
+
+      - name: 设置干净的 Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: 云端漏包探测 (模拟拉取要求库)
+        # 单兵爬虫最大的 Bug 是在本地把库装了但不写进 txt，一上服务器直接崩
+        run: pip install -r apps/pipeline/requirements.txt
+        
+      - name: AST 语法防低级错误验证
+        # 最快速度检查是否少了括号、缺了缩进 (不追究复杂的 Flake8 校验风格，只保命)
+        run: python -m py_compile apps/pipeline/**/*.py

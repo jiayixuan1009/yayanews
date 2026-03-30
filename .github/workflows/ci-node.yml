@@ -1,0 +1,53 @@
+name: 🟢 Node & UI Integrity
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'apps/admin/**'
+      - 'apps/ws-server/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'infra/scripts/copy-standalone.mjs'
+  push:
+    branches: [ main ]
+    paths:
+      - 'apps/web/**'
+      - 'apps/admin/**'
+      - 'apps/ws-server/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+
+jobs:
+  build-and-typecheck:
+    name: Build & Typings Verification
+    runs-on: ubuntu-latest
+    
+    # 模拟真实连入配置但全丢空指针，以暴露出强行在外部打包代码中读 DB 的错
+    env:
+      DATABASE_URL: "postgresql://fake:5432"
+      REDIS_URL: "redis://fake:6379"
+
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@v4
+
+      - name: 配置 Node 18.x （匹配项目基准线）
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.17.x'
+          cache: 'npm' #利用原生 cache 快照提升提速
+
+      - name: 全仓锁定安装 (拦截污染包版本)
+        run: npm ci
+
+      - name: 代码规矩探雷 (Linting)
+        run: npm run lint
+        continue-on-error: true # 容许少量格式警告先通过，主打骨架断裂拦截
+
+      - name: Typescript 签名冲突测试与 Standalone 脱水试炼
+        # 如果 @types 或 @seo 等基座接口被乱改，会导致构建当场雪崩报错退出；
+        # 同时能跑完证明 Next.js 环境完全能够解析配置！
+        run: npm run build
