@@ -39,7 +39,7 @@ module.exports = {
     {
       name: "yayanews",
       cwd: root,
-      script: ".next/standalone/server.js",
+      script: "apps/web/.next/standalone/apps/web/server.js",
       autorestart: true,
       max_restarts: 20,
       min_uptime: "10s",
@@ -47,7 +47,7 @@ module.exports = {
     },
     {
       name: "yaya-finnhub-ws",
-      cwd: root,
+      cwd: path.join(root, "apps", "pipeline"),
       script: pythonBin,
       args: "-m pipeline.daemon.finnhub_ws_flash",
       interpreter: "none",
@@ -58,7 +58,7 @@ module.exports = {
     },
     {
       name: "yaya-pipeline-daemon",
-      cwd: root,
+      cwd: path.join(root, "apps", "pipeline"),
       script: pythonBin,
       args: "-m pipeline.run_daemon",
       interpreter: "none",
@@ -70,7 +70,7 @@ module.exports = {
     {
       name: "yaya-ws-gateway",
       cwd: root,
-      script: "src/ws-server.js",
+      script: "apps/web/src/ws-server.js",
       autorestart: true,
       max_restarts: 20,
       min_uptime: "10s",
@@ -78,7 +78,7 @@ module.exports = {
     },
     {
       name: "yaya-pipeline-worker",
-      cwd: root,
+      cwd: path.join(root, "apps", "pipeline"),
       script: pythonBin,
       args: "-m pipeline.worker",
       interpreter: "none",

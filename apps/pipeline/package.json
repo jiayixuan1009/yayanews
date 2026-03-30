@@ -1,0 +1,7 @@
+{
+  "name": "@yayanews/pipeline",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Python data pipeline and AI workers",
+  "scripts": {}
+}

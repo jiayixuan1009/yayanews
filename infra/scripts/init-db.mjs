@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import { mkdirSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const dbDir = join(__dirname, '..', 'data');
+const dbDir = join(__dirname, '..', '..', 'data');
 mkdirSync(dbDir, { recursive: true });
 
 const db = new Database(join(dbDir, 'yayanews.db'));

@@ -3,7 +3,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const db = new Database(join(__dirname, '..', 'data', 'yayanews.db'));
+const db = new Database(join(__dirname, '..', '..', 'data', 'yayanews.db'));
 db.pragma('journal_mode = WAL');
 
 const tags = [

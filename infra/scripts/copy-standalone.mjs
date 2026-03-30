@@ -2,7 +2,8 @@ import fs from 'fs';
 import path from 'path';
 
 const rootDir = process.cwd();
-const standaloneDir = path.join(rootDir, '.next', 'standalone');
+const webAppDir = path.join(rootDir, 'apps', 'web');
+const standaloneDir = path.join(webAppDir, '.next', 'standalone');
 
 // 只有开启了 standalone 输出才会生成该目录
 if (!fs.existsSync(standaloneDir)) {
@@ -26,17 +27,17 @@ function copyRecursiveSync(src, dest) {
   }
 }
 
-// 拷贝 .next/static 到 .next/standalone/.next/static
-const nextStaticSrc = path.join(rootDir, '.next', 'static');
-const nextStaticDest = path.join(standaloneDir, '.next', 'static');
+// 拷贝 .next/static 到 .next/standalone/apps/web/.next/static
+const nextStaticSrc = path.join(webAppDir, '.next', 'static');
+const nextStaticDest = path.join(standaloneDir, 'apps', 'web', '.next', 'static');
 console.log('Copying static assets to standalone directory...');
 copyRecursiveSync(nextStaticSrc, nextStaticDest);
 
-// 拷贝 public 文件夹到 .next/standalone/public
-const publicSrc = path.join(rootDir, 'public');
-const publicDest = path.join(standaloneDir, 'public');
+// 拷贝 public 文件夹到 .next/standalone/apps/web/public
+const publicSrc = path.join(webAppDir, 'public');
+const publicDest = path.join(standaloneDir, 'apps', 'web', 'public');
 if (fs.existsSync(publicSrc)) {
   copyRecursiveSync(publicSrc, publicDest);
 }
 
-console.log('✅ Successfully prepared Next.js standalone directory.');
+console.log('✅ Successfully prepared Next.js standalone directory for monorepo web app.');
