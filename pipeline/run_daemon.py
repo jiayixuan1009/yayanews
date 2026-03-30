@@ -115,14 +115,14 @@ def main():
             if mode in ["all", "flash"]:
                 msg = f"Dispatching {dyn_flash} flash items"
                 print(f"[Dispatch] Enqueue Flash ({dyn_flash}) @ {time.strftime('%H:%M:%S')}", flush=True)
-                q.enqueue(task_run_flash, kwargs={"count": dyn_flash}, job_timeout=600)
+                q.enqueue(task_run_flash, count=dyn_flash, job_timeout=600)
             next_flash = now + FLASH_SEC
             
         if now >= next_article:
             if mode in ["all", "articles"]:
                 msg = f"Dispatching collection for {dyn_articles} topics"
                 print(f"[Dispatch] Enqueue Topic Collection ({dyn_articles}) @ {time.strftime('%H:%M:%S')}", flush=True)
-                q.enqueue(task_collect_and_enqueue_articles, kwargs={"batch_size": dyn_articles}, job_timeout=600)
+                q.enqueue(task_collect_and_enqueue_articles, batch_size=dyn_articles, job_timeout=600)
             next_article = now + ARTICLE_SEC
 
         write_heartbeat(msg)

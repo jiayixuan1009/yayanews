@@ -16,7 +16,7 @@ def task_collect_and_enqueue_articles(batch_size: int = 10):
     q = Queue('yayanews', connection=conn)
     
     for topic in topics:
-        q.enqueue(task_process_single_article, kwargs={"topic": topic}, job_timeout=1200)
+        q.enqueue(task_process_single_article, topic=topic, job_timeout=1200)
         
     return f"Enqueued {len(topics)} individual article generation jobs"
 

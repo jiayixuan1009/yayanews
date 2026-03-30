@@ -79,7 +79,7 @@ FLASH_CHANNELS = {
         "categories": ["general", "crypto"],
     },
     "marketaux": {
-        "enabled": True,
+        "enabled": False,
         "weight": 4,
         "max_items": 15,
         "timeout": 12,
