@@ -43,6 +43,7 @@ module.exports = {
       autorestart: true,
       max_restarts: 20,
       min_uptime: "10s",
+      max_memory_restart: "1G",
       env: { ...mergedEnv, NODE_ENV: "production", PORT: 3002, HOSTNAME: "0.0.0.0" },
     },
     {
@@ -54,6 +55,7 @@ module.exports = {
       autorestart: true,
       max_restarts: 50,
       min_uptime: "10s",
+      kill_timeout: 10000,
       env: mergedEnv,
     },
     {
@@ -66,6 +68,7 @@ module.exports = {
       max_restarts: 20,
       min_uptime: "30s",
       max_memory_restart: "400M",
+      kill_timeout: 10000,
       env: mergedEnv,
     },
     {
@@ -75,6 +78,7 @@ module.exports = {
       autorestart: true,
       max_restarts: 20,
       min_uptime: "10s",
+      max_memory_restart: "800M",
       env: mergedEnv,
     },
     {
@@ -84,6 +88,7 @@ module.exports = {
       autorestart: true,
       max_restarts: 20,
       min_uptime: "10s",
+      max_memory_restart: "1G",
       env: { ...mergedEnv, NODE_ENV: "production", PORT: 3003, HOSTNAME: "0.0.0.0" },
     },
     {
@@ -97,6 +102,7 @@ module.exports = {
       max_restarts: 20,
       min_uptime: "10s",
       max_memory_restart: "800M",
+      kill_timeout: 10000,
       env: mergedEnv,
     },
   ],
