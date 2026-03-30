@@ -5,10 +5,16 @@ import { requireAuth } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
-// Next.js standalone mode changes process.cwd() to .next/standalone, so we must compensate.
-const basePath = process.cwd().includes('.next')
-  ? path.join(process.cwd(), '..', '..')
-  : process.cwd();
+// Identify the true repository root regardless of monorepo execution path or next standalone mode
+let basePath = process.cwd();
+// Compensate for PM2 / Next.js standalone execution paths
+if (basePath.includes('.next')) {
+  basePath = path.join(basePath, '..', '..');
+}
+// If we are currently inside an apps/ directory, walk back one level
+if (basePath.replace(/\\/g, '/').includes('/apps/')) {
+  basePath = path.join(basePath, '..', '..');
+}
 
 // daemon 运行在 apps/pipeline/ 目录下，所以它的 data/ 文件夹也在那里
 const PIPELINE_DATA = path.join(basePath, 'apps', 'pipeline', 'data');

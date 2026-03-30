@@ -8,6 +8,7 @@ import requests
 from pipeline.utils.database import insert_article, insert_tags
 from pipeline.utils.logger import get_logger, step_print
 from pipeline.config.settings import SITE_URL, CATEGORIES
+from pipeline.cover_image import resolve_cover_for_article
 
 log = get_logger("agent5")
 
@@ -95,6 +96,15 @@ def publish(articles: list[dict]) -> list[dict]:
         source_label = _resolve_source_label(source, source_url, article)
         subcategory = _detect_subcategory(article)
 
+        # 解析、提取或生成合适的封面大图
+        cover_res = resolve_cover_for_article(
+            title=article.get("title", ""),
+            summary=summary,
+            source_url=source_url,
+            is_original=source == "ai_generated"
+        )
+        cover_image = cover_res.url or ""
+
         if not slug or not content:
             log.warning(f"Skip [{title}]: missing slug or content")
             continue
@@ -117,6 +127,7 @@ def publish(articles: list[dict]) -> list[dict]:
                 source=source_label,
                 source_url=source_url,
                 subcategory=subcategory,
+                cover_image=cover_image,
             )
             article_id = draft_id if success else -1
         else:
@@ -135,6 +146,7 @@ def publish(articles: list[dict]) -> list[dict]:
                 source_url=source_url,
                 subcategory=subcategory,
                 collected_at=article.get("collected_at"),
+                cover_image=cover_image,
             )
 
         if article_id > 0:

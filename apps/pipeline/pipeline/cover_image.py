@@ -239,6 +239,14 @@ def search_pixabay_photo_url(query: str, timeout: float = 15.0) -> str | None:
     return h.get("largeImageURL") or h.get("webformatURL")
 
 
+def fetch_pollinations_ai_url(query: str) -> str:
+    """零配置免费免鉴权兜底方案 (基于开源生图路由)"""
+    from urllib.parse import quote
+    # 补充 financial news 等风格词汇
+    prompt_str = f"abstract financial news cover art about {query[:60]}"
+    return f"https://image.pollinations.ai/prompt/{quote(prompt_str)}?width=1200&height=630&nologo=true"
+
+
 def resolve_cover_for_article(
     *,
     title: str,
@@ -283,10 +291,11 @@ def resolve_cover_for_article(
     if gen:
         return CoverResult(gen, "generated", "文生图")
 
+    fallback = fetch_pollinations_ai_url(q)
     return CoverResult(
-        None,
-        "none",
-        "未找到可用封面；可配置 PEXELS/UNSPLASH/PIXABAY（免费）、OPENAI_API_KEY 或人工 URL",
+        fallback,
+        "generated",
+        "零配置免费兜底API"
     )
 
 
