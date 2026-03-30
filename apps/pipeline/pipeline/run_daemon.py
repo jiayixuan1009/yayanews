@@ -21,6 +21,7 @@ from pathlib import Path
 from redis import Redis
 from rq import Queue
 from pipeline.tasks import task_collect_and_enqueue_articles, task_run_flash
+from pipeline.utils.redis_conn import get_redis_connection
 
 FLASH_SEC = int(os.environ.get("DAEMON_FLASH_SEC", "60"))
 ARTICLE_SEC = int(os.environ.get("DAEMON_ARTICLE_SEC", "1800"))
@@ -35,7 +36,7 @@ redis_port = int(os.environ.get("REDIS_PORT", "6379"))
 
 def main():
     try:
-        redis_conn = Redis(host=redis_host, port=redis_port, db=0)
+        redis_conn = get_redis_connection()
         q = Queue('yayanews', connection=redis_conn)
     except Exception as e:
         print(f"[run_daemon] Redis connection failed: {e}", file=sys.stderr)
