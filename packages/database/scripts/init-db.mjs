@@ -9,7 +9,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function initDb() {
-  const connectionString = process.env.DATABASE_URL || 'postgresql://yayanews:REDACTED@127.0.0.1:5432/yayanews';
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    console.error('[DB] ERROR: DATABASE_URL environment variable is not set.');
+    console.error('[DB] Please run via: npm run db:init (which loads .env automatically)');
+    process.exit(1);
+  }
   const pool = new Pool({ connectionString });
   
   try {

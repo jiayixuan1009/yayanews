@@ -60,8 +60,8 @@ jobs:
       - name: 短命唤醒 (Dry Run Server)
         # 绝杀：直接挂后台用脱水 server 起包。如果有遗漏的环境变量或挂壁逻辑，这里 1 秒钟就报错。
         run: |
-          node apps/web/.next/standalone/apps/web/server.js & 
+          PORT=3002 node apps/web/.next/standalone/apps/web/server.js & 
           # 给服务器留两秒呼吸（启动）
           sleep 2
           # 如果服务器没起稳或者崩了，这句 Curl (只获取返回头) 就会返回非零码从而炸伤这个 Job
-          curl -I --fail http://localhost:3000
+          curl -I --fail http://localhost:3002
