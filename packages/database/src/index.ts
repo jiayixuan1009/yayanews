@@ -19,7 +19,7 @@ export function getDb(): Pool {
 }
 
 function convertDates(obj: any): any {
-  if (obj instanceof Date) {
+  if (obj && typeof obj === 'object' && typeof obj.getTime === 'function') {
     // Return standard format like 2026-03-30 22:40:35 used in Postgres strings
     const pad = (n: number) => n.toString().padStart(2, '0');
     return `${obj.getFullYear()}-${pad(obj.getMonth()+1)}-${pad(obj.getDate())} ${pad(obj.getHours())}:${pad(obj.getMinutes())}:${pad(obj.getSeconds())}`;
