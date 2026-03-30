@@ -27,7 +27,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 2G # 基于主机的内存余量给数据库保留绝对充裕的大池子
+          memory: 1G # 适配 2GB 内存的主机：留出 1G 供给了底层 OS 和 Redis 运转
 
   redis:
     image: redis:7-alpine
@@ -37,7 +37,7 @@ services:
       redis-server
       --requirepass ${REDIS_PASSWORD:-ChangeThisStrongRedisPass!}
       --appendonly yes
-      --maxmemory 500mb
+      --maxmemory 256mb
       --maxmemory-policy volatile-lru
     ports:
       # 同理，必须依托阿里云安全组防御勒索病毒，仅 VPC 白名单通信
