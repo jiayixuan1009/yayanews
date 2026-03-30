@@ -10,10 +10,12 @@ const basePath = process.cwd().includes('.next')
   ? path.join(process.cwd(), '..', '..')
   : process.cwd();
 
-const STATUS_FILE = path.join(basePath, 'data', 'daemon_status.txt');
-const HEARTBEAT_FILE = path.join(basePath, 'data', 'daemon_heartbeat.txt');
-const CONFIG_FILE = path.join(basePath, 'data', 'daemon_config.json');
-const RUN_LOG_FILE = path.join(basePath, 'data', 'pipeline_run.log');
+// daemon 运行在 apps/pipeline/ 目录下，所以它的 data/ 文件夹也在那里
+const PIPELINE_DATA = path.join(basePath, 'apps', 'pipeline', 'data');
+const STATUS_FILE = path.join(PIPELINE_DATA, 'daemon_status.txt');
+const HEARTBEAT_FILE = path.join(PIPELINE_DATA, 'daemon_heartbeat.txt');
+const CONFIG_FILE = path.join(PIPELINE_DATA, 'daemon_config.json');
+const RUN_LOG_FILE = path.join(PIPELINE_DATA, 'pipeline_run.log');
 
 function getStatus() {
   let statusStr = 'running';
