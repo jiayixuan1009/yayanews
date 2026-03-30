@@ -1,112 +1,28 @@
-# YayaNews 📰
+# 🌐 YayaNews 金融媒体智能生产终端
 
-> 金融新闻自动采集、AI 加工、双语发布平台
+> **The Next Generation Financial Intelligence Engine.** 🚀  
+> 基于纯粹的 PostgreSQL 与 Next.js `App Router` 打造的一体化企业级资讯分发平台。
 
-[![CI](https://github.com/jiayixuan1009/yayanews/actions/workflows/ci.yml/badge.svg)](https://github.com/jiayixuan1009/yayanews/actions/workflows/ci.yml)
+## 🎯 系统架构概览
+本仓库采纳扁平化 **Monorepo** 隔离结构。全站划分为独立的业务流、管理流和爬虫清洗流，彻底解耦。
 
-🌐 **线上地址**: [yayanews.cryptooptiontool.com](https://yayanews.cryptooptiontool.com)
+### 📁 根生态地图 (`/apps` & `/packages`)
 
-## ✨ 功能特性
+- **🌌 表现与交互网关 (`apps/`)**:
+  - [`@yayanews/web`](apps/web): ToC 高并发客户端。借助 Tailwind CSS + Next.js Server Components 实现急速 SSR 和全链路多语言 (zh/en/tc)。
+  - [`@yayanews/admin`](apps/admin): ToB 的图表与人工审核台。拦截 `/admin` 路由，完全重构并运行于独立 Node 服务簇 (`3003`)，享有独立资源沙盒隔离。
+  - [`@yayanews/pipeline`](apps/pipeline): Python 引擎中枢。对接 Finnhub 和数十个三方行情提供商，并通过大模型（LLM）润色资讯。以 `daemon` + `worker` 双切片模式被 PM2 并发挂起。
+  - [`@yayanews/ws-server`](apps/ws-server): 实时脉搏总线。负责通过 Redis Subscription 向所有订阅了相关标的 Web 用户或 Admin 图表推送毫秒级快讯更新。
 
-- **多源采集** — Finnhub、MarketAux、CryptoCompare 等金融数据源
-- **AI 加工管线** — 6 个 Agent 串行处理：采集 → 改写 → 审核 → SEO → 发布 → 翻译
-- **实时快讯** — Finnhub WebSocket + Redis Pub/Sub 实时推送
-- **双语支持** — 中英文 i18n 路由，自动翻译
-- **语义去重** — pgvector 向量相似度检测，避免重复内容
-- **管理后台** — 实时监控管线状态、队列指标、内容管理
+- **🔧 硬核地基引擎 (`packages/`)**:
+  - [`@yayanews/database`](packages/database): 纯粹对底层 PostgreSQL 联通的抽象。不再挂载本地的 `better-sqlite3`（已全局清理）。它只响应环境变量 `DATABASE_URL`。所有的迁移 (`init-db`) 都在此包闭环。
+  - [`@yayanews/seo`](packages/seo): “SEO 黑匣子”。全局页面 Header 的元数据生成厂，负责抹平各大社交媒体卡片渲染 (`OpenGraph` / `Twitter`) 和 Google 搜索引擎爬虫所需的微结构数据 (`JSON-LD`)。
+  - [`@yayanews/types`](packages/types): **The Single Source of Truth**. 这是贯穿前/后台与持久层中间的类型切面（TDK 接口，图表属性映射等全在这里）。
 
-## 🚀 快速开始
+## 🛡️ 本地开发与贡献
+请阅读根目录最新的 [`CONTRIBUTING.md`](CONTRIBUTING.md) 和 [`github_governance_plan.md`](github_governance_plan.md) 了解如何最小耗时构建这头性能怪兽。
 
-### 前提条件
-
-- Node.js >= 18.17.0
-- Python 3.10+
-- PostgreSQL 16（含 pgvector 扩展）
-- Redis 7
-
-### 本地开发
-
-```bash
-# 1. 克隆仓库
-git clone https://github.com/jiayixuan1009/yayanews.git
-cd yayanews
-
-# 2. 配置环境变量
-cp .env.example .env
-# 编辑 .env，填入 API Key 等
-
-# 3. 安装依赖
-npm install
-pip install -r pipeline/requirements.txt
-
-# 4. 初始化数据库
-npm run db:init
-
-# 5. 启动 Next.js 开发服务器
-npm run dev
-
-# 6. 启动 Pipeline（另一个终端）
-python -m pipeline.run_daemon
-```
-
-### 可用脚本
-
-```bash
-npm run dev          # Next.js 开发服务器
-npm run build        # 构建生产版本
-npm run start        # 启动生产服务器
-npm run lint         # 代码检查
-npm run db:init      # 初始化数据库
-npm run db:seed      # 填充测试数据
-npm run covers:assign # 批量分配文章封面
-```
-
-## 📁 项目结构
-
-```
-├── src/              # Next.js 前端（App Router, i18n）
-├── pipeline/         # Python 内容管线（6 Agents）
-├── deploy/           # 部署配置（Nginx, PM2, 脚本）
-├── scripts/          # 工具脚本
-├── docs/             # 项目文档
-└── public/           # 静态资源
-```
-
-详见 [docs/architecture.md](docs/architecture.md)
-
-## 🖥️ 生产环境
-
-### PM2 进程管理
-
-```bash
-# 启动所有服务
-pm2 start ecosystem.config.cjs
-
-# 查看状态
-pm2 status
-
-# 查看日志
-pm2 logs yayanews
-pm2 logs yaya-pipeline-daemon
-
-# 重启
-pm2 restart all
-```
-
-### 灾难恢复
-
-| 症状 | 排查步骤 |
-|------|----------|
-| 快讯停止更新 | `sudo systemctl status redis-server` → `pm2 logs yaya-finnhub-ws` |
-| 网站 500 错误 | `sudo systemctl status postgresql` → `pm2 logs yayanews` |
-| 管线停滞 | `pm2 logs yaya-pipeline-daemon` → 检查 LLM API Key |
-
-详见 [docs/deployment.md](docs/deployment.md)
-
-## 📝 版本日志
-
-见 [CHANGELOG.md](CHANGELOG.md)
-
-## 📄 License
-
-Private - All Rights Reserved
+## 📦 生产环境打包流
+依靠 `ecosystem.config.cjs` 作为 PM2 的集群神谕：
+1. 它同时吞吐 Node 和 Python 隔离进程。
+2. 它监听自动抽离至 `.next/standalone` 的脱水镜像包，对 CPU 进行均衡负载。

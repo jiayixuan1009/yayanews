@@ -69,8 +69,8 @@ module.exports = {
     },
     {
       name: "yaya-ws-gateway",
-      cwd: root,
-      script: "apps/web/src/ws-server.js",
+      cwd: path.join(root, "apps", "ws-server"),
+      script: "dist/server.js",
       autorestart: true,
       max_restarts: 20,
       min_uptime: "10s",

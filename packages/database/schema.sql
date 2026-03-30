@@ -78,3 +78,16 @@ CREATE TABLE IF NOT EXISTS speed_benchmarks (
     error_message TEXT DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_articles_slug ON articles(slug);
+CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status);
+CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published_at);
+CREATE INDEX IF NOT EXISTS idx_flash_published ON flash_news(published_at);
+CREATE INDEX IF NOT EXISTS idx_topics_slug ON topics(slug);
+
+INSERT INTO categories (name, slug, description, sort_order) VALUES 
+('美股', 'us-stock', '美股市场资讯', 1),
+('加密货币', 'crypto', '加密货币与区块链资讯', 2),
+('衍生品', 'derivatives', '衍生品与大宗商品资讯', 3),
+('港股', 'hk-stock', '港股市场资讯', 4)
+ON CONFLICT (slug) DO NOTHING;

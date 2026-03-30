@@ -1,0 +1,49 @@
+name: 🐛 Bug / 异常断链追踪
+description: 用于记录 YayaNews 单进程挂掉、大包串联编译失败或 UI 出现灾难性变形的问题。
+labels: [bug]
+body:
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 🔍 影响的面 (Scope)
+      description: 这个 Bug 是由哪个底层基础设施引发的，或者表现在哪个子应用？
+      options:
+        - apps/web (前台网站)
+        - apps/admin (管理台)
+        - apps/pipeline (Python 数据刮削管线)
+        - apps/ws-server (心跳服务器)
+        - packages/database (PG 库或连接池)
+        - packages/seo (TDK 生成层)
+        - packages/types (接口类型失效)
+        - 根部依赖 (npm install/build 或者 PM2 config)
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 🔄 异常重现步骤
+      description: 写给自己看的备忘：如何精确跑出这个错误？
+      placeholder: |
+        1. 启动 `pm2 start ecosystem.config.cjs`
+        2. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 📜 PM2 或终端崩溃侧写日志 (Crash Logs)
+      description: 务必带着红色的 traceback 或 npm/tsc Error 来。
+      render: bash
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 💻 运行宿座环境 (Environment)
+      description: 发生在本地开发时 (Windows) 还是生产部署 VPS？
+      placeholder: 比如：Ubuntu 22 跑 pm2 遇上了 Python venv 失效
+    validations:
+      required: true

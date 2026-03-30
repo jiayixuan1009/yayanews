@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import AdminAuthGate from './components/AdminAuthGate';
 
 export const metadata: Metadata = {
   title: 'YayaNews Admin',
@@ -10,7 +11,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh">
-      <body>{children}</body>
+      <body className="bg-slate-950 text-slate-100 min-h-screen">
+        <AdminAuthGate>
+          {children}
+        </AdminAuthGate>
+      </body>
     </html>
   );
 }

@@ -11,19 +11,19 @@
     "infra/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w @yayanews/web",
+    "dev": "concurrently \"npm run dev -w @yayanews/web\" \"npm run dev -w @yayanews/admin\" \"npm run dev -w @yayanews/ws-server\"",
     "build": "npm run build -w @yayanews/web && npm run build -w @yayanews/admin && node infra/scripts/copy-standalone.mjs",
     "start": "npm run start -w @yayanews/web",
     "lint": "npm run lint -w @yayanews/web",
-    "db:init": "node infra/scripts/init-db.mjs",
-    "db:seed": "node infra/scripts/seed-data.mjs",
-    "covers:assign": "node infra/scripts/assign-article-covers.mjs"
+    "db:init": "dotenv -e .env -- npm run db:init -w @yayanews/database",
+    "db:seed": "dotenv -e .env -- npm run db:seed -w @yayanews/database"
   },
   "dependencies": {
-    "better-sqlite3": "^12.8.0",
     "pg": "^8.20.0"
   },
   "devDependencies": {
-    "@types/node": "^20.19.37"
+    "@types/node": "^20.19.37",
+    "concurrently": "^9.2.1",
+    "dotenv-cli": "^11.0.0"
   }
 }

@@ -11,8 +11,6 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 load_dotenv(PROJECT_ROOT / ".env")
 
-DB_PATH = PROJECT_ROOT / "data" / "yayanews.db"
-
 # ── LLM 配置 ──
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://api.minimaxi.com/v1")
 LLM_API_KEY = os.environ.get("LLM_API_KEY", "")

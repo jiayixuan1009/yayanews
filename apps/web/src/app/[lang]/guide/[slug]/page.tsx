@@ -10,15 +10,16 @@ interface Props {
   params: { slug: string };
 }
 
+import { createMetadata } from '@yayanews/seo';
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const guide = await getGuideBySlug(params.slug);
-  if (!guide) return { title: '指南未找到' };
-  return {
+  if (!guide) return createMetadata({ title: '指南未找到' });
+  return createMetadata({
     title: guide.title,
     description: guide.summary || `${guide.title} - ${siteConfig.siteName}新手指南`,
-    alternates: { canonical: `/guide/${params.slug}` },
-    openGraph: { title: `${guide.title} | YayaNews`, description: guide.summary || guide.title },
-  };
+    url: `/guide/${params.slug}`,
+  });
 }
 
 export async function generateStaticParams() {

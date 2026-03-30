@@ -1,6 +1,6 @@
 """
 Agent 5: 入库发布
-- 写入 SQLite articles 表
+- 写入 PostgreSQL articles 表
 - 关联 tags
 - 入库后主动 Ping 谷歌 sitemap 以加速收录
 """

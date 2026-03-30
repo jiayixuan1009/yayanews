@@ -9,15 +9,16 @@ interface Props {
   params: { slug: string };
 }
 
+import { createMetadata } from '@yayanews/seo';
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const topic = await getTopicBySlug(params.slug);
-  if (!topic) return { title: '专题未找到' };
-  return {
+  if (!topic) return createMetadata({ title: '专题未找到' });
+  return createMetadata({
     title: topic.title,
     description: topic.description || `${topic.title} - ${siteConfig.siteName}专题聚合`,
-    alternates: { canonical: `/topics/${params.slug}` },
-    openGraph: { title: `${topic.title} | YayaNews`, description: topic.description || topic.title },
-  };
+    url: `/topics/${params.slug}`,
+  });
 }
 
 export async function generateStaticParams() {

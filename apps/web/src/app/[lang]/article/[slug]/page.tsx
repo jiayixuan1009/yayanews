@@ -21,25 +21,22 @@ import { siteConfig, type Article } from '@yayanews/types';
 import { sanitizeHtml } from '@/lib/sanitize';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
 
+import { createMetadata, buildNewsArticleJsonLd } from '@yayanews/seo';
+
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const article = await getArticleBySlug(params.slug);
   if (!article) return {};
-  return {
+  return createMetadata({
     title: article.title,
     description: article.summary || article.title,
-    alternates: { canonical: `/article/${params.slug}` },
-    openGraph: {
-      title: article.title,
-      description: article.summary || article.title,
-      type: 'article',
-      url: `/article/${params.slug}`,
-      publishedTime: article.published_at || undefined,
-      modifiedTime: article.updated_at || undefined,
-      authors: [article.author],
-      images: article.cover_image ? [article.cover_image] : undefined,
-      section: article.category_name || undefined,
-    },
-  };
+    url: `/article/${params.slug}`,
+    type: 'article',
+    authors: [article.author],
+    image: article.cover_image || undefined,
+    publishedTime: article.published_at || undefined,
+    modifiedTime: article.updated_at || undefined,
+    section: article.category_name || undefined,
+  });
 }
 
 export const revalidate = 300;
@@ -378,22 +375,7 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'NewsArticle',
-            headline: article.title,
-            description: article.summary || article.title,
-            image: article.cover_image || undefined,
-            datePublished: article.published_at,
-            dateModified: article.updated_at,
-            author: { '@type': 'Person', name: article.author },
-            publisher: {
-              '@type': 'Organization',
-              name: siteConfig.siteName,
-              url: siteConfig.siteUrl,
-            },
-            mainEntityOfPage: `${siteConfig.siteUrl}/article/${article.slug}`,
-          }),
+          __html: JSON.stringify(buildNewsArticleJsonLd(article)),
         }}
       />
     </div>
