@@ -680,6 +680,8 @@ def collect_flash(count: int = 10) -> list[dict]:
     if en_items:
         print(f"\n  批量翻译 {len(en_items)} 条英文快讯...")
         en_items = batch_translate(en_items, batch_size=FLASH_TRANSLATE_BATCH)
+        for item in en_items:
+            item["lang"] = "zh"
         translate_time = time.time() - t1
         print(f"  翻译完成，耗时 {translate_time:.1f}s")
 

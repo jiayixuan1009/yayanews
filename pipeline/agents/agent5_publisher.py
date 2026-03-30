@@ -99,22 +99,43 @@ def publish(articles: list[dict]) -> list[dict]:
             log.warning(f"Skip [{title}]: missing slug or content")
             continue
 
-        article_id = insert_article(
-            title=article.get("title", ""),
-            slug=slug,
-            summary=summary,
-            content=content,
-            category_id=category_id,
-            article_type=article_type,
-            status="published",
-            sentiment=sentiment,
-            tickers=",".join(tickers) if tickers else "",
-            key_points="\n".join(key_points) if key_points else "",
-            source=source_label,
-            source_url=source_url,
-            subcategory=subcategory,
-            collected_at=article.get("collected_at"),
-        )
+        draft_id = article.get("draft_id")
+        if draft_id and draft_id > 0:
+            from pipeline.utils.database import update_article_full
+            success = update_article_full(
+                article_id=draft_id,
+                title=article.get("title", ""),
+                slug=slug,
+                summary=summary,
+                content=content,
+                category_id=category_id,
+                article_type=article_type,
+                status="published",
+                sentiment=sentiment,
+                tickers=",".join(tickers) if tickers else "",
+                key_points="\n".join(key_points) if key_points else "",
+                source=source_label,
+                source_url=source_url,
+                subcategory=subcategory,
+            )
+            article_id = draft_id if success else -1
+        else:
+            article_id = insert_article(
+                title=article.get("title", ""),
+                slug=slug,
+                summary=summary,
+                content=content,
+                category_id=category_id,
+                article_type=article_type,
+                status="published",
+                sentiment=sentiment,
+                tickers=",".join(tickers) if tickers else "",
+                key_points="\n".join(key_points) if key_points else "",
+                source=source_label,
+                source_url=source_url,
+                subcategory=subcategory,
+                collected_at=article.get("collected_at"),
+            )
 
         if article_id > 0:
             if tags:
