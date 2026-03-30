@@ -6,7 +6,7 @@
 # ==========================================================
 services:
   postgres:
-    image: postgres:15-alpine
+    image: pgvector/pgvector:pg15
     container_name: yayanews_postgres_storage
     restart: always
     environment:
