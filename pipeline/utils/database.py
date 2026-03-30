@@ -96,6 +96,78 @@ def insert_article(
     finally:
         get_pool().putconn(conn)
 
+def update_article_full(
+    article_id: int,
+    title: str,
+    slug: str,
+    summary: str,
+    content: str,
+    category_id: int,
+    article_type: str = "standard",
+    author: str = "YayaNews",
+    status: str = "published",
+    published_at: Optional[str] = None,
+    sentiment: str = "",
+    tickers: str = "",
+    key_points: str = "",
+    source: str = "",
+    source_url: str = "",
+    subcategory: str = "",
+    lang: str = "zh",
+    embedding: Optional[list[float]] = None
+) -> bool:
+    ts = now_cn()
+    conn = get_pool().getconn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE articles SET
+                    title=%s, slug=%s, summary=%s, content=%s, category_id=%s,
+                    author=%s, status=%s, article_type=%s, sentiment=%s,
+                    tickers=%s, key_points=%s, source=%s, source_url=%s,
+                    subcategory=%s, published_at=%s, updated_at=%s,
+                    lang=%s, embedding=%s
+                WHERE id=%s
+            """, (title, slug, summary, content, category_id,
+                  author, status, article_type, sentiment,
+                  tickers, key_points, source, source_url,
+                  subcategory, published_at or ts, ts,
+                  lang, embedding, article_id))
+        conn.commit()
+        log.info(f"Article updated: id={article_id}, slug={slug}")
+        
+        if redis_client and status == "published":
+            try:
+                payload = {"type": "article", "id": article_id, "title": title, "slug": slug, "lang": lang, "created_at": ts}
+                redis_client.publish(f"article:new:{lang}", json.dumps(payload))
+            except Exception as e:
+                log.error(f"Redis publish fail: {e}")
+                
+        return True
+    except Exception as e:
+        conn.rollback()
+        log.error(f"DB Error (update): {e}")
+        return False
+    finally:
+        get_pool().putconn(conn)
+
+def update_article_status(article_id: int, status: str, title: str = None) -> bool:
+    ts = now_cn()
+    conn = get_pool().getconn()
+    try:
+        with conn.cursor() as cur:
+            if title:
+                cur.execute("UPDATE articles SET status=%s, title=%s, updated_at=%s WHERE id=%s", (status, title, ts, article_id))
+            else:
+                cur.execute("UPDATE articles SET status=%s, updated_at=%s WHERE id=%s", (status, ts, article_id))
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        return False
+    finally:
+        get_pool().putconn(conn)
+
 def insert_tags(article_id: int, tag_names: list[str]):
     if not tag_names or article_id <= 0:
         return

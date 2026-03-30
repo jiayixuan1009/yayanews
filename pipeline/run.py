@@ -48,6 +48,20 @@ def run_single_article(topic: dict):
     
     title = topic.get('title', 'Unknown')
     step_print("单篇文章 Pipeline 启动", f"选题: {title[:30]}...")
+
+    import uuid
+    from pipeline.utils.database import insert_article
+    draft_id = insert_article(
+        title=f"{title} [创作中...]",
+        slug=f"draft-{uuid.uuid4().hex[:8]}",
+        summary="流水线大模型正在并网生成该篇深度文章...",
+        content="<p>生成中...</p>",
+        category_id=topic.get('category_id', 1),
+        status="draft",
+        article_type=topic.get('type', 'standard')
+    )
+    if draft_id > 0:
+        topic['draft_id'] = draft_id
     
     # 因为底层 Agent 接收的是列表，所以包一层
     topics = [topic]
@@ -61,6 +75,10 @@ def run_single_article(topic: dict):
         return None
 
     # Step 3: 质量审核
+    from pipeline.utils.database import update_article_status
+    if topic.get('draft_id'):
+        update_article_status(topic['draft_id'], "review")
+
     t = time.time()
     reviewed = review(drafts)
     stage_timings["review"] = round(time.time() - t, 2)
@@ -137,6 +155,21 @@ def run_article_pipeline(batch_size: int = 10):
         print("\n[Pipeline] 无选题可用，跳过文章生产。")
         return []
 
+    import uuid
+    from pipeline.utils.database import insert_article, update_article_status
+    for tpc in topics:
+        d_id = insert_article(
+            title=f"{tpc.get('title', 'Unknown')} [创作中...]",
+            slug=f"draft-{uuid.uuid4().hex[:8]}",
+            summary="流水线大模型正在并网生成该篇深度文章...",
+            content="<p>生成中...</p>",
+            category_id=tpc.get('category_id', 1),
+            status="draft",
+            article_type=tpc.get('type', 'standard')
+        )
+        if d_id > 0:
+            tpc['draft_id'] = d_id
+
     # Step 2: 内容生成
     t = time.time()
     drafts = generate(topics)
@@ -146,6 +179,10 @@ def run_article_pipeline(batch_size: int = 10):
         return []
 
     # Step 3: 质量审核
+    for d in drafts:
+        if d.get('draft_id'):
+            update_article_status(d['draft_id'], "review")
+            
     t = time.time()
     reviewed = review(drafts)
     stage_timings["review"] = round(time.time() - t, 2)
