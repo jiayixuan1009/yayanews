@@ -11,6 +11,11 @@ BACKUP_DIR="$APP_DIR/backups"
 DB_NAME="${DB_NAME:-yayanews}"
 KEEP_DAYS="${KEEP_DAYS:-30}"
 
+if [ -f "$APP_DIR/../.env" ]; then
+    source "$APP_DIR/../.env"
+fi
+DB_CONN="${DATABASE_URL:-$DB_NAME}"
+
 mkdir -p "$BACKUP_DIR"
 
 TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
@@ -18,7 +23,7 @@ BACKUP_FILE="$BACKUP_DIR/${TIMESTAMP}_${DB_NAME}.sql.gz"
 
 echo "[$(date)] 开始备份数据库: $DB_NAME"
 
-if pg_dump "$DB_NAME" | gzip > "$BACKUP_FILE"; then
+if pg_dump "$DB_CONN" | gzip > "$BACKUP_FILE"; then
     SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
     echo "[$(date)] ✅ 备份完成: $(basename $BACKUP_FILE) ($SIZE)"
 else
