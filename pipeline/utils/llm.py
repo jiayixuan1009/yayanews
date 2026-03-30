@@ -12,7 +12,7 @@ _client = None
 def get_client() -> OpenAI:
     global _client
     if _client is None:
-        _client = OpenAI(base_url=LLM_BASE_URL, api_key=LLM_API_KEY)
+        _client = OpenAI(base_url=LLM_BASE_URL, api_key=LLM_API_KEY, timeout=60.0, max_retries=1)
         log.info(f"LLM client initialized: base={LLM_BASE_URL}, model={LLM_MODEL}")
     return _client
 
