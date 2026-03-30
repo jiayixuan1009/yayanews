@@ -3,6 +3,7 @@ from pipeline.run import run_article_pipeline, run_flash_pipeline, run_collect_t
 from pipeline.agents.agent6_translator import translate_queue
 from redis import Redis
 from rq import Queue
+from pipeline.utils.redis_conn import get_redis_connection
 
 def task_collect_and_enqueue_articles(batch_size: int = 10):
     """供 RQ 队列调用的阶段一解耦任务：仅采集选题，然后将选题独立打散投放到同一个队列排队执行。"""
@@ -10,9 +11,7 @@ def task_collect_and_enqueue_articles(batch_size: int = 10):
     if not topics:
         return "No topics collected"
         
-    redis_host = os.environ.get("REDIS_HOST", "localhost")
-    redis_port = int(os.environ.get("REDIS_PORT", "6379"))
-    conn = Redis(host=redis_host, port=redis_port, db=0)
+    conn = get_redis_connection()
     q = Queue('yayanews', connection=conn)
     
     for topic in topics:

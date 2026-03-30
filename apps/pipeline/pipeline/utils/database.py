@@ -11,7 +11,9 @@ import redis
 log = get_logger("db")
 
 TZ_CN = timezone(timedelta(hours=8))
-DB_URL = os.environ.get("DATABASE_URL", "postgresql://yayanews:Jia1009al@127.0.0.1:5432/yayanews")
+DB_URL = os.environ.get("DATABASE_URL")
+if not DB_URL:
+    raise RuntimeError("[DB] DATABASE_URL environment variable is not set. Check your .env file.")
 try:
     from pgvector.psycopg2 import register_vector
 except ImportError:
@@ -19,7 +21,8 @@ except ImportError:
 
 redis_client = None
 try:
-    redis_client = redis.Redis(host='localhost', port=6379, db=0)
+    from pipeline.utils.redis_conn import get_redis_connection
+    redis_client = get_redis_connection()
 except Exception as e:
     log.error(f"Redis init failed: {e}")
 
