@@ -66,8 +66,9 @@ export default async function CategoryPage({
   const countDeep = await getArticleCountByType(params.category, 'deep');
 
   const featured = articles[0];
-  const secondary = articles.slice(1, 4);
-  const feed = articles.slice(4);
+  const secondary = articles.slice(1, 3);
+  const tertiary = articles.slice(3, 6);
+  const feed = articles.slice(6);
 
   const popularTags = await getPopularTags(10);
   const flashMini = await getFlashNews(params.lang, 6);
@@ -114,20 +115,23 @@ export default async function CategoryPage({
       {isDerivatives && !articleType ? (
         <DerivativesSubTabs initialArticles={articles} />
       ) : (
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] xl:gap-12">
-          <div className="min-w-0 space-y-10">
+        <div className="grid gap-8 lg:grid-cols-12 xl:gap-12">
+          {/* Main Content Area */}
+          <div className="min-w-0 lg:col-span-8 xl:col-span-9">
             {articles.length === 0 ? (
               <p className="py-16 text-center text-[#667067]">{dict.news.noCategoryNews}</p>
             ) : (
               <>
-                <section className="grid gap-6 border-b border-[#ddd5ca] pb-10 lg:grid-cols-[minmax(0,1.25fr)_280px]">
-                  <div className="min-w-0">
-                    {featureCover ? (
-                      <LocalizedLink href={`/article/${lead!.slug}`} className="group block">
+                {/* Top Section: Hero (2/3) + Secondary (1/3) */}
+                <section className="grid gap-6 border-b border-[#ddd5ca] pb-8 md:grid-cols-3">
+                  {/* Hero */}
+                  <div className="md:col-span-2 md:border-r border-[#ddd5ca] md:pr-6">
+                    {featureCover && lead ? (
+                      <LocalizedLink href={`/article/${lead.slug}`} className="group block">
                         <div className="relative aspect-[16/9] overflow-hidden border border-[#d9d2c8] bg-[#ece6dc]">
                           <Image
                             src={featureCover}
-                            alt={lead!.title}
+                            alt={lead.title}
                             fill
                             sizes="(max-width: 1024px) 100vw, 60vw"
                             className="object-cover transition duration-500 group-hover:scale-[1.02]"
@@ -137,40 +141,42 @@ export default async function CategoryPage({
                         </div>
                       </LocalizedLink>
                     ) : null}
-                    <div className="pt-4">
-                      <p className="yn-meta text-[#1d5c4f]">Featured report</p>
-                      <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] uppercase tracking-[0.16em] text-[#667067]">
-                        <span>By {lead!.author}</span>
-                        <span>{lead!.published_at?.slice(0, 10)}</span>
-                        <span>{lead!.article_type === 'deep' ? '12 min read' : '4 min read'}</span>
+                    {lead && (
+                      <div className="pt-4">
+                        <div className="mb-2 flex flex-wrap items-center gap-3 text-[11px] uppercase tracking-[0.16em] text-[#667067]">
+                          <span className="text-[#1d5c4f] font-semibold">{dict.news.featuredReport}</span>
+                          <span>•</span>
+                          <span>{lead.published_at?.slice(0, 10)}</span>
+                          <span>•</span>
+                          <span>{lead.article_type === 'deep' ? dict.news.deepDive : dict.news.briefing}</span>
+                        </div>
+                        <LocalizedLink href={`/article/${lead.slug}`} className="group block">
+                          <h2 className="mt-2 font-display text-[2.4rem] font-semibold leading-[1.05] tracking-[-0.03em] text-[#111713] group-hover:text-[#1d5c4f] sm:text-[3rem]">
+                            {lead.title}
+                          </h2>
+                          {lead.summary && (
+                            <p className="mt-3 max-w-[65ch] font-body text-[1.05rem] leading-relaxed text-slate-700">{lead.summary}</p>
+                          )}
+                        </LocalizedLink>
                       </div>
-                      <LocalizedLink href={`/article/${lead!.slug}`} className="group block">
-                        <h2 className="mt-3 max-w-[15ch] font-display text-[2.7rem] font-semibold leading-[0.96] tracking-[-0.05em] text-[#111713] group-hover:text-[#1d5c4f] sm:text-[3.4rem]">
-                          {lead!.title}
-                        </h2>
-                        {lead!.summary ? (
-                          <p className="mt-4 max-w-[58ch] font-body text-[1rem] leading-8 text-slate-700">{lead!.summary}</p>
-                        ) : null}
-                        <span className="mt-6 inline-block border-b border-[#14261f] pb-1 text-[11px] uppercase tracking-[0.18em] text-[#14261f]">Read full investigation →</span>
-                      </LocalizedLink>
-                    </div>
+                    )}
                   </div>
 
-                  <div className="space-y-4">
+                  {/* Secondary (2 items stacked) */}
+                  <div className="md:col-span-1 flex flex-col gap-6">
                     {secondary.map(item => {
                       const cover = getArticleCoverSrc(item.cover_image);
                       const opt = isRemoteImageOptimizable(cover);
                       return (
-                        <LocalizedLink key={item.id} href={`/article/${item.slug}`} className="group grid gap-3 border-b border-[#ddd5ca] pb-4 last:border-b-0 last:pb-0" style={{ gridTemplateColumns: '98px minmax(0,1fr)' }}>
-                          <div className="relative h-[98px] overflow-hidden border border-[#d9d2c8] bg-[#ece6dc]">
-                            <Image src={cover} alt={item.title} fill sizes="98px" className="object-cover transition duration-500 group-hover:scale-[1.02]" unoptimized={!opt} />
+                        <LocalizedLink key={item.id} href={`/article/${item.slug}`} className="group flex flex-col gap-3">
+                          <div className="relative aspect-[16/9] overflow-hidden border border-[#d9d2c8] bg-[#ece6dc]">
+                            <Image src={cover} alt={item.title} fill sizes="(max-width: 768px) 100vw, 25vw" className="object-cover transition duration-500 group-hover:scale-[1.02]" unoptimized={!opt} />
                           </div>
-                          <div className="min-w-0">
-                            <p className="yn-meta text-[#1d5c4f]">{item.article_type === 'deep' ? 'Deep dive' : item.category_name || 'Briefing'}</p>
-                            <h3 className="mt-1 font-display text-[1.5rem] font-semibold leading-[1.02] tracking-[-0.04em] text-[#14261f] group-hover:text-[#1d5c4f] line-clamp-3">
+                          <div>
+                            <p className="yn-meta text-[#1d5c4f]">{item.category_name}</p>
+                            <h3 className="mt-1 font-display text-[1.25rem] font-semibold leading-tight tracking-[-0.02em] text-[#14261f] group-hover:text-[#1d5c4f]">
                               {item.title}
                             </h3>
-                            {item.summary ? <p className="mt-2 text-sm leading-6 text-slate-600 line-clamp-2">{item.summary}</p> : null}
                           </div>
                         </LocalizedLink>
                       );
@@ -178,92 +184,85 @@ export default async function CategoryPage({
                   </div>
                 </section>
 
-                <section className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_300px]">
-                  <div>
-                    <SectionHeader title={dict.home.newestTitle} emphasis="default" className="mb-5" />
-                    <div className="space-y-4">
-                      {feed.map(a => (
-                        <ArticleCard key={a.id} article={a} />
-                      ))}
+                {/* Tertiary Section: 3 items in a row */}
+                {tertiary.length > 0 && (
+                  <section className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-8 border-b border-[#ddd5ca] pb-8">
+                    {tertiary.map(item => {
+                      const cover = getArticleCoverSrc(item.cover_image);
+                      const opt = isRemoteImageOptimizable(cover);
+                      return (
+                        <LocalizedLink key={item.id} href={`/article/${item.slug}`} className="group flex flex-col gap-3 relative sm:border-r border-[#ece4d9] sm:pr-6 last:border-r-0 last:pr-0">
+                          <div className="min-w-0">
+                            <h3 className="mt-1 font-display text-[1.15rem] font-medium leading-[1.3] text-[#14261f] group-hover:text-[#1d5c4f] line-clamp-4">
+                              {item.title}
+                            </h3>
+                            <p className="yn-meta text-[#667067] mt-2">{item.published_at?.slice(5, 16)}</p>
+                          </div>
+                        </LocalizedLink>
+                      );
+                    })}
+                  </section>
+                )}
+
+                {/* Feed Section: Standard 2-col masonry or list */}
+                <section className="pt-8">
+                  <SectionHeader title={dict.home.newestTitle} emphasis="default" className="mb-6" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+                    {feed.map(a => (
+                      <ArticleCard key={a.id} article={a} />
+                    ))}
+                  </div>
+                  {feed.length > 0 && (
+                    <div className="mt-8 border-t border-[#ddd5ca] pt-6 text-center">
+                      <span className="inline-block border border-[#14261f] px-6 py-2 text-[11px] uppercase tracking-[0.18em] text-[#14261f] hover:bg-[#14261f] hover:text-[#f6f3ee] transition-colors cursor-pointer">
+                        {dict.news.loadMore}
+                      </span>
                     </div>
-                    {feed.length > 0 ? (
-                      <div className="mt-8 border border-[#ddd5ca] bg-[#fbf8f4] px-5 py-3 text-center text-[11px] uppercase tracking-[0.18em] text-[#14261f]">
-                        Load more archive entries
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div className="space-y-5">
-                    <RightRailPanel title="The Mascot’s Brief" accent className="bg-white">
-                      <p className="text-sm leading-7 text-slate-700">
-                        今日这条栏目线更值得你看的，不一定是 headline，而是被忽略的底层变量。
-                      </p>
-                      <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
-                        <li>• 为什么交易拥挤度比 headline 更重要</li>
-                        <li>• 哪些二级信号正在提前反映风险偏好</li>
-                        <li>• 应该先看谁在定价，而不是谁在发声</li>
-                      </ul>
-                    </RightRailPanel>
-
-                    <RightRailPanel title="Pulse of the Planet" className="border-[#0f4a39] bg-[#0f4a39] text-white">
-                      <p className="text-sm leading-7 text-white/80">A curated weekly newsletter on the shifts that matter.</p>
-                      <div className="mt-4 space-y-2">
-                        <input
-                          type="email"
-                          placeholder="Your editorial email..."
-                          className="w-full border border-white/15 bg-[#0a372b] px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none"
-                        />
-                        <button className="w-full border border-[#7ae88a] bg-[#9cff8f] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0e2a1f]">
-                          Enroll in the archive
-                        </button>
-                      </div>
-                    </RightRailPanel>
-
-                    <RightRailPanel title={dict.news.popularTags}>
-                      <div className="flex flex-wrap gap-2">
-                        {popularTags.map(tag => (
-                          <LocalizedLink
-                            key={tag.id}
-                            href={`/tag/${tag.slug}`}
-                            className="border border-[#ddd5ca] bg-[#f5f1ea] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-[#667067] hover:text-[#14261f]"
-                          >
-                            #{tag.name}
-                          </LocalizedLink>
-                        ))}
-                      </div>
-                    </RightRailPanel>
-
-                    <RightRailPanel title={dict.news.flashSnippets} actionHref="/flash" actionLabel="7×24">
-                      {flashMini.length === 0 ? (
-                        <p className="yn-meta text-[#667067]">{dict.news.noFlash}</p>
-                      ) : (
-                        <ul className="space-y-3">
-                          {flashMini.slice(0, 4).map(f => (
-                            <li key={f.id} className="border-b border-[#ece4d9] pb-3 last:border-b-0 last:pb-0">
-                              <span className="yn-meta tabular-nums">{f.published_at?.slice(5, 16) ?? '—'}</span>
-                              <p className="mt-1 text-sm leading-6 text-slate-700">{f.title}</p>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </RightRailPanel>
-                  </div>
+                  )}
                 </section>
               </>
             )}
           </div>
 
-          <aside className="hidden lg:block">
-            <div className="sticky top-24 border-l border-[#ddd5ca] pl-6">
-              <p className="yn-meta mb-4">{dict.news.channelIndex}</p>
-              <div className="space-y-3">
-                {categories.map((c, idx) => (
+          {/* Rigid Right Rail */}
+          <aside className="lg:col-span-4 xl:col-span-3 lg:border-l border-[#ddd5ca] lg:pl-8 space-y-8">
+            <RightRailPanel title={dict.news.flashSnippets} actionHref="/flash" actionLabel={dict.news.live} accent className="bg-white">
+              {flashMini.length === 0 ? (
+                <p className="yn-meta text-[#667067]">{dict.news.noFlash}</p>
+              ) : (
+                <ul className="space-y-4">
+                  {flashMini.slice(0, 5).map(f => (
+                    <li key={f.id} className="border-b border-dashed border-[#ece4d9] pb-3 last:border-b-0 last:pb-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#cc3333] shrink-0"></span>
+                        <span className="yn-meta tabular-nums text-[#cc3333]">{f.published_at?.slice(11, 16) ?? '—'}</span>
+                      </div>
+                      <p className="text-[0.95rem] leading-relaxed text-[#14261f]">{f.title}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </RightRailPanel>
+
+            <RightRailPanel title={dict.news.popularTags}>
+              <div className="flex flex-wrap gap-2">
+                {popularTags.map(tag => (
                   <LocalizedLink
-                    key={c.slug}
-                    href={`/news/${c.slug}`}
-                    className={`block border-b pb-2 text-sm uppercase tracking-[0.16em] ${c.slug === params.category ? 'text-[#14261f]' : 'text-[#667067] hover:text-[#14261f]'}`}
+                    key={tag.id}
+                    href={`/tag/${tag.slug}`}
+                    className="border border-[#ddd5ca] bg-white px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-[#667067] hover:border-[#14261f] hover:text-[#14261f] transition-colors"
                   >
-                    <span className="mr-2 text-[#8a938b]">{String(idx + 1).padStart(2, '0')}</span>
+                    #{tag.name}
+                  </LocalizedLink>
+                ))}
+              </div>
+            </RightRailPanel>
+            
+            <div className="sticky top-24 pt-6 border-t border-[#ddd5ca]">
+              <p className="yn-meta mb-4 font-semibold text-[#14261f]">{dict.news.channelIndex}</p>
+              <div className="space-y-3 flex flex-col">
+                {categories.map((c) => (
+                  <LocalizedLink key={c.slug} href={`/news/${c.slug}`} className="text-sm text-slate-600 hover:text-[#14261f] hover:underline underline-offset-4 decoration-[#ddd5ca]">
                     {c.name}
                   </LocalizedLink>
                 ))}
