@@ -19,7 +19,12 @@ function safeDateStr(d: any): any {
 
 function formatArticleDates(a: any) {
   if (!a) return a;
-  return { ...a, published_at: safeDateStr(a.published_at), created_at: safeDateStr(a.created_at) };
+  return { 
+    ...a, 
+    published_at: safeDateStr(a.published_at), 
+    created_at: safeDateStr(a.created_at),
+    updated_at: safeDateStr(a.updated_at)
+  };
 }
 
 /** 按固定栏目顺序排序：快讯、美股、港股、衍生品、加密货币、其他（未在顺序中的排在最后） */
@@ -169,6 +174,27 @@ export async function getFlashNews(lang: string = 'zh', limit = 50, categorySlug
   return list2.map(formatArticleDates);
 }
 
+export async function getFlashNewsById(id: number | string): Promise<FlashNews | undefined> {
+  const flash = await queryGet<FlashNews>(`
+    SELECT f.*, c.name as category_name
+    FROM flash_news f
+    LEFT JOIN categories c ON f.category_id = c.id
+    WHERE f.id = $1
+  `, [id]);
+  return flash ? formatArticleDates(flash) : undefined;
+}
+
+export async function getRecentFlashForSitemap(limit = 1000): Promise<{ id: number; updated_at: string }[]> {
+  const list = await queryAll<{ id: number; published_at: Date | string; updated_at?: Date | string }>(`
+    SELECT id, published_at, updated_at FROM flash_news
+    ORDER BY published_at DESC LIMIT $1
+  `, [limit]);
+  return list.map(f => ({
+    id: f.id,
+    updated_at: safeDateStr(f.updated_at || f.published_at)
+  }));
+}
+
 export async function getTopics(limit = 20): Promise<Topic[]> {
   return await queryAll(`
     SELECT t.*, COUNT(ta.article_id) as article_count
@@ -194,7 +220,7 @@ export async function getTopicBySlug(slug: string): Promise<(Topic & { articles:
     ORDER BY ta.sort_order, a.published_at DESC
   `, [topic.id]);
 
-  return { ...topic, articles };
+  return { ...topic, articles: articles.map(formatArticleDates) };
 }
 
 
@@ -204,14 +230,18 @@ export async function getArticleCount(): Promise<number> {
 }
 
 export async function getRecentArticlesForSitemap(): Promise<{ slug: string; updated_at: string }[]> {
-  return await queryAll(`
+  const articles = await queryAll<{ slug: string; updated_at: Date | string }>(`
     SELECT slug, updated_at FROM articles
     WHERE status = 'published' ORDER BY published_at DESC
-  `) as { slug: string; updated_at: string }[];
+  `);
+  return articles.map(a => ({
+    slug: a.slug,
+    updated_at: safeDateStr(a.updated_at)
+  }));
 }
 
 export async function getNewsArticlesLast48h(): Promise<Article[]> {
-  return await queryAll<Article>(`
+  const articles = await queryAll<Article>(`
     SELECT a.*, c.name as category_name
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
@@ -220,6 +250,7 @@ export async function getNewsArticlesLast48h(): Promise<Article[]> {
     ORDER BY a.updated_at DESC
     LIMIT 1000
   `);
+  return articles.map(formatArticleDates);
 }
 
 export async function getAdjacentArticles(articleId: number): Promise<{ prev: { slug: string; title: string } | null; next: { slug: string; title: string } | null }> {
@@ -237,7 +268,7 @@ export async function getAdjacentArticles(articleId: number): Promise<{ prev: { 
 }
 
 export async function getPopularTags(limit = 15): Promise<Tag[]> {
-  return await queryAll(`
+  const tags = await queryAll(`
     SELECT t.*, COUNT(at.article_id) as usage_count
     FROM tags t
     JOIN article_tags at ON t.id = at.tag_id
@@ -245,6 +276,27 @@ export async function getPopularTags(limit = 15): Promise<Tag[]> {
     ORDER BY usage_count DESC
     LIMIT $1
   `, [limit]) as Tag[];
+
+  if (tags.length < limit) {
+    const fallbacks: Tag[] = [
+      { id: -1, name: '美股', slug: 'us-stocks', created_at: new Date().toISOString() },
+      { id: -2, name: 'AI人工智能', slug: 'ai', created_at: new Date().toISOString() },
+      { id: -3, name: '加密货币', slug: 'crypto', created_at: new Date().toISOString() },
+      { id: -4, name: '港股', slug: 'hk-stocks', created_at: new Date().toISOString() },
+      { id: -5, name: '美联储', slug: 'federal-reserve', created_at: new Date().toISOString() },
+      { id: -6, name: '财报', slug: 'earnings', created_at: new Date().toISOString() },
+    ];
+    const existingSlugs = new Set(tags.map(t => t.slug));
+    for (const fb of fallbacks) {
+      if (!existingSlugs.has(fb.slug)) {
+        tags.push(fb);
+        existingSlugs.add(fb.slug);
+      }
+      if (tags.length >= limit) break;
+    }
+  }
+
+  return tags;
 }
 
 export async function getTagBySlug(slug: string): Promise<Tag | undefined> {
@@ -288,7 +340,7 @@ export async function getArticleCountByTagSlug(tagSlug: string): Promise<number>
 
 /** 有已发布稿件关联的标签，用于 sitemap */
 export async function getTagsForSitemap(): Promise<{ slug: string; updated_at: string }[]> {
-  return await queryAll<{ slug: string; updated_at: string }>(
+  const tags = await queryAll<{ slug: string; updated_at: Date | string }>(
       `
     SELECT t.slug, MAX(a.updated_at) as updated_at
     FROM tags t
@@ -298,6 +350,10 @@ export async function getTagsForSitemap(): Promise<{ slug: string; updated_at: s
     GROUP BY t.id
   `
   );
+  return tags.map(t => ({
+    slug: t.slug,
+    updated_at: safeDateStr(t.updated_at)
+  }));
 }
 
 export async function getGuides(limit = 20): Promise<Guide[]> {
@@ -320,7 +376,7 @@ export async function getGuideBySlug(slug: string): Promise<Guide | undefined> {
 
 export async function searchArticles(query: string, limit = 20): Promise<Article[]> {
   const q = `%${query}%`;
-  return await queryAll(`
+  const articles = await queryAll(`
     SELECT a.*, c.name as category_name, c.slug as category_slug
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
@@ -328,4 +384,5 @@ export async function searchArticles(query: string, limit = 20): Promise<Article
       AND (a.title ILIKE $1 OR a.summary ILIKE $2 OR a.content ILIKE $3)
     ORDER BY a.published_at DESC LIMIT $4
   `, [q, q, q, limit]) as Article[];
+  return articles.map(formatArticleDates);
 }

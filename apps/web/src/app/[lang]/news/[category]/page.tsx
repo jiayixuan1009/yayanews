@@ -40,10 +40,7 @@ export function generateMetadata({ params }: { params: { category: string } }): 
   });
 }
 
-export function generateStaticParams() {
-  return Object.keys(categoryMeta).map(category => ({ category }));
-}
-
+export const dynamic = 'force-dynamic';
 export const revalidate = 60;
 
 export default async function CategoryPage({

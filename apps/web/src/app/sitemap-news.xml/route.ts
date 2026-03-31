@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
-import { getNewsArticlesLast48h } from '@/lib/queries';
+import { getNewsArticlesLast48h, getFlashNews } from '@/lib/queries';
 import { siteConfig } from '@yayanews/types';
+import { encodeFlashSlug } from '@/lib/ui-utils';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-function escapeXml(s: string): string {
-  return s
+function escapeXml(s: any): string {
+  if (!s) return '';
+  return String(s)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -16,8 +18,9 @@ function escapeXml(s: string): string {
 
 export async function GET() {
   const articles = await getNewsArticlesLast48h();
+  const flashes = await getFlashNews('zh', 100);
 
-  const urls = articles.map(a => `
+  const articleUrls = articles.map(a => `
   <url>
     <loc>${escapeXml(`${siteConfig.siteUrl}/article/${a.slug}`)}</loc>
     <news:news>
@@ -28,12 +31,27 @@ export async function GET() {
       <news:publication_date>${escapeXml(a.updated_at || a.published_at || a.created_at)}</news:publication_date>
       <news:title>${escapeXml(a.title)}</news:title>
     </news:news>
+    </news:news>
+  </url>`).join('');
+
+  const flashUrls = flashes.map(f => `
+  <url>
+    <loc>${escapeXml(`${siteConfig.siteUrl}/flash/${encodeFlashSlug(f as any)}`)}</loc>
+    <news:news>
+      <news:publication>
+        <news:name>${escapeXml(siteConfig.siteName)}</news:name>
+        <news:language>zh</news:language>
+      </news:publication>
+      <news:publication_date>${escapeXml(f.published_at)}</news:publication_date>
+      <news:title>${escapeXml(f.title)}</news:title>
+    </news:news>
   </url>`).join('');
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
-${urls}
+${articleUrls}
+${flashUrls}
 </urlset>`;
 
   return new NextResponse(xml, {

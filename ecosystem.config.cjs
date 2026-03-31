@@ -31,7 +31,11 @@ try {
 }
 
 // 确保与系统当前环境变量合并，避免丢失某些继承信息
-const mergedEnv = { ...process.env, ...baseEnv };
+const mergedEnv = { 
+  ...process.env, 
+  ...baseEnv,
+  PYTHONPATH: path.join(root, "apps", "pipeline")
+};
 const pythonBin = mergedEnv.PYTHON_BIN || "python3";
 
 module.exports = {
@@ -39,7 +43,7 @@ module.exports = {
     {
       name: "yayanews",
       cwd: root,
-      script: ".next/standalone/server.js",
+      script: "apps/web/.next/standalone/apps/web/server.js",
       autorestart: true,
       max_restarts: 20,
       min_uptime: "10s",
@@ -92,18 +96,32 @@ module.exports = {
       env: { ...mergedEnv, NODE_ENV: "production", PORT: 3003, HOSTNAME: "0.0.0.0" },
     },
     {
-      name: "yaya-pipeline-worker",
+      name: "yaya-worker-flash",
       cwd: path.join(root, "apps", "pipeline"),
       script: pythonBin,
       args: "-m pipeline.worker",
       interpreter: "none",
-      instances: 4,
+      instances: 2,
       autorestart: true,
       max_restarts: 20,
       min_uptime: "10s",
       max_memory_restart: "800M",
       kill_timeout: 10000,
-      env: mergedEnv,
+      env: { ...mergedEnv, RQ_QUEUES: "yayanews:flash" },
+    },
+    {
+      name: "yaya-worker-articles",
+      cwd: path.join(root, "apps", "pipeline"),
+      script: pythonBin,
+      args: "-m pipeline.worker",
+      interpreter: "none",
+      instances: 2,
+      autorestart: true,
+      max_restarts: 20,
+      min_uptime: "10s",
+      max_memory_restart: "800M",
+      kill_timeout: 10000,
+      env: { ...mergedEnv, RQ_QUEUES: "yayanews:articles" },
     },
   ],
 };

@@ -36,7 +36,7 @@ def _get_translation_candidates(limit: int = 5) -> list[dict]:
                   AND slug NOT IN (
                       SELECT REPLACE(slug, '-en', '') FROM articles WHERE lang = 'en'
                   )
-                ORDER BY published_at DESC LIMIT $1
+                ORDER BY published_at DESC LIMIT %s
                 """, (limit,)
             )
             return [dict(r) for r in cur.fetchall()]

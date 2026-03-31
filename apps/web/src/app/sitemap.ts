@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
-import { getRecentArticlesForSitemap, getTopics, getCategories, getTagsForSitemap } from '@/lib/queries';
+import { getRecentArticlesForSitemap, getTopics, getCategories, getTagsForSitemap, getRecentFlashForSitemap } from '@/lib/queries';
 import { siteConfig } from '@yayanews/types';
+import { encodeFlashSlug } from '@/lib/ui-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,11 +20,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/privacy`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.4 },
   ];
 
-  const [categories, articles, topics, tagRows] = await Promise.all([
+  const [categories, articles, topics, tagRows, flashes] = await Promise.all([
     getCategories().catch(() => []),
     getRecentArticlesForSitemap().catch(() => []),
     getTopics(100).catch(() => []),
     getTagsForSitemap().catch(() => []),
+    getRecentFlashForSitemap(2000).catch(() => []),
   ]);
 
   const categoryPages: MetadataRoute.Sitemap = categories.map(c => ({
@@ -54,5 +56,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.55,
   }));
 
-  return [...staticPages, ...categoryPages, ...articlePages, ...topicPages, ...tagPages];
+  const flashPages: MetadataRoute.Sitemap = flashes.map(f => ({
+    url: `${baseUrl}/flash/${encodeFlashSlug(f as any)}`,
+    lastModified: new Date(f.updated_at),
+    changeFrequency: 'weekly' as const,
+    priority: 0.5,
+  }));
+
+  return [...staticPages, ...categoryPages, ...articlePages, ...topicPages, ...tagPages, ...flashPages];
 }

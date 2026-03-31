@@ -9,7 +9,7 @@ import { ORDERED_NAV_CATEGORIES } from '@/lib/constants';
 
 const primaryNav = [
   { label: '首页', href: '/' },
-  { label: '资讯', href: '/news' },
+  { label: '快讯', href: '/flash' },
   ...ORDERED_NAV_CATEGORIES.filter(item => item.href !== '/flash').slice(0, 5),
 ];
 
@@ -94,7 +94,7 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
       <div className="hidden border-t border-[#e7dfd2] lg:block">
         <nav className="container-main flex min-h-[54px] items-center justify-center gap-7">
           <LocalizedLink href="/" className={`border-b pb-1 text-[15px] ${isActive('/') ? 'border-[#14261f] font-medium text-[#101713]' : 'border-transparent text-[#5d635f] hover:text-[#101713]'}`}>{dict.home}</LocalizedLink>
-          <LocalizedLink href="/news" className={`border-b pb-1 text-[15px] ${isActive('/news') ? 'border-[#14261f] font-medium text-[#101713]' : 'border-transparent text-[#5d635f] hover:text-[#101713]'}`}>{dict.news}</LocalizedLink>
+          <LocalizedLink href="/flash" className={`border-b pb-1 text-[15px] ${isActive('/flash') ? 'border-[#14261f] font-medium text-[#101713]' : 'border-transparent text-[#5d635f] hover:text-[#101713]'}`}>{dict.flash || '快讯'}</LocalizedLink>
           {ORDERED_NAV_CATEGORIES.filter(item => item.href !== '/flash').slice(0, 5).map(item => {
             const slug = item.href.replace('/news/', '');
             return (
@@ -117,7 +117,7 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
               {dict.searchArchive || 'Search archive'}
             </LocalizedLink>
             <LocalizedLink href="/" onClick={() => setMobileOpen(false)} className={`border-b border-[#e8e0d5] px-1 py-2.5 text-sm ${isActive('/') ? 'text-[#101713]' : 'text-[#5d635f] hover:text-[#101713]'}`}>{dict.home}</LocalizedLink>
-            <LocalizedLink href="/news" onClick={() => setMobileOpen(false)} className={`border-b border-[#e8e0d5] px-1 py-2.5 text-sm ${isActive('/news') ? 'text-[#101713]' : 'text-[#5d635f] hover:text-[#101713]'}`}>{dict.news}</LocalizedLink>
+            <LocalizedLink href="/flash" onClick={() => setMobileOpen(false)} className={`border-b border-[#e8e0d5] px-1 py-2.5 text-sm ${isActive('/flash') ? 'text-[#101713]' : 'text-[#5d635f] hover:text-[#101713]'}`}>{dict.flash || '快讯'}</LocalizedLink>
             {ORDERED_NAV_CATEGORIES.filter(item => item.href !== '/flash').slice(0, 5).map(item => {
               const slug = item.href.replace('/news/', '');
               return (
