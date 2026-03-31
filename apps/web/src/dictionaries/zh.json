@@ -67,6 +67,44 @@
     "live": "实时滚播",
     "noCategoryNews": "该分类暂无资讯"
   },
+  "categoryMeta": {
+    "us-stock": {
+      "title": "美股市场",
+      "desc": "追踪美股三大指数、资金流动与各大机构财报的实时异动分析。",
+      "label": "专栏",
+      "quote": "Price action is just the surface."
+    },
+    "hk-stock": {
+      "title": "港股及亚太市场",
+      "desc": "洞悉港股大盘、南向资金流向及亚太核心资产的宏观交易逻辑。",
+      "label": "专栏",
+      "quote": "Capital leaves fingerprints."
+    },
+    "crypto": {
+      "title": "加密资产",
+      "desc": "从比特币宏观周期、以太坊生态到链上异常资金流动的底层档案。",
+      "label": "专栏",
+      "quote": "Narratives move faster than protocols."
+    },
+    "derivatives": {
+      "title": "衍生品与宏观风险",
+      "desc": "深度覆盖期权异动、大宗商品及外汇市场的宏观对冲与博弈信号。",
+      "label": "专栏",
+      "quote": "Volatility is a language of its own."
+    },
+    "ai": {
+      "title": "AI及前沿科技",
+      "desc": "持续追踪大模型演进、算力资本开支与应用层的真实商业落地。",
+      "label": "专栏",
+      "quote": "Automation always arrives in layers."
+    },
+    "other": {
+      "title": "综合简报",
+      "desc": "跨市场、跨主题的补充档案与综合编辑整理。",
+      "label": "专栏",
+      "quote": "What matters rarely fits one beat."
+    }
+  },
   "article": {
     "deepDive": "深度稿",
     "noImage": "待配图",

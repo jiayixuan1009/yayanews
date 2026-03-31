@@ -6,7 +6,7 @@
     "markets": "Markets",
     "usStock": "US Markets",
     "crypto": "Crypto & Digital Assets",
-    "derivatives": "Options & Futures",
+    "derivatives": "Derivatives",
     "hkStock": "Asia Markets",
     "guide": "Guides",
     "about": "About",
@@ -66,6 +66,44 @@
     "channelIndex": "Channel index",
     "live": "Live Feed",
     "noCategoryNews": "No articles in this category."
+  },
+  "categoryMeta": {
+    "us-stock": {
+      "title": "US Equities & Wall Street",
+      "desc": "Real-time analysis of US market indices, capital flows, and institutional reports.",
+      "label": "Desk",
+      "quote": "Price action is just the surface."
+    },
+    "hk-stock": {
+      "title": "Hong Kong & Asian Equities",
+      "desc": "Macro trading logic covering Hong Kong indices, southbound flows, and core APAC assets.",
+      "label": "Desk",
+      "quote": "Capital leaves fingerprints."
+    },
+    "crypto": {
+      "title": "Crypto & Digital Assets",
+      "desc": "From Bitcoin macro cycles to on-chain anomalies and protocol shifts.",
+      "label": "Desk",
+      "quote": "Narratives move faster than protocols."
+    },
+    "derivatives": {
+      "title": "Derivatives & Macro Risks",
+      "desc": "Deep coverage of options flows, commodities, and FX macro hedging signals.",
+      "label": "Desk",
+      "quote": "Volatility is a language of its own."
+    },
+    "ai": {
+      "title": "AI & Frontier Tech",
+      "desc": "Tracking LLM evolution, compute capex, and real-world commercial applications.",
+      "label": "Desk",
+      "quote": "Automation always arrives in layers."
+    },
+    "other": {
+      "title": "The Open Brief",
+      "desc": "Cross-market supplemental archives and editorial composites.",
+      "label": "Desk",
+      "quote": "What matters rarely fits one beat."
+    }
   },
   "article": {
     "deepDive": "Deep Dive",

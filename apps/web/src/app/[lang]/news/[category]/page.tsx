@@ -19,24 +19,17 @@ import SectionHeader from '@/components/editorial/SectionHeader';
 import { getArticleCoverSrc } from '@/lib/article-image';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
 
-const categoryMeta: Record<string, { title: string; desc: string; label: string; quote: string }> = {
-  'us-stock': { title: 'US Equities & Wall Street', desc: '追踪美股三大指数、资金流动与各大机构财报的实时异动分析。', label: 'Desk', quote: 'Price action is just the surface.' },
-  'hk-stock': { title: 'Hong Kong & Asian Equities', desc: '洞悉港股大盘、南向资金流向及亚太核心资产的宏观交易逻辑。', label: 'Desk', quote: 'Capital leaves fingerprints.' },
-  crypto: { title: 'Cryptocurrency Markets', desc: '从比特币宏观周期、以太坊生态到链上异常资金流动的底层技术档案。', label: 'Desk', quote: 'Narratives move faster than protocols.' },
-  derivatives: { title: 'Derivatives & Macro Risks', desc: '深度覆盖期权异动、大宗商品及外汇市场的宏观对冲与博弈信号。', label: 'Desk', quote: 'Volatility is a language of its own.' },
-  ai: { title: 'Artificial Intelligence & Tech', desc: '持续追踪大模型演进、算力资本开支与应用层的真实商业落地。', label: 'Desk', quote: 'Automation always arrives in layers.' },
-  other: { title: 'The Open Brief', desc: '跨市场、跨主题的补充档案与综合编辑整理。', label: 'Desk', quote: 'What matters rarely fits one beat.' },
-};
 
 import { createMetadata } from '@yayanews/seo';
 
-export function generateMetadata({ params }: { params: { category: string } }): Metadata {
-  const meta = categoryMeta[params.category];
+export async function generateMetadata({ params }: { params: { category: string; lang: string } }): Promise<Metadata> {
+  const dict = await getDictionary(params.lang as any);
+  const meta = (dict as any).categoryMeta?.[params.category];
   if (!meta) return {};
   return createMetadata({
     title: meta.title,
     description: meta.desc,
-    url: `/news/${params.category}`,
+    url: `/${params.lang}/news/${params.category}`,
   });
 }
 
@@ -50,13 +43,13 @@ export default async function CategoryPage({
   params: { category: string; lang: string };
   searchParams: { type?: string };
 }) {
-  const meta = categoryMeta[params.category];
+  const dict = await getDictionary(params.lang as any);
+  const meta = (dict as any).categoryMeta?.[params.category];
   if (!meta) notFound();
 
   const depthFilter = searchParams.type || '';
   const articleType = depthFilter === 'deep' ? 'deep' : depthFilter === 'standard' ? 'standard' : undefined;
 
-  const dict = await getDictionary(params.lang as any);
   const articles = await getPublishedArticles(params.lang, 36, 0, params.category, undefined, articleType);
   const categories = await getCategoriesOrdered();
   const isDerivatives = params.category === 'derivatives';
