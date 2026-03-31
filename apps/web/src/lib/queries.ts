@@ -279,12 +279,12 @@ export async function getPopularTags(limit = 15): Promise<Tag[]> {
 
   if (tags.length < limit) {
     const fallbacks: Tag[] = [
-      { id: -1, name: '美股', slug: 'us-stocks', created_at: new Date().toISOString() },
-      { id: -2, name: 'AI人工智能', slug: 'ai', created_at: new Date().toISOString() },
-      { id: -3, name: '加密货币', slug: 'crypto', created_at: new Date().toISOString() },
-      { id: -4, name: '港股', slug: 'hk-stocks', created_at: new Date().toISOString() },
-      { id: -5, name: '美联储', slug: 'federal-reserve', created_at: new Date().toISOString() },
-      { id: -6, name: '财报', slug: 'earnings', created_at: new Date().toISOString() },
+      { id: -1, name: '美股', slug: 'us-stocks' },
+      { id: -2, name: 'AI人工智能', slug: 'ai' },
+      { id: -3, name: '加密货币', slug: 'crypto' },
+      { id: -4, name: '港股', slug: 'hk-stocks' },
+      { id: -5, name: '美联储', slug: 'federal-reserve' },
+      { id: -6, name: '财报', slug: 'earnings' },
     ];
     const existingSlugs = new Set(tags.map(t => t.slug));
     for (const fb of fallbacks) {
