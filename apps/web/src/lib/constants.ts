@@ -21,7 +21,7 @@ export const FLASH_ENTRY = {
 
 /** AI资讯板块，链接到 /news/ai（DB 可有 ai 分类） */
 export const AI_ENTRY = {
-  name: 'AI资讯',
+  name: 'AI与前沿科技',
   slug: 'ai',
   href: '/news/ai',
   description: 'AI 与智能金融',
@@ -29,10 +29,10 @@ export const AI_ENTRY = {
 
 export const ORDERED_NAV_CATEGORIES = [
   { label: '快讯', href: '/flash' },
-  { label: '美股', href: '/news/us-stock' },
-  { label: '港股', href: '/news/hk-stock' },
-  { label: '衍生品', href: '/news/derivatives' },
-  { label: '加密货币', href: '/news/crypto' },
-  { label: 'AI资讯', href: '/news/ai' },
+  { label: '美股市场', href: '/news/us-stock' },
+  { label: '港股 & 亚太', href: '/news/hk-stock' },
+  { label: '衍生品与宏观', href: '/news/derivatives' },
+  { label: '加密资产', href: '/news/crypto' },
+  { label: 'AI与前沿科技', href: '/news/ai' },
   { label: '其他', href: '/news/other' },
 ];

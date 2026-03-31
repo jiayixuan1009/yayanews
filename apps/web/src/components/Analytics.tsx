@@ -2,7 +2,7 @@
 
 import Script from 'next/script';
 
-const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-M5TYCGL732';
 const BING_UET = process.env.NEXT_PUBLIC_BING_UET_ID;
 const CLARITY_ID = process.env.NEXT_PUBLIC_MS_CLARITY_ID;
 
