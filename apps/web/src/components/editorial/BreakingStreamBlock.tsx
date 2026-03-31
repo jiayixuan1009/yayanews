@@ -38,6 +38,7 @@ export default function BreakingStreamBlock({ items: initialItems, title = '快�
       if (cancelled) return;
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       ws = new WebSocket(`${protocol}//${window.location.host}/ws/`);
+      ws.onerror = () => { /* silently ignore — WS not available in all deploy envs */ };
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);

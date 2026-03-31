@@ -116,12 +116,12 @@ export default function HomeHeroEditorial({ lead, secondaries, dict = {} }: Prop
                   <ol className="space-y-4">
                     {hotItems.map((item, idx) => (
                       <li key={item.id} className="grid grid-cols-[1.8rem,1fr] gap-3 border-t border-[#dfd8ce] pt-4 first:border-t-0 first:pt-0">
-                        <span className="font-display text-[1.8rem] italic leading-none text-[#d2ccc2] sm:text-[2rem]">{String(idx + 1).padStart(2, '0')}</span>
+                        <span className="font-display text-[1.8rem] italic leading-none text-[#a09890] sm:text-[2rem]">{String(idx + 1).padStart(2, '0')}</span>
                         <LocalizedLink href={`/article/${item.slug}`} className="group block">
                           <h3 className="font-display text-[1.08rem] font-semibold leading-[1.15] tracking-[-0.03em] text-[#1b201d] group-hover:text-[#1d5c4f] sm:text-[1.2rem]">
                             {item.title}
                           </h3>
-                          <div className="mt-2 flex flex-wrap gap-x-2 text-[11px] uppercase tracking-[0.16em] text-[#7b807b]">
+                          <div className="mt-2 flex flex-wrap gap-x-2 text-[11px] uppercase tracking-[0.16em] text-[#555a55]">
                             <span>{dict.nav?.[item.category_slug || ''] || item.category_name || 'YayaNews'}</span>
                             <span>{item.published_at?.slice(0, 10)}</span>
                           </div>

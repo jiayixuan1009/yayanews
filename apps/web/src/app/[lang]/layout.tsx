@@ -13,10 +13,13 @@ export const viewport: Viewport = {
   themeColor: '#f6f3ee',
 };
 
+// NOTE: per-page metadata (article, flash, category) passes their own `url`.
+// This layout-level metadata is only used as a fallback base.
 export const metadata = createMetadata({
   title: `${siteConfig.siteName} - 专业金融新闻资讯平台`,
   description: siteConfig.description,
   type: 'website',
+  url: '/',  // ensures canonical resolves to the siteUrl root, not a sub-path
 });
 metadata.verification = getSiteVerificationMeta();
 
@@ -31,11 +34,25 @@ export default async function RootLayout({
   return (
     <html lang={params.lang}>
       <head>
+        {/* Preconnect to fonts origins for faster DNS + TLS handshake */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:wght@400;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        <link rel="dns-prefetch" href="https://api.coingecko.com" />
-        <link rel="preconnect" href="https://api.coingecko.com" crossOrigin="anonymous" />
+        {/* Async (non-blocking) Google Fonts load via print-media trick */}
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:wght@400;600;700&family=Public+Sans:wght@400;500;600;700&display=swap"
+          media="print"
+          /* @ts-ignore */
+          onLoad="this.media='all'"
+        />
+        {/* Fallback for no-JS environments */}
+        <noscript>
+          <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:wght@400;600;700&family=Public+Sans:wght@400;500;600;700&display=swap"
+          />
+        </noscript>
+        {/* hreflang alternates */}
         <link rel="alternate" hrefLang="zh-CN" href={`${siteConfig.siteUrl}/zh`} />
         <link rel="alternate" hrefLang="en-US" href={`${siteConfig.siteUrl}/en`} />
         <link rel="alternate" hrefLang="x-default" href={`${siteConfig.siteUrl}/zh`} />
