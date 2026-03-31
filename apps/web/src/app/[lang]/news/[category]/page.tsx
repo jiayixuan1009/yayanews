@@ -73,6 +73,8 @@ export default async function CategoryPage({
   return (
     <div className="container-main py-6 sm:py-8 lg:py-10">
       <ChannelHeader
+        lang={params.lang}
+        dict={dict}
         title={meta.title}
         description={meta.desc}
         label={meta.label}

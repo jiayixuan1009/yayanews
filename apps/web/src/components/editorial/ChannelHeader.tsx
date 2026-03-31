@@ -5,6 +5,8 @@ import { getArticleCoverSrc } from '@/lib/article-image';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
 
 type Props = {
+  lang: string;
+  dict: any;
   title: string;
   description: string;
   label?: string;
@@ -13,39 +15,37 @@ type Props = {
 };
 
 export default function ChannelHeader({
+  lang,
+  dict,
   title,
   description,
   label = 'SECTION',
-  quote = 'An edited briefing from the living archive.',
+  quote,
   featured,
 }: Props) {
   const coverSrc = featured ? getArticleCoverSrc(featured.cover_image) : null;
   const coverOpt = coverSrc ? isRemoteImageOptimizable(coverSrc) : false;
 
   return (
-    <header className="mb-10 grid gap-0 xl:grid-cols-[96px_minmax(0,1fr)]">
+    <header className="mb-10 grid gap-0 xl:grid-cols-[280px_minmax(0,1fr)]">
       <aside className="hidden border-r border-[#d6cec2] bg-[#efebe4] xl:flex xl:flex-col xl:justify-between">
         <div className="space-y-6 p-5">
           <div className="border border-[#d6cec2] bg-white p-3">
-            <p className="yn-meta text-[#1d5c4f]">The Living Archive</p>
-            <p className="mt-2 text-[11px] leading-5 text-[#667067]">Curated daily intelligence for readers tracking structural shifts.</p>
+            <p className="yn-meta text-[#1d5c4f]">{lang === 'zh' ? '动态档案' : 'The Living Archive'}</p>
+            <p className="mt-2 text-[11px] leading-5 text-[#667067]">
+              {lang === 'zh' ? '为追踪结构性变化读者提供的每日精选情报。' : 'Curated daily intelligence for readers tracking structural shifts.'}
+            </p>
           </div>
           <nav className="space-y-2 text-[11px] uppercase tracking-[0.18em] text-[#667067]">
-            <div className="border-l-2 border-[#1d5c4f] pl-3 text-[#14261f]">Home</div>
-            <div className="pl-3">Breaking</div>
-            <div className="pl-3">Trending</div>
-            <div className="pl-3">Saved</div>
-            <div className="pl-3">Mascot Corner</div>
+            <LocalizedLink href="/" className="block border-l-2 border-[#1d5c4f] pl-3 text-[#14261f]">{dict?.nav?.home || 'Home'}</LocalizedLink>
+            <LocalizedLink href="/flash" className="block pl-3">{dict?.nav?.flash || 'Breaking'}</LocalizedLink>
+            <LocalizedLink href="/news" className="block pl-3">{dict?.home?.newsOverview || 'Trending'}</LocalizedLink>
           </nav>
         </div>
         <div className="space-y-4 p-5">
           <button className="w-full border border-[#7ae88a] bg-[#9cff8f] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0e2a1f]">
-            Newsletter signup
+            {lang === 'zh' ? '订阅简报' : 'Newsletter signup'}
           </button>
-          <div className="space-y-2 text-[10px] uppercase tracking-[0.18em] text-[#667067]">
-            <div>Settings</div>
-            <div>Help</div>
-          </div>
         </div>
       </aside>
 
@@ -54,9 +54,9 @@ export default function ChannelHeader({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-4 border-b border-white/15 pb-4">
               <span className="border border-[#7fe193] bg-[#d5ff8d]/90 px-2 py-1 font-label text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0e2a1f]">
-                {label}: {title}
+                {label} • {title}
               </span>
-              <p className="hidden font-display text-base italic tracking-tight text-white/75 md:block">“{quote}”</p>
+              {quote && <p className="hidden font-display text-base italic tracking-tight text-white/75 md:block">“{quote}”</p>}
             </div>
             <h1 className="mt-5 max-w-[8ch] font-display text-[3.5rem] font-semibold leading-[0.9] tracking-[-0.07em] text-white sm:text-[4.5rem] lg:text-[5.6rem]">
               {title}
@@ -81,11 +81,11 @@ export default function ChannelHeader({
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08),rgba(0,0,0,0.28))]" />
 
             {featured ? (
-              <div className="absolute bottom-5 left-5 max-w-[260px] rotate-[-2deg] border border-[#d6cec2] bg-[#f8f4ee] p-4 text-[#14261f] shadow-[0_10px_30px_rgba(0,0,0,0.16)]">
-                <p className="yn-meta text-[#1d5c4f]">Editor&apos;s pick</p>
-                <p className="mt-2 font-display text-lg leading-tight">{featured.title}</p>
+              <div className="absolute bottom-5 left-5 max-w-[320px] rotate-[-2deg] border border-[#d6cec2] bg-[#f8f4ee] p-4 text-[#14261f] shadow-[0_10px_30px_rgba(0,0,0,0.16)]">
+                <p className="yn-meta text-[#1d5c4f]">{dict?.home?.editorsPicks || "Editor's pick"}</p>
+                <p className="mt-2 font-display text-lg leading-tight line-clamp-3">{featured.title}</p>
                 <LocalizedLink href={`/article/${featured.slug}`} className="mt-3 inline-block text-[11px] uppercase tracking-[0.16em] text-[#1d5c4f] hover:text-[#143d33]">
-                  Open dossier →
+                  {lang === 'zh' ? '展开档案 →' : 'Open dossier →'}
                 </LocalizedLink>
               </div>
             ) : null}
