@@ -7,9 +7,10 @@ import ArticleCard from './ArticleCard';
 
 interface Props {
   initialArticles: Article[];
+  lang?: string;
 }
 
-export default function DerivativesSubTabs({ initialArticles }: Props) {
+export default function DerivativesSubTabs({ initialArticles, lang = 'en' }: Props) {
   const [activeSub, setActiveSub] = useState('');
   const [articles, setArticles] = useState<Article[]>(initialArticles);
   const [loading, setLoading] = useState(false);
@@ -52,7 +53,7 @@ export default function DerivativesSubTabs({ initialArticles }: Props) {
               : 'border-[#ddd5ca] bg-[#f7f4ee] text-[#667067] hover:text-[#14261f]'
           }`}
         >
-          All desks
+          {lang === 'zh' ? '全部分类' : 'All desks'}
         </button>
         {DERIVATIVES_SUBCATEGORIES.map(sub => (
           <button

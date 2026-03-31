@@ -27,7 +27,7 @@ export default function ChannelHeader({
   const coverOpt = coverSrc ? isRemoteImageOptimizable(coverSrc) : false;
 
   return (
-    <header className="mb-10 grid gap-0 xl:grid-cols-[280px_minmax(0,1fr)]">
+    <header className="mb-10 grid gap-0 xl:grid-cols-[150px_minmax(0,1fr)]">
       <aside className="hidden border-r border-[#d6cec2] bg-[#efebe4] xl:flex xl:flex-col xl:justify-between">
         <div className="space-y-6 p-5">
           <div className="border border-[#d6cec2] bg-white p-3">

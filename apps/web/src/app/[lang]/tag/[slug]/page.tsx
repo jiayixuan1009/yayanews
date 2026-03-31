@@ -9,6 +9,7 @@ import {
   getPopularTags,
   getFlashNews,
 } from '@/lib/queries';
+import { encodeFlashSlug } from '@/lib/ui-utils';
 import ArticleCard from '@/components/ArticleCard';
 import ChannelHeader from '@/components/editorial/ChannelHeader';
 import RightRailPanel from '@/components/editorial/RightRailPanel';
@@ -94,8 +95,10 @@ export default async function TagPage({ params }: { params: { slug: string; lang
               <ul className="space-y-2.5">
                 {flashMini.map(f => (
                   <li key={f.id} className="border-b border-slate-800/80 pb-2.5 last:border-0 last:pb-0">
-                    <span className="yn-meta tabular-nums">{f.published_at?.slice(5, 16) ?? '—'}</span>
-                    <p className="mt-0.5 line-clamp-2 text-sm font-medium leading-snug text-slate-200">{f.title}</p>
+                    <LocalizedLink href={`/flash/${encodeFlashSlug(f as any)}`} className="group block">
+                      <span className="yn-meta tabular-nums group-hover:text-primary-400/70">{f.published_at?.slice(5, 16) ?? '—'}</span>
+                      <p className="mt-0.5 line-clamp-2 text-sm font-medium leading-snug text-slate-200 group-hover:text-primary-400 transition-colors">{f.title}</p>
+                    </LocalizedLink>
                   </li>
                 ))}
               </ul>

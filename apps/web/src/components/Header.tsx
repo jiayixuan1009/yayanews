@@ -4,7 +4,6 @@ import LocalizedLink from '@/components/LocalizedLink';
 import { usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { siteConfig } from '@yayanews/types';
-import LangSwitcher from '@/components/LangSwitcher';
 import { ORDERED_NAV_CATEGORIES } from '@/lib/constants';
 
 const primaryNav = [
@@ -25,12 +24,12 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
 
   const dateline = useMemo(() => {
     const now = new Date();
-    return new Intl.DateTimeFormat('zh-CN', {
+    return new Intl.DateTimeFormat(lang === 'en' ? 'en-US' : 'zh-CN', {
       month: 'long',
       day: 'numeric',
       weekday: 'long',
     }).format(now);
-  }, []);
+  }, [lang]);
 
   function isActive(href: string): boolean {
     if (href === '/') return pathname === '/';
@@ -42,14 +41,13 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
       <div className="border-b border-[#e7dfd2] bg-[#f3eee6]">
         <div className="container-main flex min-h-[38px] items-center justify-between gap-4 text-[11px] uppercase tracking-[0.18em] text-[#667067]">
           <div className="hidden md:block">{dateline}</div>
-          <div className="mx-auto text-center md:mx-0">Daily Financial Dispatch</div>
+          <div className="mx-auto text-center md:mx-0">{dict.dailyDispatch || 'Daily Financial Dispatch'}</div>
           <div className="hidden items-center gap-4 md:flex">
             {utilityNavKeys.map(item => (
               <LocalizedLink key={item.href} href={item.href} className={isActive(item.href) ? 'text-[#101713]' : 'text-[#5d635f] hover:text-[#101713]'}>
                 {dict[item.key] || item.key}
               </LocalizedLink>
             ))}
-            <LangSwitcher lang={lang} />
           </div>
         </div>
       </div>
@@ -71,7 +69,6 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          <LangSwitcher lang={lang} />
           <a href={siteConfig.parentSite} target="_blank" rel="noopener noreferrer" className="font-label text-[11px] font-semibold uppercase tracking-[0.16em] text-[#4f5551] hover:text-[#101713]">
             {dict.signIn || 'Sign In'}
           </a>
@@ -92,7 +89,7 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
       </div>
 
       <div className="hidden border-t border-[#e7dfd2] lg:block">
-        <nav className="container-main flex min-h-[54px] items-center justify-center gap-7">
+        <nav className="container-main flex min-h-[54px] items-center justify-start gap-7 lg:gap-10">
           <LocalizedLink href="/" className={`border-b pb-1 text-[15px] ${isActive('/') ? 'border-[#14261f] font-medium text-[#101713]' : 'border-transparent text-[#5d635f] hover:text-[#101713]'}`}>{dict.home}</LocalizedLink>
           <LocalizedLink href="/flash" className={`border-b pb-1 text-[15px] ${isActive('/flash') ? 'border-[#14261f] font-medium text-[#101713]' : 'border-transparent text-[#5d635f] hover:text-[#101713]'}`}>{dict.flash || '快讯'}</LocalizedLink>
           {ORDERED_NAV_CATEGORIES.filter(item => item.href !== '/flash').slice(0, 5).map(item => {
@@ -107,6 +104,7 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
               </LocalizedLink>
             );
           })}
+          <LocalizedLink href="/markets" className={`border-b pb-1 text-[15px] ${isActive('/markets') ? 'border-[#14261f] font-medium text-[#101713]' : 'border-transparent text-[#5d635f] hover:text-[#101713]'}`}>{dict.markets || '行情数据'}</LocalizedLink>
         </nav>
       </div>
 
@@ -131,6 +129,7 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
                 </LocalizedLink>
               );
             })}
+            <LocalizedLink href="/markets" onClick={() => setMobileOpen(false)} className={`border-b border-[#e8e0d5] px-1 py-2.5 text-sm ${isActive('/markets') ? 'text-[#101713]' : 'text-[#5d635f] hover:text-[#101713]'}`}>{dict.markets || '行情数据'}</LocalizedLink>
             {utilityNavKeys.map(item => (
               <LocalizedLink
                 key={item.href}
@@ -142,7 +141,6 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
               </LocalizedLink>
             ))}
             <div className="mt-3 flex items-center gap-3">
-              <LangSwitcher lang={lang} />
               <a href={siteConfig.tradingSite} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center border border-[#0d3b30] bg-[#0d3b30] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white">
                 {dict.subscribe || 'Subscribe'}
               </a>

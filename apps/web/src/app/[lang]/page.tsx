@@ -78,13 +78,15 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
     <>
       <SiteLiveSubscriber />
 
-      <HomeHeroEditorial lead={lead} secondaries={secondaries} dict={dict} />
-
       <section className="border-b border-[#ddd5ca] bg-white/90">
         <div className="container-main py-2 text-sm">
           <LiveTicker title={dict.home.liveTicker} />
         </div>
       </section>
+
+      <HomeHeroEditorial lead={lead} secondaries={secondaries} dict={dict} />
+
+
 
       <section className="border-b border-[#ddd5ca] bg-[#fbf8f4]">
         <div className="container-main py-4">

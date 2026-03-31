@@ -10,6 +10,7 @@ import {
   getPopularTags,
   getFlashNews,
 } from '@/lib/queries';
+import { encodeFlashSlug } from '@/lib/ui-utils';
 import ArticleCard from '@/components/ArticleCard';
 import DerivativesSubTabs from '@/components/DerivativesSubTabs';
 import DepthTabs from '@/components/DepthTabs';
@@ -84,7 +85,7 @@ export default async function CategoryPage({
 
       <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-[#ddd5ca] pb-4 lg:mb-8">
         <LocalizedLink href="/news" className="border border-[#ddd5ca] bg-white px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-[#667067] hover:text-[#14261f]">
-          All desks
+          {params.lang === 'zh' ? '全部分类' : 'All desks'}
         </LocalizedLink>
         {categories.map(c => (
           <LocalizedLink
@@ -105,10 +106,11 @@ export default async function CategoryPage({
         baseUrl={`/news/${params.category}`}
         current={depthFilter}
         counts={{ all: countAll, standard: countStandard, deep: countDeep }}
+        lang={params.lang}
       />
 
       {isDerivatives && !articleType ? (
-        <DerivativesSubTabs initialArticles={articles} />
+        <DerivativesSubTabs initialArticles={articles} lang={params.lang} />
       ) : (
         <div className="grid gap-8 lg:grid-cols-12 xl:gap-12">
           {/* Main Content Area */}
@@ -232,7 +234,9 @@ export default async function CategoryPage({
                         <span className="w-1.5 h-1.5 rounded-full bg-[#cc3333] shrink-0"></span>
                         <span className="yn-meta tabular-nums text-[#cc3333]">{f.published_at?.slice(11, 16) ?? '—'}</span>
                       </div>
-                      <p className="text-[0.95rem] leading-relaxed text-[#14261f]">{f.title}</p>
+                      <LocalizedLink href={`/flash/${encodeFlashSlug(f as any)}`} className="group block">
+                        <p className="text-[0.95rem] leading-relaxed text-[#14261f] group-hover:text-[#1d5c4f] transition-colors">{f.title}</p>
+                      </LocalizedLink>
                     </li>
                   ))}
                 </ul>

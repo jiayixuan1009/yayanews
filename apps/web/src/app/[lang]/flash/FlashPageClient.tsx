@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import LocalizedLink from '@/components/LocalizedLink';
 import type { FlashNews, Category } from '@yayanews/types';
 import CtaBanner from '@/components/CtaBanner';
-import { getImportanceDot } from '@/lib/ui-utils';
+import { getImportanceDot, encodeFlashSlug } from '@/lib/ui-utils';
 
 /** 秒；SSE 推送时作为兜底轮询间隔 */
 const REFRESH_INTERVAL_SSE = 45;
@@ -261,10 +261,12 @@ export default function FlashPageClient({ initialCat }: { initialCat: string }) 
                               {item.category_name && <span className="text-slate-600 font-medium">{item.category_name}</span>}
                               {isNew && <span className="rounded bg-primary-100 px-1 py-0.5 text-[10px] text-primary-700 font-semibold">NEW</span>}
                             </div>
-                            <p className="mt-1 text-[1.05rem] font-medium leading-relaxed text-slate-900 group-hover:text-primary-700 transition-colors">{item.title}</p>
-                            {item.content && (
-                              <p className="mt-1.5 text-sm leading-relaxed text-slate-600 line-clamp-3">{item.content}</p>
-                            )}
+                            <LocalizedLink href={`/flash/${encodeFlashSlug(item)}`} className="block mt-1">
+                              <p className="text-[1.05rem] font-medium leading-relaxed text-slate-900 group-hover:text-primary-700 transition-colors">{item.title}</p>
+                              {item.content && (
+                                <p className="mt-1.5 text-sm leading-relaxed text-slate-600 line-clamp-3">{item.content}</p>
+                              )}
+                            </LocalizedLink>
                           </div>
                         </div>
                       );
