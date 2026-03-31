@@ -20,11 +20,11 @@ import { getArticleCoverSrc } from '@/lib/article-image';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
 
 const categoryMeta: Record<string, { title: string; desc: string; label: string; quote: string }> = {
-  'us-stock': { title: 'The Market Ledger', desc: '追踪美股主线、机构仓位变化与企业叙事切换。', label: 'Desk', quote: 'Price action is just the surface.' },
-  'hk-stock': { title: 'The Victoria Board', desc: '围绕港股公司、南向资金与跨境主题的每日编排。', label: 'Desk', quote: 'Capital leaves fingerprints.' },
-  crypto: { title: 'The Chain Current', desc: '围绕链上活动、交易结构与政策周期的加密档案。', label: 'Desk', quote: 'Narratives move faster than protocols.' },
-  derivatives: { title: 'The Risk Matrix', desc: '覆盖衍生品、大宗、外汇与宏观风险对冲的交易手册。', label: 'Desk', quote: 'Volatility is a language of its own.' },
-  ai: { title: 'The Machine Desk', desc: '持续追踪模型、算力与应用层的真实商业进度。', label: 'Desk', quote: 'Automation always arrives in layers.' },
+  'us-stock': { title: 'US Equities & Wall Street', desc: '追踪美股三大指数、资金流动与各大机构财报的实时异动分析。', label: 'Desk', quote: 'Price action is just the surface.' },
+  'hk-stock': { title: 'Hong Kong & Asian Equities', desc: '洞悉港股大盘、南向资金流向及亚太核心资产的宏观交易逻辑。', label: 'Desk', quote: 'Capital leaves fingerprints.' },
+  crypto: { title: 'Cryptocurrency Markets', desc: '从比特币宏观周期、以太坊生态到链上异常资金流动的底层技术档案。', label: 'Desk', quote: 'Narratives move faster than protocols.' },
+  derivatives: { title: 'Derivatives & Macro Risks', desc: '深度覆盖期权异动、大宗商品及外汇市场的宏观对冲与博弈信号。', label: 'Desk', quote: 'Volatility is a language of its own.' },
+  ai: { title: 'Artificial Intelligence & Tech', desc: '持续追踪大模型演进、算力资本开支与应用层的真实商业落地。', label: 'Desk', quote: 'Automation always arrives in layers.' },
   other: { title: 'The Open Brief', desc: '跨市场、跨主题的补充档案与综合编辑整理。', label: 'Desk', quote: 'What matters rarely fits one beat.' },
 };
 
