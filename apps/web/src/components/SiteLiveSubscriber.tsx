@@ -14,6 +14,7 @@ export default function SiteLiveSubscriber() {
       if (cancelled) return;
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       ws = new WebSocket(`${protocol}//${window.location.host}/ws/`);
+      ws.onerror = () => { /* silently ignore — WS not available in all deploy envs */ };
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
