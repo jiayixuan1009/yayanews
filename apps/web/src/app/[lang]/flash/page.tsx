@@ -10,6 +10,6 @@ export const metadata: Metadata = {
   openGraph: { title: '7×24快讯 | YayaNews', description: '全球金融市场7×24小时实时快讯' },
 };
 
-export default function FlashPage({ searchParams }: { searchParams: { cat?: string } }) {
-  return <FlashPageClient initialCat={searchParams.cat || ''} />;
+export default function FlashPage({ params, searchParams }: { params: { lang: string }, searchParams: { cat?: string } }) {
+  return <FlashPageClient initialCat={searchParams.cat || ''} lang={params.lang} />;
 }

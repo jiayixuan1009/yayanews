@@ -78,7 +78,7 @@ function CountdownButton({
   );
 }
 
-export default function FlashPageClient({ initialCat }: { initialCat: string }) {
+export default function FlashPageClient({ initialCat, lang = 'zh' }: { initialCat: string, lang?: string }) {
   const [items, setItems] = useState<FlashNews[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [activeCat, setActiveCat] = useState(initialCat);
@@ -93,6 +93,7 @@ export default function FlashPageClient({ initialCat }: { initialCat: string }) 
     try {
       const params = new URLSearchParams();
       if (activeCat) params.set('cat', activeCat);
+      if (lang) params.set('lang', lang);
       const res = await fetch(`/api/flash?${params}`);
       const data = await res.json();
 
@@ -139,6 +140,7 @@ export default function FlashPageClient({ initialCat }: { initialCat: string }) 
       if (cancelled) return;
       const qs = new URLSearchParams({ since: String(esSince) });
       if (activeCat) qs.set('cat', activeCat);
+      if (lang) qs.set('lang', lang);
       es = new EventSource(`/api/flash/events?${qs}`);
       es.onopen = () => setSseLive(true);
       es.onmessage = (ev) => {

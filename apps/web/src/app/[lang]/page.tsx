@@ -103,7 +103,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
       <div className="container-main py-5 md:py-8 lg:py-10">
         <div className="grid gap-5 md:gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-12">
           <div className="space-y-5 md:space-y-8 lg:col-span-8 lg:space-y-10">
-            <BreakingStreamBlock items={flashStream} title={dict.home.flashTitle} emptyText={dict.news.noFlash || '暂无快讯'} actionLabel={dict.common.all || '全部'} />
+            <BreakingStreamBlock items={flashStream} title={dict.home.flashTitle} emptyText={dict.news.noFlash || '暂无快讯'} actionLabel={dict.common.all || '全部'} lang={lang} />
 
             {leadTopic ? (
               <TopicBanner

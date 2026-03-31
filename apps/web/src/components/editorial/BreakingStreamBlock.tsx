@@ -11,6 +11,7 @@ type Props = {
   title?: string;
   emptyText?: string;
   actionLabel?: string;
+  lang?: string;
 };
 
 function getCategoryBadgeLight(name?: string) {
@@ -23,7 +24,7 @@ function getCategoryBadgeLight(name?: string) {
   return 'bg-[#f4ebe1] text-[#7c837d] border-[#ece4d8]';
 }
 
-export default function BreakingStreamBlock({ items: initialItems, title = '快讯热流', emptyText = '暂无快讯', actionLabel = '全部' }: Props) {
+export default function BreakingStreamBlock({ items: initialItems, title = '快讯热流', emptyText = '暂无快讯', actionLabel = '全部', lang = 'zh' }: Props) {
   const [items, setItems] = useState<FlashNews[]>(initialItems);
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export default function BreakingStreamBlock({ items: initialItems, title = '快�
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.channel && data.channel.startsWith('flash:new')) {
+          if (data.channel && data.channel === `flash:new:${lang}`) {
             const newFlash = data.payload as FlashNews;
             if (!newFlash || typeof newFlash !== 'object' || !newFlash.id) return;
             setItems(prev => {
