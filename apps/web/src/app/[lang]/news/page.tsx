@@ -57,8 +57,10 @@ export default async function NewsPage({
   return (
     <div className="container-main py-6 sm:py-8">
       <ChannelHeader
-        title="最新资讯"
-        description="全站稿件总览；按深度与栏目筛选，与单频道页共用同一套编辑组件语言。"
+        lang={params.lang}
+        dict={dict}
+        title={params.lang === 'zh' ? '最新资讯' : 'Latest News'}
+        description={params.lang === 'zh' ? '全站稿件总览；按深度与栏目筛选，与单频道页共用同一套编辑组件语言。' : 'All articles overview; filter by depth and category.'}
       />
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
