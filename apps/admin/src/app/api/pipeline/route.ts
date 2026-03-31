@@ -54,8 +54,8 @@ function getStatus() {
     } else {
        log = `[${dateStr}] 守护进程心跳: ${hb.msg}`;
     }
-  } catch {
-    log = statusStr === 'paused' ? '系统已暂停' : '守护进程启动中，等待心跳信号...';
+  } catch (err: any) {
+    log = statusStr === 'paused' ? '系统已暂停' : `目前没有获取到心跳数据（默认全0）。\n[DEBUG] 解析路径: ${HEARTBEAT_FILE}\n[DEBUG] 错误信息: ${err?.message || '未知'}`;
   }
 
   // If paused, prepend a clear message
