@@ -37,21 +37,11 @@ export default async function RootLayout({
         {/* Preconnect to fonts origins for faster DNS + TLS handshake */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* Async (non-blocking) Google Fonts load via print-media trick */}
+        {/* Google Fonts — display=swap prevents render blocking while loading */}
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:wght@400;600;700&family=Public+Sans:wght@400;500;600;700&display=swap"
-          media="print"
-          /* @ts-ignore */
-          onLoad="this.media='all'"
         />
-        {/* Fallback for no-JS environments */}
-        <noscript>
-          <link
-            rel="stylesheet"
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:wght@400;600;700&family=Public+Sans:wght@400;500;600;700&display=swap"
-          />
-        </noscript>
         {/* hreflang alternates */}
         <link rel="alternate" hrefLang="zh-CN" href={`${siteConfig.siteUrl}/zh`} />
         <link rel="alternate" hrefLang="en-US" href={`${siteConfig.siteUrl}/en`} />
