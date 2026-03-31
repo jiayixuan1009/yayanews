@@ -5,19 +5,23 @@ import { requireAuth } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
-// Identify the true repository root regardless of monorepo execution path or next standalone mode
-let basePath = process.cwd();
-// Compensate for PM2 / Next.js standalone execution paths
-if (basePath.includes('.next')) {
-  basePath = path.join(basePath, '..', '..');
-}
-// If we are currently inside an apps/ directory, walk back one level
-if (basePath.replace(/\\/g, '/').includes('/apps/')) {
-  basePath = path.join(basePath, '..', '..');
+// Because Next.js standalone mode heavily modifies __dirname and process.cwd(), 
+// the safest way to find the apps/pipeline/data dir in production is to hardcode or 
+// safely resolve based on the known VPS deployment structure:
+let PIPELINE_DATA = '/var/www/yayanews/apps/pipeline/data';
+
+// Fallback for local development Windows environment
+if (process.cwd().includes('d:\\news')) {
+  PIPELINE_DATA = path.join('d:\\news', 'yayanews-production', 'apps', 'pipeline', 'data');
+} else if (!fs.existsSync(PIPELINE_DATA)) {
+  // If we are in local dev on other machines, try to walk up
+  let current = process.cwd();
+  while (current.length > 5 && !fs.existsSync(path.join(current, 'apps', 'pipeline'))) {
+    current = path.join(current, '..');
+  }
+  PIPELINE_DATA = path.join(current, 'apps', 'pipeline', 'data');
 }
 
-// daemon 运行在 apps/pipeline/ 目录下，所以它的 data/ 文件夹也在那里
-const PIPELINE_DATA = path.join(basePath, 'apps', 'pipeline', 'data');
 const STATUS_FILE = path.join(PIPELINE_DATA, 'daemon_status.txt');
 const HEARTBEAT_FILE = path.join(PIPELINE_DATA, 'daemon_heartbeat.txt');
 const CONFIG_FILE = path.join(PIPELINE_DATA, 'daemon_config.json');
