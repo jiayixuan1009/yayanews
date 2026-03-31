@@ -44,6 +44,8 @@ export default async function TagPage({ params }: { params: { slug: string; lang
   return (
     <div className="container-main py-6 sm:py-8">
       <ChannelHeader
+        lang={params.lang}
+        dict={dict}
         title={`#${tag.name}`}
         description={dict.tag.totalCount.replace("{count}", total.toString())}
       />
