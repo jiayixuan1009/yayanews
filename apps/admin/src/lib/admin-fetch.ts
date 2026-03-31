@@ -14,12 +14,13 @@ export async function adminFetch(url: string, options: RequestInit = {}): Promis
     headers.set('Authorization', `Bearer ${token}`);
   }
   
-  // Smoothly upgrade legacy fetch URLs (/api/admin/*) to the correct basePath URL (/admin/api/*)
+  // All API calls need to be prefixed with the Next.js basePath '/admin' so nginx routes
+  // them to location /admin → port 3003, and the admin server (basePath=/admin) can find them.
+  // CORRECT: /api/admin/pipeline → /admin/api/admin/pipeline
+  // WRONG:   /api/admin/pipeline → /admin/api/pipeline (drops the 'admin' segment)
   let finalUrl = url;
-  if (finalUrl.startsWith('/api/admin/')) {
-    finalUrl = finalUrl.replace('/api/admin/', '/admin/api/');
-  } else if (finalUrl === '/api/admin') {
-    finalUrl = '/admin/api';
+  if (finalUrl.startsWith('/api/')) {
+    finalUrl = '/admin' + finalUrl;
   }
   
   return fetch(finalUrl, { ...options, headers });
