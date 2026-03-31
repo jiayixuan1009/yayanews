@@ -21,7 +21,7 @@ import { isRemoteImageOptimizable } from '@/lib/remote-image';
 
 const categoryMeta: Record<string, { title: string; desc: string; label: string; quote: string }> = {
   'us-stock': { title: 'The Market Ledger', desc: '追踪美股主线、机构仓位变化与企业叙事切换。', label: 'Desk', quote: 'Price action is just the surface.' },
-  'hk-stock': { title: 'HK Stocks', desc: '围绕港股公司、南向资金与跨境主题的每日编排。', label: 'Desk', quote: 'Capital leaves fingerprints.' },
+  'hk-stock': { title: 'The Victoria Board', desc: '围绕港股公司、南向资金与跨境主题的每日编排。', label: 'Desk', quote: 'Capital leaves fingerprints.' },
   crypto: { title: 'The Chain Current', desc: '围绕链上活动、交易结构与政策周期的加密档案。', label: 'Desk', quote: 'Narratives move faster than protocols.' },
   derivatives: { title: 'The Risk Matrix', desc: '覆盖衍生品、大宗、外汇与宏观风险对冲的交易手册。', label: 'Desk', quote: 'Volatility is a language of its own.' },
   ai: { title: 'The Machine Desk', desc: '持续追踪模型、算力与应用层的真实商业进度。', label: 'Desk', quote: 'Automation always arrives in layers.' },
