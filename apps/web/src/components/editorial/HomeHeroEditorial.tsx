@@ -27,7 +27,7 @@ function SecondaryFeature({ article, dict }: { article: Article; dict?: any }) {
   return (
     <LocalizedLink href={`/article/${article.slug}`} className="group grid gap-4 border-t border-[#ddd5ca] pt-4 sm:grid-cols-[1.1fr,1fr] sm:items-start">
       <div className="relative aspect-[16/10] overflow-hidden border border-[#d8d1c5] bg-[#e9e3d8]">
-        <Image src={cover} alt={article.title} fill sizes="(max-width: 768px) 100vw, 26vw" className="object-cover transition duration-500 group-hover:scale-[1.02]" unoptimized={!optimizable} />
+        <Image src={cover} alt={article.title} fill sizes="(max-width: 768px) 100vw, 26vw" className="object-cover transition duration-500 group-hover:scale-[1.02]" unoptimized={cover.endsWith('.svg') || !optimizable} />
       </div>
       <div>
         {article.category_name ? <span className="yn-meta text-[#1d5c4f]">{dict?.nav?.[article.category_slug || ''] || article.category_name}</span> : null}
@@ -64,30 +64,50 @@ export default function HomeHeroEditorial({ lead, secondaries, dict = {} }: Prop
 
         {lead ? (
           <>
-            <div className="grid gap-4 md:gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)_280px] xl:items-start">
-              <div>
-                <div className="mb-3 inline-flex rounded-[2px] bg-[#91f78e]/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1d5c4f]">
-                  {lead.article_type === 'deep' ? (dict.home?.investigativeFeature || 'Investigative feature') : (dict.home?.featuredReport || 'Featured report')}
+            <div className="grid gap-6 md:gap-8 lg:gap-10 xl:grid-cols-[1fr_300px] xl:items-start">
+              
+              {/* WSJ / Bloomberg Style Main Feature Column */}
+              <div className="flex flex-col gap-4 md:gap-5">
+                
+                {/* Full-width Title Block */}
+                <div className="pt-2">
+                  <div className="mb-3 inline-flex rounded-[2px] bg-[#91f78e]/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1d5c4f]">
+                    {lead.article_type === 'deep' ? (dict.home?.investigativeFeature || 'Investigative feature') : (dict.home?.featuredReport || 'Featured report')}
+                  </div>
+                  <LocalizedLink href={`/article/${lead.slug}`} className="group block mb-2">
+                    <h1 className="font-display text-[2.2rem] md:text-[2.8rem] lg:text-[3.4rem] font-bold leading-[1.05] tracking-[-0.03em] text-[#111713] group-hover:text-[#1d5c4f]">
+                      {lead.title}
+                    </h1>
+                  </LocalizedLink>
                 </div>
-                <LocalizedLink href={`/article/${lead.slug}`} className="group block">
-                  <h1 className="max-w-[9ch] font-display text-[2.2rem] md:text-[2.9rem] font-semibold leading-[0.93] tracking-[-0.055em] text-[#111713] group-hover:text-[#1d5c4f] sm:text-[4rem] lg:text-[4.7rem] xl:text-[5.2rem]">
-                    {lead.title}
-                  </h1>
-                  {lead.summary ? <p className="mt-5 max-w-[34ch] font-body text-[1rem] leading-8 text-slate-700 sm:text-[1.08rem] sm:leading-9">{lead.summary}</p> : null}
-                  <HeroMeta article={lead} dict={dict} />
-                </LocalizedLink>
+
+                {/* Sub-grid for Image and Summary */}
+                <div className="grid gap-4 sm:gap-6 md:grid-cols-[1.5fr_1fr] md:items-start border-t border-[#dfd8ce] pt-4 md:pt-5">
+                  <LocalizedLink href={`/article/${lead.slug}`} className="group block">
+                    <div className="relative aspect-[3/2] overflow-hidden border border-[#1b241f] bg-[#0d1411] shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+                      {leadCover ? <Image src={leadCover} alt={lead.title} fill priority sizes="(max-width: 1280px) 70vw, 50vw" className="object-cover transition duration-500 group-hover:scale-[1.02]" unoptimized={leadCover.endsWith('.svg') || !leadCoverOptimizable} /> : null}
+                      <div className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-[2px] border border-[#c6d2ca] bg-[#f6f3ee]/90 shadow-sm">
+                        <MallardDuck size="sm" />
+                      </div>
+                    </div>
+                  </LocalizedLink>
+
+                  <LocalizedLink href={`/article/${lead.slug}`} className="group block flex-1">
+                    {lead.summary ? (
+                      <p className="font-body text-[1.1rem] leading-relaxed text-[#3a443e] sm:text-[1.15rem]">
+                        {lead.summary}
+                      </p>
+                    ) : null}
+                    <div className="mt-4 pt-4 border-t border-[#dfd8ce] border-dashed">
+                      <HeroMeta article={lead} dict={dict} />
+                    </div>
+                  </LocalizedLink>
+                </div>
+
               </div>
 
-              <LocalizedLink href={`/article/${lead.slug}`} className="group block xl:pt-3">
-                <div className="relative mx-auto aspect-[4/5] max-w-[420px] overflow-hidden border border-[#1b241f] bg-[#0d1411] shadow-[0_20px_40px_rgba(0,0,0,0.08)]">
-                  {leadCover ? <Image src={leadCover} alt={lead.title} fill priority sizes="(max-width: 1280px) 70vw, 30vw" className="object-cover transition duration-500 group-hover:scale-[1.02]" unoptimized={!leadCoverOptimizable} /> : null}
-                  <div className="absolute bottom-4 right-4 flex h-12 w-12 items-center justify-center rounded-[2px] border border-[#c6d2ca] bg-[#f6f3ee]/90 shadow-sm">
-                    <MallardDuck size="sm" />
-                  </div>
-                </div>
-              </LocalizedLink>
-
-              <div className="space-y-4 xl:pt-2">
+              {/* Right Rail: Hot Stream & Mascot */}
+              <div className="space-y-6">
                 <div className="border border-[#ddd5ca] bg-[#f1eeea] px-4 py-5 sm:px-5">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <h2 className="font-display text-[1.75rem] font-semibold leading-none tracking-[-0.04em] text-[#1a1c1c] sm:text-[2rem]">{dict.home?.hotStream || 'Hot Stream'}</h2>

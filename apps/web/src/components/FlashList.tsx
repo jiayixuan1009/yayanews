@@ -2,7 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import type { FlashNews } from '@yayanews/types';
-import { getImportanceDot } from '@/lib/ui-utils';
+import { getImportanceDot, encodeFlashSlug } from '@/lib/ui-utils';
+import LocalizedLink from '@/components/LocalizedLink';
+
+function getCategoryBadgeCls(name?: string) {
+  if (!name) return 'bg-slate-800/50 text-gray-400 border-slate-700/50';
+  if (name.includes('美股')) return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+  if (name.includes('加密') || name.includes('比特币') || name.toLowerCase().includes('crypto')) return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+  if (name.includes('港股')) return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+  if (name.includes('衍生品')) return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+  if (name.includes('宏观')) return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
+  return 'bg-slate-800/50 text-gray-400 border-slate-700/50';
+}
 
 export default function FlashList({ items: initialItems, compact = false }: { items: FlashNews[]; compact?: boolean }) {
   const [items, setItems] = useState<FlashNews[]>(initialItems);
@@ -49,24 +60,32 @@ export default function FlashList({ items: initialItems, compact = false }: { it
   return (
     <div className="space-y-0">
       {items.map(item => (
-        <div key={item.id} className="group flex gap-3 border-b border-slate-800/50 py-3 last:border-0">
-          <div className="flex flex-col items-center pt-1.5">
-            <div className={`h-2 w-2 rounded-full ${getImportanceDot(item.importance)}`} />
+        <LocalizedLink 
+          href={`/flash/${encodeFlashSlug(item as any)}`} 
+          key={item.id} 
+          className="group flex gap-3 border-b border-slate-800/50 py-3 last:border-0 hover:bg-slate-800/30 transition-colors cursor-pointer rounded-lg px-2 -mx-2 mb-1"
+        >
+          <div className="flex flex-col items-center pt-1.5 min-w-[12px]">
+            <div className={`h-2 w-2 rounded-full ${getImportanceDot(item.importance)} group-hover:scale-110 transition-transform`} />
             <div className="mt-1 h-full w-px bg-slate-800" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <time>{item.published_at.slice(11, 16)}</time>
-              {item.category_name && <span className="text-gray-600">{item.category_name}</span>}
+            <div className="flex items-center gap-2 text-xs text-gray-500 mb-0.5">
+              <time className="font-mono">{item.published_at.slice(11, 16)}</time>
+              {item.category_name && (
+                <span className={`px-1.5 py-0.5 rounded border text-[10px] font-medium leading-none ${getCategoryBadgeCls(item.category_name)}`}>
+                  {item.category_name}
+                </span>
+              )}
             </div>
             <p className={`mt-0.5 text-sm font-medium text-gray-200 ${compact ? 'line-clamp-2' : ''}`}>
               {item.title}
             </p>
             {!compact && item.content && (
-              <p className="mt-1 text-xs text-gray-400 line-clamp-3">{item.content}</p>
+              <p className="mt-1 text-xs text-gray-400 line-clamp-3 group-hover:text-gray-300 transition-colors">{item.content}</p>
             )}
           </div>
-        </div>
+        </LocalizedLink>
       ))}
     </div>
   );

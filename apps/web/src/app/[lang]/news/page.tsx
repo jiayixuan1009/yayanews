@@ -21,6 +21,7 @@ export const metadata: Metadata = {
   openGraph: { title: '最新资讯 | YayaNews', description: '全球金融市场最新动态与深度分析' },
 };
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 60;
 
 export default async function NewsPage({ 

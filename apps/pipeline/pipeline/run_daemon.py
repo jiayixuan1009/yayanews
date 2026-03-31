@@ -37,7 +37,8 @@ redis_port = int(os.environ.get("REDIS_PORT", "6379"))
 def main():
     try:
         redis_conn = get_redis_connection()
-        q = Queue('yayanews', connection=redis_conn)
+        q_flash = Queue('yayanews:flash', connection=redis_conn)
+        q_articles = Queue('yayanews:articles', connection=redis_conn)
     except Exception as e:
         print(f"[run_daemon] Redis connection failed: {e}", file=sys.stderr)
         sys.exit(1)
@@ -67,10 +68,10 @@ def main():
             state = {
                 "ts": time.time(),
                 "msg": msg,
-                "queued": len(q),
-                "started": q.started_job_registry.count,
-                "failed": q.failed_job_registry.count,
-                "finished": q.finished_job_registry.count
+                "queued": len(q_flash) + len(q_articles),
+                "started": q_flash.started_job_registry.count + q_articles.started_job_registry.count,
+                "failed": q_flash.failed_job_registry.count + q_articles.failed_job_registry.count,
+                "finished": q_flash.finished_job_registry.count + q_articles.finished_job_registry.count
             }
             heartbeat_file.write_text(json.dumps(state))
         except Exception:
@@ -116,14 +117,14 @@ def main():
             if mode in ["all", "flash"]:
                 msg = f"Dispatching {dyn_flash} flash items"
                 print(f"[Dispatch] Enqueue Flash ({dyn_flash}) @ {time.strftime('%H:%M:%S')}", flush=True)
-                q.enqueue(task_run_flash, count=dyn_flash, job_timeout=600)
+                q_flash.enqueue(task_run_flash, count=dyn_flash, job_timeout=600)
             next_flash = now + FLASH_SEC
             
         if now >= next_article:
             if mode in ["all", "articles"]:
                 msg = f"Dispatching collection for {dyn_articles} topics"
                 print(f"[Dispatch] Enqueue Topic Collection ({dyn_articles}) @ {time.strftime('%H:%M:%S')}", flush=True)
-                q.enqueue(task_collect_and_enqueue_articles, batch_size=dyn_articles, job_timeout=600)
+                q_articles.enqueue(task_collect_and_enqueue_articles, batch_size=dyn_articles, job_timeout=600)
             next_article = now + ARTICLE_SEC
 
         write_heartbeat(msg)

@@ -6,13 +6,13 @@ from rq import Queue
 from pipeline.utils.redis_conn import get_redis_connection
 
 def task_collect_and_enqueue_articles(batch_size: int = 10):
-    """供 RQ 队列调用的阶段一解耦任务：仅采集选题，然后将选题独立打散投放到同一个队列排队执行。"""
+    """供 RQ 队列调用的阶段一解耦任务：仅采集选题，然后将选题独立打散投放到文章队列排队执行。"""
     topics = run_collect_topics(batch_size=batch_size)
     if not topics:
         return "No topics collected"
         
     conn = get_redis_connection()
-    q = Queue('yayanews', connection=conn)
+    q = Queue('yayanews:articles', connection=conn)
     
     for topic in topics:
         q.enqueue(task_process_single_article, topic=topic, job_timeout=1200)
