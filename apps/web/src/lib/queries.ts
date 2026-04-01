@@ -184,13 +184,14 @@ export async function getFlashNewsById(id: number | string): Promise<FlashNews |
   return flash ? formatArticleDates(flash) : undefined;
 }
 
-export async function getRecentFlashForSitemap(limit = 1000): Promise<{ id: number; updated_at: string }[]> {
-  const list = await queryAll<{ id: number; published_at: Date | string; updated_at?: Date | string }>(`
-    SELECT id, published_at, updated_at FROM flash_news
+export async function getRecentFlashForSitemap(limit = 1000): Promise<{ id: number; title: string; updated_at: string }[]> {
+  const list = await queryAll<{ id: number; title: string; published_at: Date | string; updated_at?: Date | string }>(`
+    SELECT id, title, published_at, updated_at FROM flash_news
     ORDER BY published_at DESC LIMIT $1
   `, [limit]);
   return list.map(f => ({
     id: f.id,
+    title: f.title,
     updated_at: safeDateStr(f.updated_at || f.published_at)
   }));
 }
