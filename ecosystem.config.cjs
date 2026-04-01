@@ -36,7 +36,15 @@ const mergedEnv = {
   ...baseEnv,
   PYTHONPATH: path.join(root, "apps", "pipeline")
 };
-const pythonBin = mergedEnv.PYTHON_BIN || "python3";
+let pythonBin = mergedEnv.PYTHON_BIN || "python3";
+try {
+  if (!path.isAbsolute(pythonBin)) {
+    const whichCmd = process.platform === 'win32' ? 'where' : 'which';
+    pythonBin = require('child_process').execSync(`${whichCmd} ${pythonBin}`).toString().split('\n')[0].trim();
+  }
+} catch (e) {
+  console.warn(`Could not resolve absolute path for ${pythonBin}, fallback to string value.`);
+}
 
 module.exports = {
   apps: [
