@@ -1,3 +1,18 @@
+/** Strip HTML tags and decode common HTML entities from a string for safe plain-text display */
+export function stripHtml(html: string): string {
+  if (!html) return '';
+  return html
+    .replace(/<[^>]*>/g, ' ')           // remove all HTML tags
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s{2,}/g, ' ')            // collapse multiple spaces
+    .trim();
+}
+
 export function getImportanceDot(importance: string): string {
   switch (importance) {
     case 'urgent': return 'bg-red-500';

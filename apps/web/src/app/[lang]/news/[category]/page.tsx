@@ -10,7 +10,7 @@ import {
   getPopularTags,
   getFlashNews,
 } from '@/lib/queries';
-import { encodeFlashSlug } from '@/lib/ui-utils';
+import { encodeFlashSlug, stripHtml } from '@/lib/ui-utils';
 import ArticleCard from '@/components/ArticleCard';
 import DerivativesSubTabs from '@/components/DerivativesSubTabs';
 import DepthTabs from '@/components/DepthTabs';
@@ -152,7 +152,7 @@ export default async function CategoryPage({
                             {lead.title}
                           </h2>
                           {lead.summary && (
-                            <p className="mt-3 max-w-[65ch] font-body text-[1.05rem] leading-relaxed text-slate-700">{lead.summary}</p>
+                            <p className="mt-3 max-w-[65ch] font-body text-[1.05rem] leading-relaxed text-slate-700">{stripHtml(lead.summary)}</p>
                           )}
                         </LocalizedLink>
                       </div>

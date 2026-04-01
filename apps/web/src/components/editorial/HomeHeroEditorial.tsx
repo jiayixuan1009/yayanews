@@ -4,6 +4,7 @@ import MallardDuck from '@/components/MallardDuck';
 import { getArticleCoverSrc } from '@/lib/article-image';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
 import { siteConfig, type Article } from '@yayanews/types';
+import { stripHtml } from '@/lib/ui-utils';
 
 type Props = {
   lead: Article | undefined;
@@ -34,7 +35,7 @@ function SecondaryFeature({ article, dict }: { article: Article; dict?: any }) {
         <h3 className="mt-2 font-display text-[1.65rem] font-semibold leading-[1.05] tracking-[-0.03em] text-[#101a15] group-hover:text-[#1d5c4f] sm:text-[1.9rem]">
           {article.title}
         </h3>
-        {article.summary ? <p className="mt-3 max-w-[32ch] font-body text-[15px] leading-7 text-slate-600 line-clamp-3">{article.summary}</p> : null}
+        {article.summary ? <p className="mt-3 max-w-[32ch] font-body text-[15px] leading-7 text-slate-600 line-clamp-3">{stripHtml(article.summary)}</p> : null}
       </div>
     </LocalizedLink>
   );
@@ -94,8 +95,8 @@ export default function HomeHeroEditorial({ lead, secondaries, dict = {} }: Prop
 
                   <LocalizedLink href={`/article/${lead.slug}`} className="group block flex-1">
                     {lead.summary ? (
-                      <p className="font-body text-[1.1rem] leading-relaxed text-[#3a443e] sm:text-[1.15rem]">
-                        {lead.summary}
+                    <p className="font-body text-[1.1rem] leading-relaxed text-[#3a443e] sm:text-[1.15rem]">
+                        {stripHtml(lead.summary)}
                       </p>
                     ) : null}
                     <div className="mt-4 pt-4 border-t border-[#dfd8ce] border-dashed">
