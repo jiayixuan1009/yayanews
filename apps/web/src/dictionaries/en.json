@@ -187,6 +187,20 @@
     "pageIndicator": "Page {page} / {totalPages}",
     "minute": "min"
   },
+  "search": {
+    "title": "Search",
+    "description": "Search YayaNews financial news covering US stocks, HK stocks, crypto and derivatives.",
+    "heading": "Search",
+    "subtitle": "Full-text search and tag discovery.",
+    "placeholder": "Enter keywords\u2026",
+    "button": "Search",
+    "resultsSummary": "Results for \u201c{query}\u201d: {count} articles",
+    "clearSearch": "Clear search",
+    "noResults": "No articles found matching \u201c{query}\u201d",
+    "noResultsTip": "Try other keywords, or browse popular searches",
+    "hotSearches": "Popular Searches",
+    "dbTags": "Popular Tags"
+  },
   "cta": {
     "tag": "Trading Portal",
     "title": "BiyaPay Global Assets",
