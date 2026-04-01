@@ -326,49 +326,49 @@ function percentile(arr: number[], p: number): number | null {
 
 export async function getSpeedStats(): Promise<SpeedStats> {
   const allArticleRuns = await queryAll<{ total_seconds: number }>(
-    "SELECT total_seconds FROM pipeline_runs WHERE run_type='article' ORDER BY total_seconds"
+    "SELECT total_seconds::int FROM pipeline_runs WHERE run_type='article' AND started_at >= NOW() - INTERVAL '24 hours' ORDER BY total_seconds"
   );
   const allFlashRuns = await queryAll<{ total_seconds: number }>(
-    "SELECT total_seconds FROM pipeline_runs WHERE run_type='flash' ORDER BY total_seconds"
+    "SELECT total_seconds::int FROM pipeline_runs WHERE run_type='flash' AND started_at >= NOW() - INTERVAL '24 hours' ORDER BY total_seconds"
   );
 
   const artTimes = allArticleRuns.map(r => r.total_seconds);
   const flashTimes = allFlashRuns.map(r => r.total_seconds);
 
-  const [{ c: totalRuns }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM pipeline_runs");
+  const [{ c: totalRuns }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM pipeline_runs WHERE started_at >= NOW() - INTERVAL '24 hours'");
   const [{ c: todayRuns }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM pipeline_runs WHERE date(started_at)=CURRENT_DATE");
 
   const [{ v: todayAvgArticle }] = await queryAll<{ v: number | null }>(
-    "SELECT AVG(total_seconds) as v FROM pipeline_runs WHERE run_type='article' AND date(started_at)=CURRENT_DATE"
+    "SELECT AVG(total_seconds)::int as v FROM pipeline_runs WHERE run_type='article' AND date(started_at)=CURRENT_DATE"
   );
   const [{ v: todayAvgFlash }] = await queryAll<{ v: number | null }>(
-    "SELECT AVG(total_seconds) as v FROM pipeline_runs WHERE run_type='flash' AND date(started_at)=CURRENT_DATE"
+    "SELECT AVG(total_seconds)::int as v FROM pipeline_runs WHERE run_type='flash' AND date(started_at)=CURRENT_DATE"
   );
 
   const [{ v: yesterdayAvgArticle }] = await queryAll<{ v: number | null }>(
-    "SELECT AVG(total_seconds) as v FROM pipeline_runs WHERE run_type='article' AND date(started_at)=CURRENT_DATE - INTERVAL '1 day'"
+    "SELECT AVG(total_seconds)::int as v FROM pipeline_runs WHERE run_type='article' AND date(started_at)=CURRENT_DATE - INTERVAL '1 day'"
   );
   const [{ v: yesterdayAvgFlash }] = await queryAll<{ v: number | null }>(
-    "SELECT AVG(total_seconds) as v FROM pipeline_runs WHERE run_type='flash' AND date(started_at)=CURRENT_DATE - INTERVAL '1 day'"
+    "SELECT AVG(total_seconds)::int as v FROM pipeline_runs WHERE run_type='flash' AND date(started_at)=CURRENT_DATE - INTERVAL '1 day'"
   );
 
   const [{ v: perItemArticle }] = await queryAll<{ v: number | null }>(
-    "SELECT AVG(total_seconds * 1.0 / NULLIF(items_produced,0)) as v FROM pipeline_runs WHERE run_type='article' AND items_produced>0"
+    "SELECT AVG(total_seconds * 1.0 / NULLIF(items_produced,0)) as v FROM pipeline_runs WHERE run_type='article' AND started_at >= NOW() - INTERVAL '24 hours' AND items_produced>0"
   );
   const [{ v: perItemFlash }] = await queryAll<{ v: number | null }>(
-    "SELECT AVG(total_seconds * 1.0 / NULLIF(items_produced,0)) as v FROM pipeline_runs WHERE run_type='flash' AND items_produced>0"
+    "SELECT AVG(total_seconds * 1.0 / NULLIF(items_produced,0)) as v FROM pipeline_runs WHERE run_type='flash' AND started_at >= NOW() - INTERVAL '24 hours' AND items_produced>0"
   );
 
   const artProcessingTimes = await queryAll<{ secs: number }>(
     `SELECT EXTRACT(EPOCH FROM (published_at - collected_at))::int as secs
-     FROM articles WHERE collected_at IS NOT NULL AND published_at IS NOT NULL
+     FROM articles WHERE collected_at IS NOT NULL AND published_at >= NOW() - INTERVAL '24 hours'
      ORDER BY secs`
   );
   const artProcArr = artProcessingTimes.map(r => r.secs).filter(s => s >= 0);
 
   const flashProcessingTimes = await queryAll<{ secs: number }>(
     `SELECT EXTRACT(EPOCH FROM (published_at - collected_at))::int as secs
-     FROM flash_news WHERE collected_at IS NOT NULL AND published_at IS NOT NULL
+     FROM flash_news WHERE collected_at IS NOT NULL AND published_at >= NOW() - INTERVAL '24 hours'
      ORDER BY secs`
   );
   const flashProcArr = flashProcessingTimes.map(r => r.secs).filter(s => s >= 0);
