@@ -113,38 +113,38 @@ export default function BreakingStreamBlock({
 
   return (
     <section className="yn-panel p-4 sm:p-5">
-      <SectionHeader title={title} emphasis="strong" actionHref="/flash" actionLabel={actionLabel} />
-
-      {/* Multi-select filter chips */}
-      <div className="mb-3 flex flex-wrap items-center gap-1.5">
-        {FILTER_TAGS.map(tag => {
-          const active = selectedTags.has(tag.label);
-          return (
+      <SectionHeader title={title} emphasis="strong" actionHref="/flash" actionLabel={actionLabel}>
+        {/* Multi-select filter chips */}
+        <div className="flex flex-wrap items-center gap-2">
+          {FILTER_TAGS.map(tag => {
+            const active = selectedTags.has(tag.label);
+            return (
+              <button
+                key={tag.label}
+                type="button"
+                onClick={() => toggleTag(tag.label)}
+                className={`inline-flex items-center gap-1 rounded border px-3 py-1 text-[12px] font-semibold transition-all ${
+                  active
+                    ? 'border-[#0d3b30] bg-[#0d3b30] text-white shadow-sm'
+                    : 'border-[#ddd5ca] bg-white text-[#667067] hover:border-[#0d3b30]/40 hover:text-[#0d3b30]'
+                }`}
+              >
+                {active && <span className="text-[10px]">✓</span>}
+                {tag.label}
+              </button>
+            );
+          })}
+          {selectedTags.size > 0 && (
             <button
-              key={tag.label}
               type="button"
-              onClick={() => toggleTag(tag.label)}
-              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-all ${
-                active
-                  ? 'border-[#0d3b30] bg-[#0d3b30] text-white shadow-sm'
-                  : 'border-[#ddd5ca] bg-[#f8f5f0] text-[#667067] hover:border-[#0d3b30]/40 hover:text-[#0d3b30]'
-              }`}
+              onClick={() => setSelectedTags(new Set())}
+              className="text-[12px] text-[#89908a] hover:text-[#0d3b30] underline underline-offset-2 transition-colors ml-1"
             >
-              {active && <span className="text-[9px]">✓</span>}
-              {tag.label}
+              清除
             </button>
-          );
-        })}
-        {selectedTags.size > 0 && (
-          <button
-            type="button"
-            onClick={() => setSelectedTags(new Set())}
-            className="text-[11px] text-[#89908a] hover:text-[#0d3b30] underline underline-offset-2 transition-colors ml-1"
-          >
-            清除
-          </button>
-        )}
-      </div>
+          )}
+        </div>
+      </SectionHeader>
 
       {visibleItems.length === 0 ? (
         <p className="py-6 text-center text-sm text-slate-500">{emptyText}</p>

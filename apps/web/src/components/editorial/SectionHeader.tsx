@@ -6,6 +6,7 @@ type Props = {
   actionHref?: string;
   actionLabel?: string;
   className?: string;
+  children?: React.ReactNode;
 };
 
 export default function SectionHeader({
@@ -14,21 +15,25 @@ export default function SectionHeader({
   actionHref,
   actionLabel = '→',
   className = '',
+  children,
 }: Props) {
   return (
     <div className={`mb-4 flex items-end justify-between gap-3 yn-section-rule ${className}`}>
-      <h2
-        className={
-          emphasis === 'strong'
-            ? 'yn-heading flex items-center gap-2'
-            : 'yn-heading-sm'
-        }
-      >
-        {emphasis === 'strong' && (
-          <span className="inline-block h-4 w-0.5 shrink-0 rounded-sm bg-[#1d5c4f]" aria-hidden />
-        )}
-        {title}
-      </h2>
+      <div className="flex flex-wrap items-center gap-4">
+        <h2
+          className={
+            emphasis === 'strong'
+              ? 'yn-heading flex items-center gap-2'
+              : 'yn-heading-sm'
+          }
+        >
+          {emphasis === 'strong' && (
+            <span className="inline-block h-4 w-0.5 shrink-0 rounded-sm bg-[#1d5c4f]" aria-hidden />
+          )}
+          {title}
+        </h2>
+        {children}
+      </div>
       {actionHref ? (
         <LocalizedLink
           href={actionHref}

@@ -21,7 +21,6 @@ import HomeHeroEditorial from '@/components/editorial/HomeHeroEditorial';
 import BreakingStreamBlock from '@/components/editorial/BreakingStreamBlock';
 import { stripHtml } from '@/lib/ui-utils';
 import CategoryChipsRow from '@/components/editorial/CategoryChipsRow';
-import TopicBanner from '@/components/editorial/TopicBanner';
 import RightRailPanel from '@/components/editorial/RightRailPanel';
 import SectionHeader from '@/components/editorial/SectionHeader';
 import { siteConfig, SITE_NAME_ZH, SITE_NAME_EN, SITE_SLOGAN_ZH } from '@yayanews/types';
@@ -120,13 +119,6 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
           <div className="space-y-5 md:space-y-8 lg:col-span-8 lg:space-y-10">
             <BreakingStreamBlock items={flashStream} title={dict.home.flashTitle} emptyText={dict.news.noFlash || '暂无快讯'} actionLabel={dict.common.all || '全部'} lang={lang} />
 
-            {leadTopic ? (
-              <TopicBanner
-                title={leadTopic.title}
-                description={leadTopic.description}
-                href={`/topics/${leadTopic.slug}`}
-              />
-            ) : null}
 
             {spotlightArticles.length > 0 ? (
               <section className="border border-[#ddd5ca] bg-white px-4 py-5 md:px-5 md:py-6 sm:px-7">
