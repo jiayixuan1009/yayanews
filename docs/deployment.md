@@ -28,15 +28,14 @@ cp deploy/ENV.production.example .env
 
 # 3. 安装依赖
 npm ci --include=dev
-pip install -r pipeline/requirements.txt
+pip install -r apps/pipeline/requirements.txt
 
 # 4. 构建
 export NODE_ENV=production
 npm run build
 
-# 5. standalone 模式需要复制静态资源
-cp -r public .next/standalone/public
-cp -r .next/static .next/standalone/.next/static
+# 5. standalone 模式（build 脚本已自动处理 copy-standalone.mjs）
+# 如需手动执行：node infra/scripts/copy-standalone.mjs
 
 # 6. 启动所有服务
 pm2 start ecosystem.config.cjs

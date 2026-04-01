@@ -15,4 +15,4 @@ scp -o StrictHostKeyChecking=no -i $key "apps/web/src/app/robots.ts" "$server/ap
 scp -o StrictHostKeyChecking=no -i $key "apps/pipeline/pipeline/utils/indexer.py" "$server/apps/pipeline/pipeline/utils/"
 scp -o StrictHostKeyChecking=no -i $key "apps/pipeline/pipeline/utils/database.py" "$server/apps/pipeline/pipeline/utils/"
 scp -o StrictHostKeyChecking=no -i $key "infra/scripts/push-all-to-google.ts" "$server/infra/scripts/"
-ssh -o StrictHostKeyChecking=no -i $key root@8.216.43.113 "cd /var/www/yayanews && npm ci && npm run build --workspace=@yayanews/web && node infra/scripts/copy-standalone.mjs && pm2 reload yayanews && pm2 restart pipeline"
+ssh -o StrictHostKeyChecking=no -i $key root@8.216.43.113 "cd /var/www/yayanews && npm ci && npm run build --workspace=@yayanews/web && node infra/scripts/copy-standalone.mjs && pm2 reload yayanews && pm2 restart yaya-pipeline-daemon yaya-worker-flash yaya-worker-articles"
