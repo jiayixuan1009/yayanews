@@ -6,19 +6,21 @@ import { decodeFlashSlug, getImportanceDot } from '@/lib/ui-utils';
 import { createMetadata } from '@yayanews/seo';
 import LocalizedLink from '@/components/LocalizedLink';
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: { slug: string; lang: string } }): Promise<Metadata> {
   const flashId = decodeFlashSlug(params.slug);
   if (!flashId) return {};
   const flash = await getFlashNewsById(flashId);
   if (!flash) return {};
+  const suffix = params.lang === 'en' ? '24H Flash' : '7x24速递';
   return createMetadata({
-    title: flash.title + ' - 7x24速递',
+    title: flash.title + ' - ' + suffix,
     description: flash.content || flash.title,
     url: `/flash/${params.slug}`,
     type: 'article',
     publishedTime: flash.published_at || undefined,
     modifiedTime: flash.published_at || undefined,
     section: flash.category_name || undefined,
+    lang: params.lang as 'zh' | 'en',
   });
 }
 
@@ -80,7 +82,7 @@ export default async function FlashDetailPage({ params }: { params: { slug: stri
                 rel="nofollow noopener noreferrer"
                 className="inline-flex items-center gap-2 text-sm text-primary-400 hover:text-primary-300 transition-colors"
               >
-                查看原文来源 &rarr;
+                {dict.flash?.viewSource || 'View original source'} &rarr;
               </a>
             </div>
           )}

@@ -23,7 +23,7 @@ import { isRemoteImageOptimizable } from '@/lib/remote-image';
 
 import { createMetadata, buildNewsArticleJsonLd } from '@yayanews/seo';
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: { slug: string; lang: string } }): Promise<Metadata> {
   const article = await getArticleBySlug(params.slug);
   if (!article) return {};
   return createMetadata({
@@ -36,6 +36,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     publishedTime: article.published_at || undefined,
     modifiedTime: article.updated_at || undefined,
     section: article.category_name || undefined,
+    lang: params.lang as 'zh' | 'en',
   });
 }
 
@@ -84,11 +85,11 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
           <div className="mx-auto max-w-measure-wide">
             <nav className="yn-meta mb-5 flex flex-wrap gap-x-2 gap-y-1">
               <LocalizedLink href="/" className="yn-link">
-                首页
+                {dict.nav.home}
               </LocalizedLink>
               <span aria-hidden>/</span>
               <LocalizedLink href="/news" className="yn-link">
-                资讯
+                {dict.nav.newsSection}
               </LocalizedLink>
               {article.category_name && article.category_slug ? (
                 <>
@@ -131,14 +132,14 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
                 <span className="text-slate-400" aria-hidden>
                   ·
                 </span>
-                <span>{article.view_count} 阅读</span>
+                <span>{article.view_count} {dict.article.views}</span>
                 {article.source && article.source !== 'YayaNews' ? (
                   <>
                     <span className="text-slate-400" aria-hidden>
                       ·
                     </span>
                     <span>
-                      来源{' '}
+                      {dict.common.source}{' '}
                       {article.source_url ? (
                         <a
                           href={article.source_url}
@@ -208,10 +209,10 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
                   <div className="min-w-0">
                     <p className="yn-meta mb-2">{dict.article.disclaimerTitle}</p>
                     {article.source === 'YayaNews' || !article.source ? (
-                      <p className="yn-body">本文由 {siteConfig.siteName} 编辑整理发布，仅供信息参考，不构成投资建议。</p>
+                      <p className="yn-body">{dict.article.disclaimerSelf}</p>
                     ) : (
                       <p className="yn-body">
-                        本文转载或整理自{' '}
+                        {dict.article.disclaimerOther}
                         {article.source_url ? (
                           <a
                             href={article.source_url}
@@ -224,7 +225,7 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
                         ) : (
                           <span className="text-slate-800">{article.source}</span>
                         )}
-                        ，仅供信息参考，不构成投资建议。
+                        {dict.article.disclaimerSuffix}
                       </p>
                     )}
                   </div>
