@@ -10,9 +10,11 @@ export async function GET(req: NextRequest) {
 
   const sp = req.nextUrl.searchParams;
   const lang = sp.get('lang') || undefined;
+  const startDate = sp.get('start') || undefined;
+  const endDate = sp.get('end') || undefined;
 
   try {
-    const stats = await getDashboardStats(lang);
+    const stats = await getDashboardStats(lang, startDate, endDate);
     return NextResponse.json(stats);
   } catch (e: unknown) {
     return NextResponse.json({ error: String(e) }, { status: 500 });

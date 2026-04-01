@@ -24,65 +24,93 @@ export interface DashboardStats {
   processingStats: ProcessingStats;
 }
 
-export async function getDashboardStats(lang?: string): Promise<DashboardStats> {
-  const langCondA = lang && lang !== 'all' ? `WHERE lang = '${lang}'` : '';
-  const langCondAndA = lang && lang !== 'all' ? `AND lang = '${lang}'` : '';
-  const langCondF = lang && lang !== 'all' ? `WHERE lang = '${lang}'` : '';
-  const langCondAndF = lang && lang !== 'all' ? `AND lang = '${lang}'` : '';
-  const langCondAndAc = lang && lang !== 'all' ? `AND a.lang = '${lang}'` : '';
-  const langCondAndFc = lang && lang !== 'all' ? `AND f.lang = '${lang}'` : '';
-  const [{ c: totalArticles }] = await queryAll<{ c: number }>(`SELECT COUNT(*)::int as c FROM articles ${langCondA}`);
-  const [{ c: totalFlash }] = await queryAll<{ c: number }>(`SELECT COUNT(*)::int as c FROM flash_news ${langCondF}`);
-  const [{ c: totalViews }] = await queryAll<{ c: number }>(`SELECT COALESCE(SUM(view_count),0)::int as c FROM articles ${langCondA}`);
+export async function getDashboardStats(lang?: string, startDate?: string, endDate?: string): Promise<DashboardStats> {
+  const condsA: string[] = [];
+  const condsF: string[] = [];
+  
+  if (lang && lang !== 'all') {
+    condsA.push(`lang = '${lang}'`);
+    condsF.push(`lang = '${lang}'`);
+  }
+  
+  const isD = (s?: string) => s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  const sd = isD(startDate) ? startDate : null;
+  const ed = isD(endDate) ? endDate : null;
+  
+  if (sd) {
+    condsA.push(`date(created_at) >= '${sd}'::date`);
+    condsF.push(`date(published_at) >= '${sd}'::date`);
+  }
+  if (ed) {
+    condsA.push(`date(created_at) <= '${ed}'::date`);
+    condsF.push(`date(published_at) <= '${ed}'::date`);
+  }
+
+  const whereA = condsA.length > 0 ? `WHERE ${condsA.join(' AND ')}` : '';
+  const whereF = condsF.length > 0 ? `WHERE ${condsF.join(' AND ')}` : '';
+  const andA = condsA.length > 0 ? `AND ${condsA.join(' AND ')}` : '';
+  const andF = condsF.length > 0 ? `AND ${condsF.join(' AND ')}` : '';
+  
+  const catCondsA = condsA.map(c => typeof c === 'string' ? c.replace(/lang\ =/g, 'a.lang =').replace(/date\(created_at\)/g, 'date(a.created_at)') : '');
+  const catCondsF = condsF.map(c => typeof c === 'string' ? c.replace(/lang\ =/g, 'f.lang =').replace(/date\(published_at\)/g, 'date(f.published_at)') : '');
+  const andCatA = catCondsA.length > 0 ? `AND ${catCondsA.join(' AND ')}` : '';
+  const andCatF = catCondsF.length > 0 ? `AND ${catCondsF.join(' AND ')}` : '';
+
+  const [{ c: totalArticles }] = await queryAll<{ c: number }>(`SELECT COUNT(*)::int as c FROM articles ${whereA}`);
+  const [{ c: totalFlash }] = await queryAll<{ c: number }>(`SELECT COUNT(*)::int as c FROM flash_news ${whereF}`);
+  const [{ c: totalViews }] = await queryAll<{ c: number }>(`SELECT COALESCE(SUM(view_count),0)::int as c FROM articles ${whereA}`);
 
   const [{ c: todayArticles }] = await queryAll<{ c: number }>(
-    `SELECT COUNT(*)::int as c FROM articles WHERE date(created_at) = CURRENT_DATE ${langCondAndA}`
+    `SELECT COUNT(*)::int as c FROM articles WHERE date(created_at) = CURRENT_DATE ${lang && lang !== 'all' ? `AND lang = '${lang}'` : ''}`
   );
 
   const [{ c: todayFlash }] = await queryAll<{ c: number }>(
-    `SELECT COUNT(*)::int as c FROM flash_news WHERE date(published_at) = CURRENT_DATE ${langCondAndF}`
+    `SELECT COUNT(*)::int as c FROM flash_news WHERE date(published_at) = CURRENT_DATE ${lang && lang !== 'all' ? `AND lang = '${lang}'` : ''}`
   );
 
   const categoryStats = await queryAll<DashboardStats['categoryStats'][0]>(`
     SELECT c.slug, c.name,
-      (SELECT COUNT(*)::int FROM articles a WHERE a.category_id=c.id ${langCondAndAc}) as articles,
-      (SELECT COUNT(*)::int FROM flash_news f WHERE f.category_id=c.id ${langCondAndFc}) as flash
+      (SELECT COUNT(*)::int FROM articles a WHERE a.category_id=c.id ${andCatA}) as articles,
+      (SELECT COUNT(*)::int FROM flash_news f WHERE f.category_id=c.id ${andCatF}) as flash
     FROM categories c ORDER BY c.sort_order
   `);
 
   const recentArticles = await queryAll<Article & { category_name: string; category_slug: string }>(`
     SELECT a.*, c.name as category_name, c.slug as category_slug
     FROM articles a LEFT JOIN categories c ON a.category_id=c.id
-    ${lang && lang !== 'all' ? `WHERE a.lang = '${lang}'` : ''}
+    ${whereA}
     ORDER BY a.created_at DESC LIMIT 10
   `);
+
+  const trendStart = sd ? `'${sd}'::date` : `CURRENT_DATE - INTERVAL '6 days'`;
+  const trendEnd = ed ? `'${ed}'::date` : `CURRENT_DATE`;
 
   const dailyTrend = await queryAll<DashboardStats['dailyTrend'][0]>(`
     SELECT d.date::text,
       COALESCE(ac.cnt, 0)::int as articles,
       COALESCE(fc.cnt, 0)::int as flash
     FROM (
-      SELECT generate_series(CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE, '1 day')::date AS date
+      SELECT generate_series(${trendStart}, ${trendEnd}, '1 day')::date AS date
     ) d
-    LEFT JOIN (SELECT date(created_at) as dt, COUNT(*)::int as cnt FROM articles ${langCondA} GROUP BY dt) ac ON ac.dt=d.date
-    LEFT JOIN (SELECT date(published_at) as dt, COUNT(*)::int as cnt FROM flash_news ${langCondF} GROUP BY dt) fc ON fc.dt=d.date
+    LEFT JOIN (SELECT date(created_at) as dt, COUNT(*)::int as cnt FROM articles ${whereA} GROUP BY dt) ac ON ac.dt=d.date
+    LEFT JOIN (SELECT date(published_at) as dt, COUNT(*)::int as cnt FROM flash_news ${whereF} GROUP BY dt) fc ON fc.dt=d.date
     ORDER BY d.date
   `);
 
   const processingStats = await queryGet<ProcessingStats>(`
     SELECT
       (SELECT AVG(EXTRACT(EPOCH FROM (published_at - collected_at)))::int
-       FROM articles WHERE collected_at IS NOT NULL AND published_at IS NOT NULL) as "avgArticleSeconds",
+       FROM articles WHERE collected_at IS NOT NULL AND published_at IS NOT NULL ${andA}) as "avgArticleSeconds",
       (SELECT AVG(EXTRACT(EPOCH FROM (published_at - collected_at)))::int
-       FROM flash_news WHERE collected_at IS NOT NULL AND published_at IS NOT NULL) as "avgFlashSeconds",
+       FROM flash_news WHERE collected_at IS NOT NULL AND published_at IS NOT NULL ${andF}) as "avgFlashSeconds",
       (SELECT MAX(EXTRACT(EPOCH FROM (published_at - collected_at)))::int
-       FROM articles WHERE collected_at IS NOT NULL AND published_at IS NOT NULL) as "maxArticleSeconds",
+       FROM articles WHERE collected_at IS NOT NULL AND published_at IS NOT NULL ${andA}) as "maxArticleSeconds",
       (SELECT MAX(EXTRACT(EPOCH FROM (published_at - collected_at)))::int
-       FROM flash_news WHERE collected_at IS NOT NULL AND published_at IS NOT NULL) as "maxFlashSeconds",
+       FROM flash_news WHERE collected_at IS NOT NULL AND published_at IS NOT NULL ${andF}) as "maxFlashSeconds",
       (SELECT AVG(EXTRACT(EPOCH FROM (published_at - collected_at)))::int
-       FROM articles WHERE collected_at IS NOT NULL AND published_at IS NOT NULL AND date(created_at)=CURRENT_DATE) as "todayAvgArticleSeconds",
+       FROM articles WHERE collected_at IS NOT NULL AND published_at IS NOT NULL AND date(created_at)=CURRENT_DATE ${andA}) as "todayAvgArticleSeconds",
       (SELECT AVG(EXTRACT(EPOCH FROM (published_at - collected_at)))::int
-       FROM flash_news WHERE collected_at IS NOT NULL AND published_at IS NOT NULL AND date(created_at)=CURRENT_DATE) as "todayAvgFlashSeconds"
+       FROM flash_news WHERE collected_at IS NOT NULL AND published_at IS NOT NULL AND date(created_at)=CURRENT_DATE ${andF}) as "todayAvgFlashSeconds"
   `);
 
   return { totalArticles, totalFlash, totalViews, todayArticles, todayFlash, categoryStats, recentArticles, dailyTrend, processingStats: processingStats! };

@@ -63,14 +63,40 @@ export default function DashboardView({ onNavigate }: { onNavigate?: (tab: strin
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [lang, setLang] = useState<string>('all');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+
+  const setRange = (days: number) => {
+    if (days === 0) {
+      setStartDate('');
+      setEndDate('');
+      return;
+    }
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - days + 1);
+    
+    // adjust to local timezone YYYY-MM-DD
+    const fmt = (d: Date) => {
+      const offset = d.getTimezoneOffset() * 60000;
+      return new Date(d.getTime() - offset).toISOString().split('T')[0];
+    };
+    
+    setEndDate(fmt(end));
+    setStartDate(fmt(start));
+  };
 
   useEffect(() => {
     setLoading(true);
-    adminFetch(`/api/admin/stats?lang=${lang}`)
+    let url = `/api/admin/stats?lang=${lang}`;
+    if (startDate) url += `&start=${startDate}`;
+    if (endDate) url += `&end=${endDate}`;
+    
+    adminFetch(url)
       .then(r => r.json())
       .then(setStats)
       .finally(() => setLoading(false));
-  }, [lang]);
+  }, [lang, startDate, endDate]);
 
   if (loading) {
     return (
@@ -97,11 +123,34 @@ export default function DashboardView({ onNavigate }: { onNavigate?: (tab: strin
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <h2 className="text-xl font-bold text-white">数据概览</h2>
         
-        {/* Language Toggle Buttons */}
-        <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Date Picker */}
+          <div className="flex items-center bg-slate-900 rounded-lg p-1 border border-slate-700">
+            <button
+              onClick={() => setRange(0)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${!startDate ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            >全部历史</button>
+            <button
+              onClick={() => setRange(1)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${startDate && startDate === endDate ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            >今日</button>
+            <button
+              onClick={() => setRange(7)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${startDate && startDate !== endDate && !endDate.includes('1970') ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            >近7天</button>
+            
+            <div className="hidden sm:flex items-center gap-1 ml-2 pl-2 border-l border-slate-700">
+              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent text-xs text-slate-300 border-none outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" />
+              <span className="text-slate-500">-</span>
+              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent text-xs text-slate-300 border-none outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" />
+            </div>
+          </div>
+
+          {/* Language Toggle Buttons */}
+          <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700">
           <button
             onClick={() => setLang('all')}
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
@@ -127,15 +176,16 @@ export default function DashboardView({ onNavigate }: { onNavigate?: (tab: strin
             English
           </button>
         </div>
+        </div>
       </div>
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard label="文章总数" value={stats.totalArticles} sub={`今日 +${stats.todayArticles}`} color="bg-primary-500" />
-        <StatCard label="快讯总数" value={stats.totalFlash} sub={`今日 +${stats.todayFlash}`} color="bg-amber-500" />
-        <StatCard label="总浏览量" value={stats.totalViews.toLocaleString()} color="bg-emerald-500" />
-        <StatCard label="分类数" value={stats.categoryStats.length} color="bg-violet-500" />
-        <StatCard label="今日产量" value={stats.todayArticles + stats.todayFlash} sub="文章 + 快讯" color="bg-rose-500" />
+        <StatCard label={startDate ? "区间文章数" : "历史文章总数"} value={stats.totalArticles} sub={!startDate ? `今日 +${stats.todayArticles}` : undefined} color="bg-primary-500" />
+        <StatCard label={startDate ? "区间快讯数" : "历史快讯总数"} value={stats.totalFlash} sub={!startDate ? `今日 +${stats.todayFlash}` : undefined} color="bg-amber-500" />
+        <StatCard label={startDate ? "区间浏览量" : "历史总浏览量"} value={stats.totalViews.toLocaleString()} color="bg-emerald-500" />
+        <StatCard label="分类覆盖数" value={stats.categoryStats.length} color="bg-violet-500" />
+        <StatCard label={startDate ? "日均区间产量" : "历史今日峰均产量"} value={Math.round((stats.totalArticles + stats.totalFlash) / (stats.dailyTrend.length || 1))} sub="文章 + 快讯日均" color="bg-rose-500" />
       </div>
 
       {/* Processing time stats with link to speed dashboard */}
@@ -202,7 +252,7 @@ export default function DashboardView({ onNavigate }: { onNavigate?: (tab: strin
 
         {/* 7-day trend */}
         <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-          <h3 className="text-sm font-semibold text-white mb-4">近 7 天产量趋势</h3>
+          <h3 className="text-sm font-semibold text-white mb-4">{startDate && startDate !== endDate ? '区间产量趋势' : (startDate === endDate && startDate ? '单日产出明细' : '近 7 天产量趋势')}</h3>
           <div className="flex items-end gap-2 h-40">
             {stats.dailyTrend.map(day => {
               const articleH = maxTrend > 0 ? (day.articles / maxTrend) * 100 : 0;
