@@ -39,7 +39,7 @@ export function middleware(request: NextRequest) {
   
   // e.g. incoming request is /news
   // The new URL is now /zh/news
-  return NextResponse.redirect(request.nextUrl);
+  return NextResponse.redirect(request.nextUrl, 308);
 }
 
 export const config = {
