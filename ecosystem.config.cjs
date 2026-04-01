@@ -40,7 +40,12 @@ let pythonBin = mergedEnv.PYTHON_BIN || "python3";
 try {
   if (!path.isAbsolute(pythonBin)) {
     const whichCmd = process.platform === 'win32' ? 'where' : 'which';
-    pythonBin = require('child_process').execSync(`${whichCmd} ${pythonBin}`).toString().split('\n')[0].trim();
+    try {
+      pythonBin = require('child_process').execSync(`${whichCmd} ${pythonBin}`).toString().split('\n')[0].trim();
+    } catch (err) {
+      // If "python" fails (common on Ubuntu where only python3 exists), explicitly try python3
+      pythonBin = require('child_process').execSync(`${whichCmd} python3`).toString().split('\n')[0].trim();
+    }
   }
 } catch (e) {
   console.warn(`Could not resolve absolute path for ${pythonBin}, fallback to string value.`);
