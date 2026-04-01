@@ -92,7 +92,8 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
         <nav className="container-main flex min-h-[54px] items-center justify-start gap-7 lg:gap-10">
           <LocalizedLink href="/" className={`border-b pb-1 text-[15px] ${isActive('/') ? 'border-[#14261f] font-medium text-[#101713]' : 'border-transparent text-[#5d635f] hover:text-[#101713]'}`}>{dict.home}</LocalizedLink>
           <LocalizedLink href="/flash" className={`border-b pb-1 text-[15px] ${isActive('/flash') ? 'border-[#14261f] font-medium text-[#101713]' : 'border-transparent text-[#5d635f] hover:text-[#101713]'}`}>{dict.flash || '快讯'}</LocalizedLink>
-          {ORDERED_NAV_CATEGORIES.filter(item => item.href !== '/flash').slice(0, 5).map(item => {
+          <LocalizedLink href="/markets" className={`border-b pb-1 text-[15px] ${isActive('/markets') ? 'border-[#14261f] font-medium text-[#101713]' : 'border-transparent text-[#5d635f] hover:text-[#101713]'}`}>{dict.markets || '行情'}</LocalizedLink>
+          {ORDERED_NAV_CATEGORIES.filter(item => item.href !== '/flash' && item.href !== '/markets').slice(0, 4).map(item => {
             const slug = item.href.replace('/news/', '');
             return (
               <LocalizedLink
@@ -104,7 +105,6 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
               </LocalizedLink>
             );
           })}
-          <LocalizedLink href="/markets" className={`border-b pb-1 text-[15px] ${isActive('/markets') ? 'border-[#14261f] font-medium text-[#101713]' : 'border-transparent text-[#5d635f] hover:text-[#101713]'}`}>{dict.markets || '行情数据'}</LocalizedLink>
         </nav>
       </div>
 
@@ -116,7 +116,8 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
             </LocalizedLink>
             <LocalizedLink href="/" onClick={() => setMobileOpen(false)} className={`border-b border-[#e8e0d5] px-1 py-2.5 text-sm ${isActive('/') ? 'text-[#101713]' : 'text-[#5d635f] hover:text-[#101713]'}`}>{dict.home}</LocalizedLink>
             <LocalizedLink href="/flash" onClick={() => setMobileOpen(false)} className={`border-b border-[#e8e0d5] px-1 py-2.5 text-sm ${isActive('/flash') ? 'text-[#101713]' : 'text-[#5d635f] hover:text-[#101713]'}`}>{dict.flash || '快讯'}</LocalizedLink>
-            {ORDERED_NAV_CATEGORIES.filter(item => item.href !== '/flash').slice(0, 5).map(item => {
+            <LocalizedLink href="/markets" onClick={() => setMobileOpen(false)} className={`border-b border-[#e8e0d5] px-1 py-2.5 text-sm ${isActive('/markets') ? 'text-[#101713]' : 'text-[#5d635f] hover:text-[#101713]'}`}>{dict.markets || '行情'}</LocalizedLink>
+            {ORDERED_NAV_CATEGORIES.filter(item => item.href !== '/flash' && item.href !== '/markets').slice(0, 5).map(item => {
               const slug = item.href.replace('/news/', '');
               return (
                 <LocalizedLink
@@ -129,7 +130,6 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
                 </LocalizedLink>
               );
             })}
-            <LocalizedLink href="/markets" onClick={() => setMobileOpen(false)} className={`border-b border-[#e8e0d5] px-1 py-2.5 text-sm ${isActive('/markets') ? 'text-[#101713]' : 'text-[#5d635f] hover:text-[#101713]'}`}>{dict.markets || '行情数据'}</LocalizedLink>
             {utilityNavKeys.map(item => (
               <LocalizedLink
                 key={item.href}

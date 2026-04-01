@@ -29,10 +29,10 @@ export const AI_ENTRY = {
 
 export const ORDERED_NAV_CATEGORIES = [
   { label: '快讯', href: '/flash' },
+  { label: '行情', href: '/markets' },
   { label: '美股市场', href: '/news/us-stock' },
   { label: '港股 & 亚太', href: '/news/hk-stock' },
   { label: '衍生品与宏观', href: '/news/derivatives' },
   { label: '加密资产', href: '/news/crypto' },
   { label: 'AI与前沿科技', href: '/news/ai' },
-  { label: '其他', href: '/news/other' },
 ];
