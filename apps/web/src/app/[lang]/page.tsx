@@ -102,23 +102,26 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
 
 
 
-      <section className="border-b border-[#ddd5ca] bg-[#fbf8f4]">
-        <div className="container-main py-4">
-          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-            <span className="yn-meta">{dict.home.channelNav}</span>
-            <LocalizedLink href="/news" className="font-label text-xs font-semibold uppercase tracking-[0.14em] text-[#1d5c4f] hover:text-[#143d33]">
-              {dict.home.newsOverview || '资讯总览'}
-            </LocalizedLink>
-          </div>
-          <CategoryChipsRow items={chipItems} />
-        </div>
-      </section>
-
       <div className="container-main py-5 md:py-8 lg:py-10">
         <div className="grid gap-5 md:gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-12">
           <div className="space-y-5 md:space-y-8 lg:col-span-8 lg:space-y-10">
-            <BreakingStreamBlock items={flashStream} title={dict.home.flashTitle} emptyText={dict.news.noFlash || '暂无快讯'} actionLabel={dict.common.all || '全部'} lang={lang} />
-
+            <section>
+              <SectionHeader
+                title={dict.home.newestTitle}
+                emphasis="strong"
+                actionHref="/news"
+                actionLabel={`${dict.common.all} · ${totalArticles}`}
+              />
+              {listArticles.length > 0 ? (
+                <div className="space-y-3">
+                  {listArticles.map(a => (
+                    <ArticleCard key={a.id} article={a} dict={dict} />
+                  ))}
+                </div>
+              ) : (
+                <p className="py-10 text-center text-slate-500">{dict.common.noData}</p>
+              )}
+            </section>
 
             {spotlightArticles.length > 0 ? (
               <section className="border border-[#ddd5ca] bg-white px-4 py-5 md:px-5 md:py-6 sm:px-7">
@@ -140,24 +143,6 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
               </section>
             ) : null}
 
-            <section>
-              <SectionHeader
-                title={dict.home.newestTitle}
-                emphasis="strong"
-                actionHref="/news"
-                actionLabel={`${dict.common.all} · ${totalArticles}`}
-              />
-              {listArticles.length > 0 ? (
-                <div className="space-y-3">
-                  {listArticles.map(a => (
-                    <ArticleCard key={a.id} article={a} dict={dict} />
-                  ))}
-                </div>
-              ) : (
-                <p className="py-10 text-center text-slate-500">{dict.common.noData}</p>
-              )}
-            </section>
-
             {moreArticles.length > 0 ? (
               <section>
                 <SectionHeader title={dict.home.editorsPicks} emphasis="default" />
@@ -175,8 +160,9 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
               </LocalizedLink>
             </div>
           </div>
-
           <aside className="space-y-4 md:space-y-5 lg:col-span-4 lg:space-y-6">
+            <BreakingStreamBlock items={flashStream} title={dict.home.flashTitle} emptyText={dict.news.noFlash || '暂无快讯'} actionLabel={dict.common.all || '全部'} lang={lang} />
+
             {watchArticles.length > 0 ? (
               <RightRailPanel title={dict.home.marketWatch} accent actionHref="/news" actionLabel={dict.common.readMore}>
                 <ul className="divide-y divide-[#ece4d8]">

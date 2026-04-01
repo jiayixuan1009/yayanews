@@ -149,7 +149,8 @@ export default function BreakingStreamBlock({
       {visibleItems.length === 0 ? (
         <p className="py-6 text-center text-sm text-slate-500">{emptyText}</p>
       ) : (
-        <ul className="divide-y divide-[#ece4d8]">
+        <div className="max-h-[450px] overflow-y-auto pr-1 sm:pr-2 custom-scrollbar -mr-1 sm:-mr-2">
+          <ul className="divide-y divide-[#ece4d8]">
           {visibleItems.slice(0, 20).map(item => {
             if (!item?.id) return null;
             return (
@@ -175,7 +176,8 @@ export default function BreakingStreamBlock({
               </li>
             );
           })}
-        </ul>
+          </ul>
+        </div>
       )}
     </section>
   );
