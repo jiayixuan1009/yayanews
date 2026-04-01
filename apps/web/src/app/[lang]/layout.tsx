@@ -6,6 +6,7 @@ import Footer from '@/components/Footer';
 import Analytics from '@/components/Analytics';
 import '../globals.css';
 import { getDictionary } from '@/lib/dictionaries';
+import { Toaster } from 'sonner';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -49,6 +50,7 @@ export default async function RootLayout({
         <Header lang={params.lang} dict={dict.nav} />
         <main className="flex-1">{children}</main>
         <Footer lang={params.lang} dict={dict.footer} />
+        <Toaster position="bottom-right" theme="dark" closeButton />
       </body>
     </html>
   );
