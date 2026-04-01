@@ -1,13 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import type { FlashNews } from '@yayanews/types';
 import SectionHeader from './SectionHeader';
 import LocalizedLink from '@/components/LocalizedLink';
 import { encodeFlashSlug } from '@/lib/ui-utils';
 
+// ─── Category filter config ────────────────────────────────────────────────
+// Mapped from category_name in DB — covers the main groups users care about
+const FILTER_TAGS: { label: string; match: (name: string) => boolean }[] = [
+  { label: '美股',   match: n => n.includes('美股') },
+  { label: '港股',   match: n => n.includes('港股') || n.includes('亚太') },
+  { label: '加密货币', match: n => n.includes('加密') || n.toLowerCase().includes('crypto') || n.includes('比特') },
+  { label: '衍生品', match: n => n.includes('衍生') || n.includes('期货') || n.includes('期权') || n.includes('宏观') },
+];
+
 type Props = {
-  items: FlashNews[];
+  items?: FlashNews[];
   title?: string;
   emptyText?: string;
   actionLabel?: string;
@@ -18,19 +27,42 @@ function getCategoryBadgeLight(name?: string) {
   if (!name) return 'bg-[#f4ebe1] text-[#7c837d] border-[#ece4d8]';
   if (name.includes('美股')) return 'bg-blue-50 text-blue-600 border-blue-200';
   if (name.includes('加密') || name.includes('比特币') || name.toLowerCase().includes('crypto')) return 'bg-amber-50 text-amber-700 border-amber-200';
-  if (name.includes('港股')) return 'bg-rose-50 text-rose-600 border-rose-200';
-  if (name.includes('衍生品')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  if (name.includes('宏观')) return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+  if (name.includes('港股') || name.includes('亚太')) return 'bg-rose-50 text-rose-600 border-rose-200';
+  if (name.includes('衍生') || name.includes('宏观')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
   return 'bg-[#f4ebe1] text-[#7c837d] border-[#ece4d8]';
 }
 
-export default function BreakingStreamBlock({ items: initialItems, title = '快讯热流', emptyText = '暂无快讯', actionLabel = '全部', lang = 'zh' }: Props) {
-  const [items, setItems] = useState<FlashNews[]>(initialItems);
+export default function BreakingStreamBlock({
+  items: initialItems = [],
+  title = '7×24 快讯',
+  emptyText = '暂无快讯',
+  actionLabel = '全部快讯',
+  lang = 'zh',
+}: Props) {
+  const [allItems, setAllItems] = useState<FlashNews[]>(initialItems);
+  // Multi-select: set of selected tag labels. Empty = show all.
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
 
+  // ── Fetch fresh data from same API as FlashPage ──────────────────────────
+  const fetchFresh = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({ lang, limit: '60' });
+      const res = await fetch(`/api/flash?${params}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const incoming: FlashNews[] = data.items ?? [];
+      if (incoming.length > 0) setAllItems(incoming);
+    } catch { /* keep stale */ }
+  }, [lang]);
+
+  // Fetch on mount and every 30s
   useEffect(() => {
-    setItems(initialItems);
-  }, [initialItems]);
+    fetchFresh();
+    const timer = setInterval(fetchFresh, 30_000);
+    return () => clearInterval(timer);
+  }, [fetchFresh]);
 
+  // ── WebSocket live push ──────────────────────────────────────────────────
   useEffect(() => {
     if (typeof window === 'undefined') return;
     let ws: WebSocket;
@@ -39,44 +71,93 @@ export default function BreakingStreamBlock({ items: initialItems, title = '快�
       if (cancelled) return;
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       ws = new WebSocket(`${protocol}//${window.location.host}/ws/`);
-      ws.onerror = () => { /* silently ignore — WS not available in all deploy envs */ };
+      ws.onerror = () => { /* silently ignore */ };
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           if (data.channel && data.channel === `flash:new:${lang}`) {
             const newFlash = data.payload as FlashNews;
-            if (!newFlash || typeof newFlash !== 'object' || !newFlash.id) return;
-            setItems(prev => {
-              if (prev.find(p => p.id === newFlash.id || p.title === newFlash.title)) return prev;
-              const newList = [newFlash, ...prev].slice(0, 15);
-              return newList;
+            if (!newFlash?.id) return;
+            setAllItems(prev => {
+              if (prev.find(p => p.id === newFlash.id)) return prev;
+              return [newFlash, ...prev].slice(0, 60);
             });
           }
-        } catch (e) {}
+        } catch { /**/ }
       };
-      ws.onclose = () => {
-        if (!cancelled) setTimeout(connect, 3000);
-      };
+      ws.onclose = () => { if (!cancelled) setTimeout(connect, 3000); };
     };
     connect();
-    return () => {
-      cancelled = true;
-      ws?.close();
-    };
-  }, []);
+    return () => { cancelled = true; ws?.close(); };
+  }, [lang]);
+
+  // ── Multi-select category filtering ──────────────────────────────────────
+  const toggleTag = (label: string) => {
+    setSelectedTags(prev => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  };
+
+  const visibleItems = selectedTags.size === 0
+    ? allItems
+    : allItems.filter(item => {
+        const name = item.category_name ?? '';
+        return [...selectedTags].some(tag => {
+          const tagDef = FILTER_TAGS.find(t => t.label === tag);
+          return tagDef ? tagDef.match(name) : false;
+        });
+      });
 
   return (
     <section className="yn-panel p-4 sm:p-5">
       <SectionHeader title={title} emphasis="strong" actionHref="/flash" actionLabel={actionLabel} />
-      {items.length === 0 ? (
+
+      {/* Multi-select filter chips */}
+      <div className="mb-3 flex flex-wrap items-center gap-1.5">
+        {FILTER_TAGS.map(tag => {
+          const active = selectedTags.has(tag.label);
+          return (
+            <button
+              key={tag.label}
+              type="button"
+              onClick={() => toggleTag(tag.label)}
+              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-all ${
+                active
+                  ? 'border-[#0d3b30] bg-[#0d3b30] text-white shadow-sm'
+                  : 'border-[#ddd5ca] bg-[#f8f5f0] text-[#667067] hover:border-[#0d3b30]/40 hover:text-[#0d3b30]'
+              }`}
+            >
+              {active && <span className="text-[9px]">✓</span>}
+              {tag.label}
+            </button>
+          );
+        })}
+        {selectedTags.size > 0 && (
+          <button
+            type="button"
+            onClick={() => setSelectedTags(new Set())}
+            className="text-[11px] text-[#89908a] hover:text-[#0d3b30] underline underline-offset-2 transition-colors ml-1"
+          >
+            清除
+          </button>
+        )}
+      </div>
+
+      {visibleItems.length === 0 ? (
         <p className="py-6 text-center text-sm text-slate-500">{emptyText}</p>
       ) : (
         <ul className="divide-y divide-[#ece4d8]">
-          {items.map(item => {
-            if (!item || !item.id) return null;
+          {visibleItems.slice(0, 20).map(item => {
+            if (!item?.id) return null;
             return (
               <li key={item.id} className="py-3 first:pt-0">
-                <LocalizedLink href={`/flash/${encodeFlashSlug(item as any)}`} className="group grid grid-cols-[56px,1fr] gap-3 relative rounded-lg -mx-2 px-2 hover:bg-[#f8f3ea] transition-colors py-1 cursor-pointer">
+                <LocalizedLink
+                  href={`/flash/${encodeFlashSlug(item as any)}`}
+                  className="group grid grid-cols-[52px,1fr] gap-3 relative rounded-lg -mx-2 px-2 hover:bg-[#f8f3ea] transition-colors py-1 cursor-pointer"
+                >
                   <span className="font-label text-[11px] uppercase tracking-[0.16em] text-[#667067] pt-0.5">
                     {item.published_at?.slice(11, 16) ?? '—'}
                   </span>
