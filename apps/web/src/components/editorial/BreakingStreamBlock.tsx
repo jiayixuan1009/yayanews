@@ -8,12 +8,22 @@ import { encodeFlashSlug } from '@/lib/ui-utils';
 
 // ─── Category filter config ────────────────────────────────────────────────
 // Mapped from category_name in DB — covers the main groups users care about
-const FILTER_TAGS: { label: string; match: (name: string) => boolean }[] = [
-  { label: '美股',   match: n => n.includes('美股') },
-  { label: '港股',   match: n => n.includes('港股') || n.includes('亚太') },
-  { label: '加密货币', match: n => n.includes('加密') || n.toLowerCase().includes('crypto') || n.includes('比特') },
-  { label: '衍生品', match: n => n.includes('衍生') || n.includes('期货') || n.includes('期权') || n.includes('宏观') },
-];
+function getFilterTags(lang: string): { label: string; match: (name: string) => boolean }[] {
+  if (lang === 'en') {
+    return [
+      { label: 'US Stocks',   match: n => n.includes('美股') },
+      { label: 'HK & APAC',   match: n => n.includes('港股') || n.includes('亚太') },
+      { label: 'Crypto', match: n => n.includes('加密') || n.toLowerCase().includes('crypto') || n.includes('比特') },
+      { label: 'Derivatives', match: n => n.includes('衍生') || n.includes('期货') || n.includes('期权') || n.includes('宏观') },
+    ];
+  }
+  return [
+    { label: '美股',   match: n => n.includes('美股') },
+    { label: '港股',   match: n => n.includes('港股') || n.includes('亚太') },
+    { label: '加密货币', match: n => n.includes('加密') || n.toLowerCase().includes('crypto') || n.includes('比特') },
+    { label: '衍生品', match: n => n.includes('衍生') || n.includes('期货') || n.includes('期权') || n.includes('宏观') },
+  ];
+}
 
 type Props = {
   items?: FlashNews[];
@@ -31,6 +41,16 @@ function getCategoryBadgeLight(name?: string) {
   if (name.includes('港股') || name.includes('亚太')) return 'bg-rose-50 text-rose-600 border-rose-200';
   if (name.includes('衍生') || name.includes('宏观')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
   return 'bg-[#f4ebe1] text-[#7c837d] border-[#ece4d8]';
+}
+
+function translateCategoryName(name: string, lang: string) {
+  if (lang !== 'en' || !name) return name;
+  if (name.includes('美股')) return 'US Stocks';
+  if (name.includes('港股') || name.includes('亚太')) return 'HK & APAC';
+  if (name.includes('加密') || name.toLowerCase().includes('crypto')) return 'Crypto';
+  if (name.includes('衍生') || name.includes('期货') || name.includes('宏观')) return 'Derivatives';
+  if (name.includes('综合') || name.includes('其他')) return 'General';
+  return name;
 }
 
 export default function BreakingStreamBlock({
@@ -103,6 +123,7 @@ export default function BreakingStreamBlock({
   }, [lang]);
 
   // ── Multi-select category filtering ──────────────────────────────────────
+  const filterTags = getFilterTags(lang);
   const toggleTag = (label: string) => {
     setSelectedTags(prev => {
       const next = new Set(prev);
@@ -117,7 +138,7 @@ export default function BreakingStreamBlock({
     : allItems.filter(item => {
         const name = item.category_name ?? '';
         return Array.from(selectedTags).some(tag => {
-          const tagDef = FILTER_TAGS.find(t => t.label === tag);
+          const tagDef = filterTags.find(t => t.label === tag);
           return tagDef ? tagDef.match(name) : false;
         });
       });
@@ -127,7 +148,7 @@ export default function BreakingStreamBlock({
       <SectionHeader title={title} emphasis="strong" actionHref="/flash" actionLabel={actionLabel}>
         {/* Multi-select filter chips */}
         <div className="flex flex-wrap items-center gap-2">
-          {FILTER_TAGS.map(tag => {
+          {filterTags.map(tag => {
             const active = selectedTags.has(tag.label);
             return (
               <button
@@ -151,7 +172,7 @@ export default function BreakingStreamBlock({
               onClick={() => setSelectedTags(new Set())}
               className="text-[12px] text-[#89908a] hover:text-[#0d3b30] underline underline-offset-2 transition-colors ml-1"
             >
-              清除
+              {lang === 'en' ? 'Clear' : '清除'}
             </button>
           )}
           <div className="ml-auto flex items-center gap-1.5 text-[11px] text-[#89908a]">
@@ -183,7 +204,7 @@ export default function BreakingStreamBlock({
                   <div className="min-w-0">
                     {item.category_name && (
                       <span className={`inline-block mb-1 px-1.5 py-0.5 rounded border text-[10px] font-medium leading-none ${getCategoryBadgeLight(item.category_name)}`}>
-                        {item.category_name}
+                        {translateCategoryName(item.category_name, lang)}
                       </span>
                     )}
                     <p className="font-body text-sm font-medium leading-6 text-slate-800 line-clamp-2 group-hover:text-[#1d5c4f] transition-colors">

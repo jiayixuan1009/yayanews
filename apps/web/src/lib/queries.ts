@@ -155,22 +155,40 @@ export async function getPublishedArticleMaxId(lang: string = 'zh'): Promise<num
 
 export async function getFlashNews(lang: string = 'zh', limit = 50, categorySlug?: string): Promise<FlashNews[]> {
   if (categorySlug) {
-    const list = await queryAll(`
+    let list = await queryAll(`
       SELECT f.*, c.name as category_name
       FROM flash_news f
       LEFT JOIN categories c ON f.category_id = c.id
       WHERE c.slug = $1 AND f.lang = $2
       ORDER BY f.published_at DESC LIMIT $3
     `, [categorySlug, lang, limit]) as FlashNews[];
+    if (list.length === 0 && lang !== 'zh') {
+      list = await queryAll(`
+        SELECT f.*, c.name as category_name
+        FROM flash_news f
+        LEFT JOIN categories c ON f.category_id = c.id
+        WHERE c.slug = $1 AND f.lang = 'zh'
+        ORDER BY f.published_at DESC LIMIT $3
+      `, [categorySlug, limit]) as FlashNews[];
+    }
     return list.map(formatArticleDates);
   }
-  const list2 = await queryAll(`
+  let list2 = await queryAll(`
     SELECT f.*, c.name as category_name
     FROM flash_news f
     LEFT JOIN categories c ON f.category_id = c.id
     WHERE f.lang = $1
     ORDER BY f.published_at DESC LIMIT $2
   `, [lang, limit]) as FlashNews[];
+  if (list2.length === 0 && lang !== 'zh') {
+    list2 = await queryAll(`
+      SELECT f.*, c.name as category_name
+      FROM flash_news f
+      LEFT JOIN categories c ON f.category_id = c.id
+      WHERE f.lang = 'zh'
+      ORDER BY f.published_at DESC LIMIT $2
+    `, [limit]) as FlashNews[];
+  }
   return list2.map(formatArticleDates);
 }
 

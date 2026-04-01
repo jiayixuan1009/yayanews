@@ -28,7 +28,7 @@ function DepthBadge({ type, dict }: { type: string, dict: Record<string, any> })
 }
 
 export default function ArticleCard({ article, featured = false, priority = false, dict = {} }: { article: Article; featured?: boolean; priority?: boolean; dict?: any }) {
-  const coverSrc = getArticleCoverSrc(article.cover_image);
+  const coverSrc = getArticleCoverSrc(article.cover_image, article.lang);
   const coverOpt = isRemoteImageOptimizable(coverSrc);
   const hasRealCover = articleHasRealCover(article.cover_image);
 
