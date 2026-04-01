@@ -1,7 +1,7 @@
 'use client';
-
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 export default function SiteLiveSubscriber() {
   const router = useRouter();
@@ -20,6 +20,24 @@ export default function SiteLiveSubscriber() {
           const data = JSON.parse(event.data);
           if (data.channel && data.channel.startsWith('article:new')) {
             router.refresh();
+            if (data.payload?.title) {
+              toast('📰 最新深度文章', {
+                description: data.payload.title,
+                duration: 6000,
+                action: data.payload.slug ? {
+                  label: '立即阅读',
+                  onClick: () => window.open(`/article/${data.payload.slug}`, '_blank'),
+                } : undefined,
+              });
+            }
+          } else if (data.channel && data.channel.startsWith('flash:new')) {
+            router.refresh();
+            if (data.payload?.title || data.payload?.content) {
+              toast('⚡ 突发快讯', {
+                description: data.payload.title || data.payload.content,
+                duration: 5000,
+              });
+            }
           }
         } catch (e) {}
       };
