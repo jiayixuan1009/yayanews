@@ -54,7 +54,7 @@ export const revalidate = 0;
 
 export default async function HomePage({ params: { lang } }: { params: { lang: string } }) {
   const dict = await getDictionary(lang as any);
-  const articles = await getPublishedArticles(lang, 23);
+  const articles = await getPublishedArticles(lang, 26);
   const flashStream = await getFlashNews(lang, 12);
   const topics = await getTopics(6);
   const categories = await getCategoriesOrdered();
@@ -82,9 +82,9 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
   const lead = articles[0];
   const secondaries = articles.slice(1, 5);
   const listArticles = articles.slice(5, 13);
-  const watchArticles = articles.slice(13, 19);
-  const spotlightArticles = articles.slice(8, 12);
-  const moreArticles = articles.slice(19);
+  const spotlightArticles = articles.slice(13, 16);
+  const watchArticles = articles.slice(16, 22);
+  const moreArticles = articles.slice(22, 26);
   const flashMaxId = await getFlashMaxId(lang);
   const articleMaxId = await getPublishedArticleMaxId(lang);
   const leadTopic = topics[0];
