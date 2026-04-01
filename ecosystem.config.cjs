@@ -130,7 +130,7 @@ module.exports = {
       min_uptime: "10s",
       max_memory_restart: "800M",
       kill_timeout: 10000,
-      env: { ...mergedEnv, RQ_QUEUES: "yayanews:articles" },
+      env: { ...mergedEnv, RQ_QUEUES: "yayanews:articles:high,yayanews:articles:default,yayanews:articles:low,yayanews:articles" },
     },
   ],
 };

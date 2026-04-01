@@ -5,19 +5,36 @@ from redis import Redis
 from rq import Queue
 from pipeline.utils.redis_conn import get_redis_connection
 
+def calculate_priority(topic: dict) -> str:
+    """Evaluate topic features and assign a queue priority."""
+    source = topic.get('source', '')
+    type_ = topic.get('type', '')
+    category = topic.get('category_slug', '')
+    
+    # AI发散的长篇干货分析，没有极强的时效要求，丢进慢速通道
+    if type_ == 'deep':
+        return 'low'
+        
+    # 如果是爬虫或外媒 API 抓来的真新闻碎片（且非深度文），必须抢第一线时效
+    if source != 'ai_generated' or category in ['us-stock', 'crypto']:
+        return 'high'
+        
+    return 'default'
+
 def task_collect_and_enqueue_articles(batch_size: int = 10):
-    """供 RQ 队列调用的阶段一解耦任务：仅采集选题，然后将选题独立打散投放到文章队列排队执行。"""
+    """供 RQ 队列调用的阶段一解耦任务：仅采集选题，然后依据优先级规则分发。"""
     topics = run_collect_topics(batch_size=batch_size)
     if not topics:
         return "No topics collected"
         
     conn = get_redis_connection()
-    q = Queue('yayanews:articles', connection=conn)
     
     for topic in topics:
+        prio = calculate_priority(topic)
+        q = Queue(f'yayanews:articles:{prio}', connection=conn)
         q.enqueue(task_process_single_article, topic=topic, job_timeout=1200)
         
-    return f"Enqueued {len(topics)} individual article generation jobs"
+    return f"Enqueued {len(topics)} individual article generation jobs across priority logic"
 
 def task_process_single_article(topic: dict):
     """供 RQ 队列调用的原子任务：专注于写一篇文章。"""
