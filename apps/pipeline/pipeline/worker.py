@@ -13,7 +13,14 @@ def main():
     print(f"Starting YayaNews RQ Worker on queues: {listen}", flush=True)
     queues = [Queue(name.strip(), connection=conn) for name in listen]
     worker = Worker(queues, connection=conn)
-    worker.work(with_scheduler=True)
+    is_primary = os.environ.get('NODE_APP_INSTANCE', '0') == '0'
+    try:
+        worker.work(with_scheduler=is_primary)
+    except ValueError as e:
+        if 'scheduler' in str(e).lower():
+            worker.work(with_scheduler=False)
+        else:
+            raise
 
 if __name__ == '__main__':
     main()
