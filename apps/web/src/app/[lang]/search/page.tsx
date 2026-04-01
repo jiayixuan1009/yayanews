@@ -3,32 +3,47 @@ import LocalizedLink from '@/components/LocalizedLink';
 import { searchArticles, getPopularTags } from '@/lib/queries';
 import ArticleCard from '@/components/ArticleCard';
 import SectionHeader from '@/components/editorial/SectionHeader';
+import { getDictionary } from '@/lib/dictionaries';
+import { createMetadata } from '@yayanews/seo';
 
-export const metadata: Metadata = {
-  title: '搜索',
-  description: '搜索YayaNews金融新闻资讯，覆盖美股、港股、加密货币、衍生品市场',
-  alternates: { canonical: '/search' },
-  robots: { index: false, follow: true },
-};
-
-const HOT_SEARCHES = [
+const HOT_SEARCHES_ZH = [
   '比特币', 'NVIDIA', '美联储', '黄金', '港股', '以太坊',
   '特斯拉', '降息', 'ETF', '原油',
 ];
 
-export default async function SearchPage({ searchParams }: { searchParams: { q?: string } }) {
+const HOT_SEARCHES_EN = [
+  'Bitcoin', 'NVIDIA', 'Fed', 'Gold', 'HK Stocks', 'Ethereum',
+  'Tesla', 'Rate Cut', 'ETF', 'Crude Oil',
+];
+
+export function generateMetadata({ params }: { params: { lang: string } }): Metadata {
+  const isZh = params.lang !== 'en';
+  return createMetadata({
+    title: isZh ? '搜索' : 'Search',
+    description: isZh
+      ? '搜索YayaNews金融新闻资讯，覆盖美股、港股、加密货币、衍生品市场'
+      : 'Search YayaNews financial news covering US stocks, HK stocks, crypto and derivatives.',
+    url: '/search',
+    noIndex: true,
+    lang: params.lang as 'zh' | 'en',
+  });
+}
+
+export default async function SearchPage({ searchParams, params }: { searchParams: { q?: string }; params: { lang: string } }) {
+  const dict = await getDictionary(params.lang as any);
   const query = searchParams.q?.trim() || '';
   const results = query ? await searchArticles(query) : [];
   const popularTags = !query ? await getPopularTags(20) : [];
+  const hotSearches = params.lang === 'en' ? HOT_SEARCHES_EN : HOT_SEARCHES_ZH;
 
   return (
     <div className="container-main py-6 sm:py-8">
       <header className="mb-6 border-b border-slate-800 pb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">搜索</h1>
-        <p className="mt-2 text-sm text-slate-400">全文检索与标签发现；工具页不铺品牌插画。</p>
+        <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">{dict.search.heading}</h1>
+        <p className="mt-2 text-sm text-slate-400">{dict.search.subtitle}</p>
       </header>
 
-      <form action="/search" method="GET" className="mb-8">
+      <form action={`/${params.lang}/search`} method="GET" className="mb-8">
         <div className="flex flex-col gap-2 sm:flex-row">
           <div className="relative flex-1">
             <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,13 +53,13 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
               type="text"
               name="q"
               defaultValue={query}
-              placeholder="输入关键词…"
+              placeholder={dict.search.placeholder}
               autoFocus
               className="w-full rounded-yn-md border border-slate-700/90 bg-slate-900/80 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:border-emerald-700/60 focus:outline-none focus:ring-1 focus:ring-emerald-800/40"
             />
           </div>
           <button type="submit" className="btn-primary shrink-0 rounded-yn-md text-sm">
-            搜索
+            {dict.search.button}
           </button>
         </div>
       </form>
@@ -53,9 +68,9 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
         <>
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm text-gray-400">
-              &ldquo;{query}&rdquo; 的搜索结果：{results.length} 篇
+              {dict.search.resultsSummary.replace('{query}', query).replace('{count}', String(results.length))}
             </p>
-            <LocalizedLink href="/search" className="text-xs text-slate-500 hover:text-slate-300">清除搜索</LocalizedLink>
+            <LocalizedLink href="/search" className="text-xs text-slate-500 hover:text-slate-300">{dict.search.clearSearch}</LocalizedLink>
           </div>
           {results.length > 0 ? (
             <div className="space-y-3">
@@ -63,10 +78,10 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
             </div>
           ) : (
             <div className="text-center py-16">
-              <p className="text-gray-500 mb-4">未找到与 &ldquo;{query}&rdquo; 相关的文章</p>
-              <p className="text-sm text-slate-600">试试其他关键词，或浏览热门搜索</p>
+              <p className="text-gray-500 mb-4">{dict.search.noResults.replace('{query}', query)}</p>
+              <p className="text-sm text-slate-600">{dict.search.noResultsTip}</p>
               <div className="flex flex-wrap justify-center gap-2 mt-4">
-                {HOT_SEARCHES.map(kw => (
+                {hotSearches.map(kw => (
                   <LocalizedLink
                     key={kw}
                     href={`/search?q=${encodeURIComponent(kw)}`}
@@ -82,9 +97,9 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
       ) : (
         <div className="space-y-8">
           <section>
-            <SectionHeader title="热门搜索" emphasis="strong" />
+            <SectionHeader title={dict.search.hotSearches} emphasis="strong" />
             <div className="flex flex-wrap gap-2">
-              {HOT_SEARCHES.map(kw => (
+              {hotSearches.map(kw => (
                 <LocalizedLink
                   key={kw}
                   href={`/search?q=${encodeURIComponent(kw)}`}
@@ -98,7 +113,7 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
 
           {popularTags.length > 0 ? (
             <section>
-              <SectionHeader title="数据库热门标签" emphasis="default" />
+              <SectionHeader title={dict.search.dbTags} emphasis="default" />
               <div className="flex flex-wrap gap-1.5">
                 {popularTags.map(tag => (
                   <LocalizedLink
