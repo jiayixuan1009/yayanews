@@ -109,7 +109,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
             emptyText={dict.news.noFlash || '暂无快讯'}
             actionLabel={dict.common.all || '全部'}
             lang={lang}
-            className="flex-1 h-full max-h-full"
+            className="flex-none h-[400px] w-full overflow-hidden"
           />
         }
       />      <div className="container-main py-5 md:py-8 lg:py-10">

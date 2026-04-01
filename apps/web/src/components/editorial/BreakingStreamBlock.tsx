@@ -44,6 +44,7 @@ export default function BreakingStreamBlock({
   const [allItems, setAllItems] = useState<FlashNews[]>(initialItems);
   // Multi-select: set of selected tag labels. Empty = show all.
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  const [countdown, setCountdown] = useState(60);
 
   // ── Fetch fresh data from same API as FlashPage ──────────────────────────
   const fetchFresh = useCallback(async () => {
@@ -63,6 +64,14 @@ export default function BreakingStreamBlock({
     const timer = setInterval(fetchFresh, 30_000);
     return () => clearInterval(timer);
   }, [fetchFresh]);
+
+  // Visual countdown timer (60s loop)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown(prev => prev <= 1 ? 60 : prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // ── WebSocket live push ──────────────────────────────────────────────────
   useEffect(() => {
@@ -145,6 +154,13 @@ export default function BreakingStreamBlock({
               清除
             </button>
           )}
+          <div className="ml-auto flex items-center gap-1.5 text-[11px] text-[#89908a]">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            {countdown}s
+          </div>
         </div>
       </SectionHeader>
 
