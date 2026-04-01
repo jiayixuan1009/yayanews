@@ -42,10 +42,7 @@ export default async function RootLayout({
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:wght@400;600;700&family=Public+Sans:wght@400;500;600;700&display=swap"
         />
-        {/* hreflang alternates */}
-        <link rel="alternate" hrefLang="zh-CN" href={`${siteConfig.siteUrl}/zh`} />
-        <link rel="alternate" hrefLang="en-US" href={`${siteConfig.siteUrl}/en`} />
-        <link rel="alternate" hrefLang="x-default" href={`${siteConfig.siteUrl}/zh`} />
+        {/* hreflang alternates are managed per-page via createMetadata().alternates.languages */}
       </head>
       <body className="flex min-h-screen flex-col bg-[#f6f3ee] font-body text-slate-900">
         <Analytics />
