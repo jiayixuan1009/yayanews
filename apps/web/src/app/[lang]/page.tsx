@@ -17,6 +17,7 @@ import SiteLiveSubscriber from '@/components/SiteLiveSubscriber';
 import CtaBanner from '@/components/CtaBanner';
 import HomeHeroEditorial from '@/components/editorial/HomeHeroEditorial';
 import BreakingStreamBlock from '@/components/editorial/BreakingStreamBlock';
+import { stripHtml } from '@/lib/ui-utils';
 import CategoryChipsRow from '@/components/editorial/CategoryChipsRow';
 import TopicBanner from '@/components/editorial/TopicBanner';
 import RightRailPanel from '@/components/editorial/RightRailPanel';
@@ -122,7 +123,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
                       <h3 className="font-display text-[1.85rem] font-semibold leading-[1.03] tracking-[-0.04em] text-[#13211b] group-hover:text-[#1d5c4f]">
                         {item.title}
                       </h3>
-                      {item.summary ? <p className="mt-3 text-sm leading-7 text-slate-600 line-clamp-4">{item.summary}</p> : null}
+                      {item.summary ? <p className="mt-3 text-sm leading-7 text-slate-600 line-clamp-4">{stripHtml(item.summary)}</p> : null}
                       <div className="mt-4 flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-[#7c837d]">
                         <span className="inline-flex h-3.5 w-3.5 rounded-full bg-[#c8d0c7]" />
                         <span>{item.author}</span>
