@@ -1,5 +1,6 @@
 import { getDictionary } from '@/lib/dictionaries';
 import type { Metadata } from 'next';
+import { createMetadata } from '@yayanews/seo';
 import LocalizedLink from '@/components/LocalizedLink';
 import {
   getPublishedArticles,
@@ -15,12 +16,17 @@ import ChannelHeader from '@/components/editorial/ChannelHeader';
 import RightRailPanel from '@/components/editorial/RightRailPanel';
 import SectionHeader from '@/components/editorial/SectionHeader';
 
-export const metadata: Metadata = {
-  title: '最新资讯',
-  description: '最新金融资讯，覆盖美股、港股、加密货币、衍生品与大宗商品市场动态',
-  alternates: { canonical: '/news' },
-  openGraph: { title: '最新资讯 | YayaNews', description: '全球金融市场最新动态与深度分析' },
-};
+export function generateMetadata({ params }: { params: { lang: string } }): Metadata {
+  const isZh = params.lang !== 'en';
+  return createMetadata({
+    title: isZh ? '最新资讯' : 'Latest News',
+    description: isZh
+      ? '最新金融资讯，覆盖美股、港股、加密货币、衍生品与大宗商品市场动态'
+      : 'Latest financial news covering US stocks, HK stocks, crypto, derivatives and commodities.',
+    url: '/news',
+    lang: params.lang as 'zh' | 'en',
+  });
+}
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 60;
@@ -69,7 +75,7 @@ export default async function NewsPage({
           href="/news"
           className="badge border border-emerald-800/50 bg-emerald-950/30 text-emerald-300"
         >
-          全部
+          {dict.common.all}
         </LocalizedLink>
         {categories.map(c => (
           <LocalizedLink
@@ -137,18 +143,18 @@ export default async function NewsPage({
                     href={`/news?page=${page - 1}${depthFilter ? `&type=${depthFilter}` : ''}`}
                     className="btn-primary text-sm"
                   >
-                    ← 上一页
+                    {dict.common.prevPage}
                   </LocalizedLink>
                 )}
                 <span className="yn-meta px-2">
-                  第 {page} / {totalPages} 页
+                  {dict.common.pageIndicator.replace('{page}', String(page)).replace('{totalPages}', String(totalPages))}
                 </span>
                 {page < totalPages && (
                   <LocalizedLink
                     href={`/news?page=${page + 1}${depthFilter ? `&type=${depthFilter}` : ''}`}
                     className="btn-primary text-sm"
                   >
-                    下一页 →
+                    {dict.common.nextPage}
                   </LocalizedLink>
                 )}
               </div>

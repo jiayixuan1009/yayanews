@@ -19,7 +19,8 @@
     "subscribe": "Subscribe",
     "searchArchive": "Search archive",
     "marketIntelligence": "Asia's Fastest Financial News",
-    "dailyDispatch": "Daily Financial Dispatch"
+    "dailyDispatch": "Daily Financial Dispatch",
+    "newsSection": "News"
   },
   "home": {
     "livingArchive": "THE LIVING ARCHIVE",
@@ -56,6 +57,8 @@
     "dailyCurations": "Daily Curations"
   },
   "news": {
+    "pageTitle": "Latest News",
+    "pageDescription": "Latest financial news covering US stocks, HK stocks, crypto, derivatives and commodities.",
     "todayFocus": "Today's Focus",
     "newsList": "News List",
     "flashSnippets": "Flash Snippets",
@@ -68,6 +71,10 @@
     "channelIndex": "Channel index",
     "live": "Live Feed",
     "noCategoryNews": "No articles in this category."
+  },
+  "flash": {
+    "metaSuffix": "24H Flash",
+    "viewSource": "View original source"
   },
   "categoryMeta": {
     "us-stock": {
