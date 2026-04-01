@@ -105,7 +105,7 @@ export default function BreakingStreamBlock({
     ? allItems
     : allItems.filter(item => {
         const name = item.category_name ?? '';
-        return [...selectedTags].some(tag => {
+        return Array.from(selectedTags).some(tag => {
           const tagDef = FILTER_TAGS.find(t => t.label === tag);
           return tagDef ? tagDef.match(name) : false;
         });

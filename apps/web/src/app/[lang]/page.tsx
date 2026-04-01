@@ -1,5 +1,7 @@
 import { getDictionary } from '@/lib/dictionaries';
 import LocalizedLink from '@/components/LocalizedLink';
+import type { Metadata } from 'next';
+import { createMetadata } from '@yayanews/seo';
 import dynamic from 'next/dynamic';
 import {
   getPublishedArticles,
@@ -22,7 +24,19 @@ import CategoryChipsRow from '@/components/editorial/CategoryChipsRow';
 import TopicBanner from '@/components/editorial/TopicBanner';
 import RightRailPanel from '@/components/editorial/RightRailPanel';
 import SectionHeader from '@/components/editorial/SectionHeader';
-import { siteConfig } from '@yayanews/types';
+import { siteConfig, SITE_NAME_ZH, SITE_NAME_EN, SITE_SLOGAN_ZH } from '@yayanews/types';
+
+export function generateMetadata({ params: { lang } }: { params: { lang: 'zh' | 'en' } }): Metadata {
+  return createMetadata({
+    title: `${lang === 'en' ? 'Home' : '首页'}`, // Usually overridden by template, but good practice
+    description: lang === 'en' 
+      ? 'The Fastest Financial News — Trusted by Investors. Real-time dynamic coverage of US stocks, Hong Kong stocks, crypto and derivatives.'
+      : siteConfig.description,
+    url: lang === 'en' ? '/en' : '/zh',
+    lang,
+    type: 'website',
+  });
+}
 
 const LiveTicker = dynamic(() => import('@/components/LiveTicker'), {
   ssr: false,

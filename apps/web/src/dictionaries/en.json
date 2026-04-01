@@ -22,6 +22,8 @@
     "dailyDispatch": "Daily Financial Dispatch"
   },
   "home": {
+    "livingArchive": "THE LIVING ARCHIVE",
+    "curatedIntel": "CURATED INTEL",
     "flashTitle": "24H Flash News",
     "flashDesc": "Real-time global financial market updates",
     "moreFlash": "More Flash News",
