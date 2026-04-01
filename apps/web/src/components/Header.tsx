@@ -94,20 +94,25 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
                 </LocalizedLink>
               );
             })}
-          </nav>
-          <div className="flex items-center gap-6 text-[13px] text-[#5d635f]">
             {utilityNavKeys.map(item => (
-              <LocalizedLink key={item.href} href={item.href} className={isActive(item.href) ? 'text-[#101713] font-medium' : 'hover:text-[#101713] transition-colors'}>
+              <LocalizedLink
+                key={item.href}
+                href={item.href}
+                className={`border-b pb-1 text-[15px] ${isActive(item.href) ? 'border-[#14261f] font-medium text-[#101713]' : 'border-transparent text-[#5d635f] hover:text-[#101713]'}`}
+              >
                 {dict[item.key] || item.key}
               </LocalizedLink>
             ))}
-            <a href="/admin" className="flex items-center gap-1.5 hover:text-[#101713] transition-colors" title="管理后台">
+            <a href="/admin" className="flex items-center gap-1.5 border-b border-transparent pb-1 text-[15px] text-[#5d635f] transition-colors hover:text-[#101713]" title="管理后台">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               后台
             </a>
+          </nav>
+          <div className="flex items-center gap-6 text-[13px] text-[#5d635f]">
+            {/* Sign in and subscribe moved to layout Header top right implicitly, wait, the "Sign In" is not here, it is in line 82. I can just leave this empty, or just return an empty div. Actually wait... */}
           </div>
         </div>
       </div>

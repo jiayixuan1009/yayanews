@@ -26,7 +26,7 @@ function SecondaryFeature({ article, dict }: { article: Article; dict?: any }) {
   const cover = getArticleCoverSrc(article.cover_image);
   const optimizable = isRemoteImageOptimizable(cover);
   return (
-    <LocalizedLink href={`/article/${article.slug}`} className="group grid gap-4 border-t border-[#ddd5ca] pt-4 sm:grid-cols-[1.1fr,1fr] sm:items-start">
+    <LocalizedLink href={`/article/${article.slug}`} className="group flex flex-col gap-3">
       <div className="relative aspect-[16/10] overflow-hidden border border-[#d8d1c5] bg-[#e9e3d8]">
         <Image src={cover} alt={article.title} fill sizes="(max-width: 768px) 100vw, 26vw" className="object-cover transition duration-500 group-hover:scale-[1.02]" unoptimized={cover.endsWith('.svg') || !optimizable} />
       </div>
@@ -105,6 +105,13 @@ export default function HomeHeroEditorial({ lead, secondaries, dict = {} }: Prop
                   </LocalizedLink>
                 </div>
 
+                {/* Sub Features Section (moved under summary) */}
+                {lowerFeatures.length > 0 ? (
+                  <div className="mt-2 grid gap-4 sm:grid-cols-2 sm:gap-6 border-t border-[#dfd8ce] pt-5">
+                    {lowerFeatures.map(item => <SecondaryFeature key={item.id} article={item} dict={dict} />)}
+                  </div>
+                ) : null}
+
               </div>
 
               {/* Right Rail: Hot Stream & Mascot */}
@@ -152,11 +159,6 @@ export default function HomeHeroEditorial({ lead, secondaries, dict = {} }: Prop
               </div>
             </div>
 
-            {lowerFeatures.length > 0 ? (
-              <div className="mt-5 md:mt-8 grid gap-4 md:gap-6 lg:grid-cols-2 lg:gap-8">
-                {lowerFeatures.map(item => <SecondaryFeature key={item.id} article={item} dict={dict} />)}
-              </div>
-            ) : null}
           </>
         ) : (
           <div className="rounded-[2px] border border-[#ddd5ca] bg-white p-8 text-center text-sm text-slate-500">{dict.home?.noLead || 'Headline article in preparation'}</div>
