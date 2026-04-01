@@ -261,14 +261,15 @@ export default function PipelineView() {
 
       {/* 3. Main 3-Column Content - Fill Remaining Height */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 flex-1 min-h-0 lg:overflow-hidden">
-         {/* Column 1: Sources & Flash */}
-         <div className="flex flex-col gap-3 lg:overflow-y-auto pr-1">
-            <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
+         
+         {/* Left 2 Cols: Sources & Flash & Dual Queues */}
+         <div className="lg:col-span-2 flex flex-col gap-3 min-h-0 lg:overflow-y-auto pr-1">
+            <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3 shrink-0">
                <h3 className="text-sm font-semibold text-white mb-2 pb-1 border-b border-slate-800 flex items-center justify-between">
                  <span>API 通道雷达矩阵</span>
                  <span className="text-xs text-cyan-500 font-normal">Blue Matrix</span>
                </h3>
-               <div className="grid grid-cols-2 gap-2">
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                  {apiSources.map(s => renderSourceCard(s, false))}
                </div>
                
@@ -276,12 +277,12 @@ export default function PipelineView() {
                  <span>RSS 通道雷达矩阵</span>
                  <span className="text-xs text-amber-500 font-normal">Amber Matrix</span>
                </h3>
-               <div className="grid grid-cols-2 gap-2">
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                  {rssSources.map(s => renderSourceCard(s, true))}
                </div>
             </div>
 
-            <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
+            <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3 shrink-0">
                <h3 className="text-sm font-semibold text-white mb-2">快讯流水线流程</h3>
                <div className="flex gap-2">
                  {FLASH_STEPS.map((s, i) => {
@@ -295,47 +296,47 @@ export default function PipelineView() {
                  })}
                </div>
             </div>
-         </div>
 
-         {/* Column 2: Dual Queues (Scrollable inner) */}
-         <div className="flex flex-col gap-3 min-h-0">
-            <div className="rounded-lg border border-amber-900/30 bg-slate-900/50 p-3 flex flex-col flex-1 min-h-[150px]">
-              <div className="flex justify-between mb-2 shrink-0">
-                <h3 className="text-sm font-semibold text-amber-300">待处理队列 (Draft/Review)</h3>
-                <span className="text-xs text-slate-500 bg-slate-800 px-1.5 rounded">{queues.pending.length}</span>
+            {/* Bottom: Dual Queues side by side */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 min-h-0">
+              <div className="rounded-lg border border-amber-900/30 bg-slate-900/50 p-3 flex flex-col min-h-[150px]">
+                <div className="flex justify-between mb-2 shrink-0">
+                  <h3 className="text-sm font-semibold text-amber-300">待处理队列 (Draft/Review)</h3>
+                  <span className="text-xs text-slate-500 bg-slate-800 px-1.5 rounded">{queues.pending.length}</span>
+                </div>
+                <ul className="overflow-y-auto space-y-1.5 pr-1 flex-1">
+                  {queues.pending.length === 0 ? (
+                    <li className="text-slate-600 text-xs py-2 text-center">暂无待审任务</li>
+                  ) : (
+                    queues.pending.map(a => (
+                      <li key={a.id} className="flex justify-between gap-2 border-b border-slate-800/50 pb-1.5">
+                        <span className="text-sm text-slate-300 line-clamp-1 flex-1" title={a.title}>{a.title}</span>
+                        <span className="shrink-0 text-xs uppercase text-slate-500">{a.status}</span>
+                      </li>
+                    ))
+                  )}
+                </ul>
               </div>
-              <ul className="overflow-y-auto space-y-1.5 pr-1 flex-1">
-                {queues.pending.length === 0 ? (
-                  <li className="text-slate-600 text-xs py-2 text-center">暂无待审任务</li>
-                ) : (
-                  queues.pending.map(a => (
-                    <li key={a.id} className="flex justify-between gap-2 border-b border-slate-800/50 pb-1.5">
-                      <span className="text-sm text-slate-300 line-clamp-1 flex-1" title={a.title}>{a.title}</span>
-                      <span className="shrink-0 text-xs uppercase text-slate-500">{a.status}</span>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </div>
-            <div className="rounded-lg border border-emerald-900/30 bg-slate-900/50 p-3 flex flex-col flex-1 min-h-[150px]">
-              <div className="flex justify-between mb-2 shrink-0">
-                <h3 className="text-sm font-semibold text-emerald-300">历史已投递 (Finished)</h3>
-                <span className="text-xs text-slate-500 bg-slate-800 px-1.5 rounded">{queues.published.length}</span>
+              <div className="rounded-lg border border-emerald-900/30 bg-slate-900/50 p-3 flex flex-col min-h-[150px]">
+                <div className="flex justify-between mb-2 shrink-0">
+                  <h3 className="text-sm font-semibold text-emerald-300">历史已投递 (Finished)</h3>
+                  <span className="text-xs text-slate-500 bg-slate-800 px-1.5 rounded">{queues.published.length}</span>
+                </div>
+                <ul className="overflow-y-auto space-y-1.5 pr-1 flex-1">
+                  {queues.published.length === 0 ? (
+                    <li className="text-slate-600 text-xs py-2 text-center">暂无发布记录</li>
+                  ) : (
+                    queues.published.map(a => (
+                      <li key={a.id} className="border-b border-slate-800/50 pb-1.5 flex justify-between gap-1 items-center">
+                        <a href={`/article/${a.slug}`} target="_blank" rel="noopener noreferrer" className="text-sm text-slate-300 hover:text-primary-400 line-clamp-1 flex-1" title={a.title}>
+                          {a.title}
+                        </a>
+                        <div className="text-xs text-slate-600 shrink-0">{a.published_at?.slice(11, 16)}</div>
+                      </li>
+                    ))
+                  )}
+                </ul>
               </div>
-              <ul className="overflow-y-auto space-y-1.5 pr-1 flex-1">
-                {queues.published.length === 0 ? (
-                  <li className="text-slate-600 text-xs py-2 text-center">暂无发布记录</li>
-                ) : (
-                  queues.published.map(a => (
-                    <li key={a.id} className="border-b border-slate-800/50 pb-1.5 flex justify-between gap-1 items-center">
-                      <a href={`/article/${a.slug}`} target="_blank" rel="noopener noreferrer" className="text-sm text-slate-300 hover:text-primary-400 line-clamp-1 flex-1" title={a.title}>
-                        {a.title}
-                      </a>
-                      <div className="text-xs text-slate-600 shrink-0">{a.published_at?.slice(11, 16)}</div>
-                    </li>
-                  ))
-                )}
-              </ul>
             </div>
          </div>
 
