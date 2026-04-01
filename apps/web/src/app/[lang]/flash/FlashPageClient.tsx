@@ -173,7 +173,7 @@ export default function FlashPageClient({ initialCat, lang = 'zh' }: { initialCa
       <div className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">7&times;24 快讯</h1>
-          <p className="mt-2 text-sm text-slate-500">滚动热流优先于装饰；与首页 BreakingStreamBlock 同一信息层级逻辑。</p>
+          <p className="mt-2 text-sm text-slate-500">全球金融市场 7×24 小时实时资讯，持续更新</p>
         </div>
 
         <div className="flex flex-col items-end gap-1 shrink-0">

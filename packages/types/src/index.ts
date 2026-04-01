@@ -105,10 +105,15 @@ export interface SiteConfig {
   tradingSite: string;
 }
 
+export const SITE_NAME_ZH = '鸭鸭财经新闻';
+export const SITE_NAME_EN = 'Yaya Financial News';
+export const SITE_SLOGAN_ZH = '快人一步 · 投资者信赖的财经资讯平台';
+export const SITE_SLOGAN_EN = 'The Fastest Financial News — Trusted by Investors';
+
 export const siteConfig: SiteConfig = {
-  siteName: 'YayaNews',
+  siteName: 'Yaya Financial News',
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://yayanews.cryptooptiontool.com',
-  description: 'YayaNews - 专业金融新闻资讯平台，覆盖美股、港股、加密货币、衍生品市场',
+  description: '鸭鸭财经新闻，比市场快一步。7×24小时实时追踪全球财经脉动，为专业投资者呈现美股、港股、加密资产与宏观经济权威资讯。',
   language: 'zh-CN',
   parentSite: process.env.NEXT_PUBLIC_PARENT_SITE || 'https://www.biyapay.com',
   tradingSite: process.env.NEXT_PUBLIC_TRADING_SITE || 'https://invest.biyapay.com',

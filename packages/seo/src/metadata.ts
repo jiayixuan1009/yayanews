@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { siteConfig } from '@yayanews/types';
+import { siteConfig, SITE_NAME_ZH, SITE_SLOGAN_ZH, SITE_SLOGAN_EN } from '@yayanews/types';
 
 export interface MetadataOptions {
   title?: string;
@@ -14,13 +14,30 @@ export interface MetadataOptions {
   section?: string;
   keywords?: string[];
   noIndex?: boolean;
+  lang?: 'zh' | 'en';
 }
+
+const DEFAULT_KEYWORDS_ZH = [
+  '鸭鸭新闻', 'YayaNews', '财经资讯', '金融新闻', '亚洲最快财经资讯',
+  '美股', '港股', '加密货币', '比特币', '以太坊', '衍生品', '期货', '期权',
+  '实时行情', '7×24快讯', 'AI资讯', '投资分析',
+];
+
+const DEFAULT_KEYWORDS_EN = [
+  'YayaNews', 'financial news', "Asia's fastest financial news",
+  'US stocks', 'HK stocks', 'cryptocurrency', 'Bitcoin', 'Ethereum',
+  'derivatives', 'market data', 'live financial news', 'investment',
+];
+
+// The default OG/Twitter image should be the site's official OG card.
+// When not available, fall back to the article placeholder.
+const DEFAULT_OG_IMAGE = '/images/og-default.png';
 
 export function createMetadata(options: MetadataOptions = {}): Metadata {
   const {
     title,
-    description = siteConfig.description,
-    image = '/images/article-placeholder.svg',
+    description,
+    image,
     url,
     canonical,
     type = 'website',
@@ -30,35 +47,54 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
     section,
     keywords,
     noIndex = false,
+    lang = 'zh',
   } = options;
 
-  const finalTitle = title ? title : `${siteConfig.siteName} - 专业金融新闻资讯平台`;
-  const fullUrl = url ? `${siteConfig.siteUrl}${url.startsWith('/') ? url : `/${url}`}` : siteConfig.siteUrl;
+  const isZh = lang !== 'en';
+  const brandName = isZh ? `${SITE_NAME_ZH}（YayaNews）` : 'YayaNews';
+  const slogan = isZh ? SITE_SLOGAN_ZH : SITE_SLOGAN_EN;
+  const defaultDesc = isZh
+    ? `${SITE_NAME_ZH}（YayaNews）—— ${slogan}，7×24小时覆盖美股、港股、加密货币、衍生品市场实时快讯与深度分析。`
+    : `YayaNews — ${SITE_SLOGAN_EN}. 24/7 coverage of US stocks, HK markets, crypto and derivatives.`;
+
+  const finalDesc = description ?? defaultDesc;
+  const finalTitle = title ?? `${brandName} — ${slogan}`;
+  const finalImage = image ?? DEFAULT_OG_IMAGE;
+  const fullUrl = url
+    ? `${siteConfig.siteUrl}${url.startsWith('/') ? url : `/${url}`}`
+    : siteConfig.siteUrl;
+  const defaultKeywords = isZh ? DEFAULT_KEYWORDS_ZH : DEFAULT_KEYWORDS_EN;
 
   const metadata: Metadata = {
     title: {
       default: finalTitle,
-      template: `%s | ${siteConfig.siteName}`,
+      template: `%s | ${isZh ? SITE_NAME_ZH : 'YayaNews'}`,
     },
-    description,
-    keywords: keywords || ['金融新闻', '美股', '港股', '加密货币', '比特币', '衍生品', 'AI资讯', '行情', 'YayaNews', 'BiyaPay'],
+    description: finalDesc,
+    keywords: keywords ?? defaultKeywords,
     metadataBase: new URL(siteConfig.siteUrl),
     alternates: {
-      canonical: canonical || url || '/',
+      canonical: canonical ?? url ?? '/',
+      languages: {
+        'zh-CN': `/zh${url ?? ''}`,
+        'en-US': `/en${url ?? ''}`,
+      },
     },
     openGraph: {
       type: type as any,
-      locale: 'zh_CN',
-      siteName: siteConfig.siteName,
+      locale: isZh ? 'zh_CN' : 'en_US',
+      alternateLocale: isZh ? ['en_US'] : ['zh_CN'],
+      siteName: isZh ? `${SITE_NAME_ZH} (YayaNews)` : 'YayaNews',
       title: finalTitle,
-      description,
+      description: finalDesc,
       url: fullUrl,
       images: [
         {
-          url: image,
+          url: finalImage,
           width: 1200,
-          height: 675,
-          alt: title || siteConfig.siteName,
+          height: 630,
+          alt: title ?? `${brandName} — ${slogan}`,
+          type: 'image/png',
         },
       ],
       ...(type === 'article' && {
@@ -70,9 +106,16 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
     },
     twitter: {
       card: 'summary_large_image',
+      site: '@YayaNewsAsia',
+      creator: '@YayaNewsAsia',
       title: finalTitle,
-      description,
-      images: [image],
+      description: finalDesc,
+      images: [
+        {
+          url: finalImage,
+          alt: title ?? `${brandName} — ${slogan}`,
+        },
+      ],
     },
     robots: {
       index: !noIndex,
