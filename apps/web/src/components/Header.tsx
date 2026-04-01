@@ -3,8 +3,9 @@
 import LocalizedLink from '@/components/LocalizedLink';
 import { usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import { siteConfig } from '@yayanews/types';
+import { siteConfig, SITE_NAME_ZH } from '@yayanews/types';
 import { ORDERED_NAV_CATEGORIES } from '@/lib/constants';
+import Image from 'next/image';
 
 const primaryNav = [
   { label: '首页', href: '/' },
@@ -73,9 +74,16 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
         </div>
 
         <div className="min-w-0 text-center">
-          <LocalizedLink href="/" className="inline-flex flex-col items-center">
-            <span className="font-display text-[2.1rem] font-semibold leading-none tracking-[-0.06em] text-[#0d3b30] sm:text-[2.7rem] lg:text-[3rem]">yayanews</span>
-            <span className="mt-1 max-w-[24ch] font-label text-[10px] uppercase tracking-[0.22em] text-[#667067]">{dict.marketIntelligence || 'Market intelligence edition'}</span>
+          <LocalizedLink href="/" className="inline-flex flex-col items-center gap-1">
+            <Image
+              src="/images/logo.png"
+              alt={SITE_NAME_ZH}
+              width={64}
+              height={64}
+              className="h-12 w-12 sm:h-14 sm:w-14 object-contain"
+              priority
+            />
+            <span className="mt-0.5 max-w-[24ch] font-label text-[10px] uppercase tracking-[0.22em] text-[#667067]">{dict.marketIntelligence || 'Market intelligence edition'}</span>
           </LocalizedLink>
         </div>
 
