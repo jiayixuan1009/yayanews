@@ -107,6 +107,10 @@ def insert_article(
             except Exception as e:
                 log.error(f"Redis publish fail: {e}")
                 
+        if status == "published":
+            from pipeline.utils.indexer import ping_indexer
+            ping_indexer(article_slug=slug)
+                
         return article_id
     except psycopg2.IntegrityError as e:
         conn.rollback()
@@ -160,13 +164,16 @@ def update_article_full(
         conn.commit()
         log.info(f"Article updated: id={article_id}, slug={slug}")
         
-        if redis_client and status == "published":
-            try:
-                payload = {"type": "article", "id": article_id, "title": title, "slug": slug, "lang": lang, "created_at": ts}
-                redis_client.publish(f"article:new:{lang}", json.dumps(payload))
-            except Exception as e:
-                log.error(f"Redis publish fail: {e}")
-                
+        if status == "published":
+            if redis_client:
+                try:
+                    payload = {"type": "article", "id": article_id, "title": title, "slug": slug, "lang": lang, "created_at": ts}
+                    redis_client.publish(f"article:new:{lang}", json.dumps(payload))
+                except Exception as e:
+                    log.error(f"Redis publish fail: {e}")
+            from pipeline.utils.indexer import ping_indexer
+            ping_indexer(article_slug=slug)
+
         return True
     except Exception as e:
         conn.rollback()
@@ -247,6 +254,15 @@ def insert_flash(
                 redis_client.publish(f"flash:new:{lang}", json.dumps(payload))
             except Exception as e:
                 log.error(f"Redis flash publish fail: {e}")
+                
+        # Proactively ping Google Indexer
+        from pipeline.utils.indexer import ping_indexer
+        ping_indexer(flash_dict={
+            "id": fid,
+            "title": title,
+            "published_at": ts,
+            "importance": importance
+        })
                 
         return fid
     except Exception as e:

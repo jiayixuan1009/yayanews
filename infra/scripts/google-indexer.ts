@@ -1,22 +1,31 @@
-import { getDbClient } from '@yayanews/database';
+import 'dotenv/config';
+import { queryAll } from '@yayanews/database';
 import { google } from 'googleapis';
 import fs from 'fs';
 import path from 'path';
 
-// Parse base64 JSON from config file
 function getServiceAccountCredentials() {
   const envPath = process.env.ENV_FILE_PATH || path.resolve(process.cwd(), '.env');
   let envFile = '';
   try {
     envFile = fs.readFileSync(envPath, 'utf8');
-  } catch (err) {
-    if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-        return JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-    }
-    console.warn('No .env found and no GOOGLE_SERVICE_ACCOUNT_JSON. Using potentially partial environment variables.');
+  } catch (err) {}
+
+  if (process.env.GA4_CREDENTIALS_BASE64) {
+      return JSON.parse(Buffer.from(process.env.GA4_CREDENTIALS_BASE64, 'base64').toString('utf8'));
+  }
+  
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+      return JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
   }
 
-  // Look for Cg== block at end of env or base64
+  // Look for GA4_CREDENTIALS_BASE64 natively in file if dotenv failed
+  const b64Match = envFile.match(/GA4_CREDENTIALS_BASE64=([A-Za-z0-9+/=]+)/);
+  if (b64Match) {
+      return JSON.parse(Buffer.from(b64Match[1], 'base64').toString('utf8'));
+  }
+
+  // Look for raw JSON block just in case
   const jsonMatch = envFile.match(/{[\s\S]*?"client_email"[\s\S]*?}/);
   if (jsonMatch) {
     return JSON.parse(jsonMatch[0]);
@@ -54,23 +63,26 @@ async function main() {
   
   const credentials = getServiceAccountCredentials();
   
-  const jwtClient = new google.auth.JWT(
-    credentials.client_email,
-    undefined,
-    credentials.private_key,
-    ['https://www.googleapis.com/auth/indexing'],
-    undefined
-  );
+  const privateKey = credentials.private_key?.replace(/\\n/g, '\n');
 
   console.log('Authenticating with Google API...', credentials.client_email);
+  if (!privateKey) {
+     console.error("FATAL: private_key is missing or undefined! Keys found:", Object.keys(credentials));
+     process.exit(1);
+  }
+
+  const jwtClient = new google.auth.JWT({
+    email: credentials.client_email,
+    key: privateKey,
+    scopes: ['https://www.googleapis.com/auth/indexing']
+  });
+
   await jwtClient.authorize();
   console.log('Authentication successful.');
-
-  const db = getDbClient();
   
   // Get 5 newest articles less than 24 hours old
   console.log('Querying latest articles...');
-  const resArt = await db.query(`
+  const resArt = await queryAll(`
     SELECT slug FROM articles 
     WHERE status='published' 
       AND published_at > NOW() - INTERVAL '24 HOURS'
@@ -79,7 +91,7 @@ async function main() {
   
   // Get 5 newest flash news less than 24 hours old
   console.log('Querying latest flashes...');
-  const resFlash = await db.query(`
+  const resFlash = await queryAll(`
     SELECT id, title, published_at FROM flash_news 
     WHERE published_at > NOW() - INTERVAL '24 HOURS'
     ORDER BY published_at DESC LIMIT 10
@@ -87,12 +99,12 @@ async function main() {
 
   const urlsToPush: string[] = [];
   
-  for (const row of resArt.rows) {
+  for (const row of resArt as any[]) {
       urlsToPush.push(`${BASE_URL}/zh/article/${row.slug}`);
       urlsToPush.push(`${BASE_URL}/en/article/${row.slug}`);
   }
 
-  for (const row of resFlash.rows) {
+  for (const row of resFlash as any[]) {
       const slug = encodeFlashSlug(row);
       urlsToPush.push(`${BASE_URL}/zh/flash/${slug}`);
       urlsToPush.push(`${BASE_URL}/en/flash/${slug}`);

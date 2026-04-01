@@ -18,29 +18,35 @@ function escapeXml(s: any): string {
 
 export async function GET() {
   const articles = await getNewsArticlesLast48h();
+  // Fetch a bit more to ensure we have enough to filter down to 48 hours manually
   const flashes = await getFlashNews('zh', 100);
+  
+  const now = new Date();
+  const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+
+  // Strictly filter flashes published in the last 48 hours
+  const recentFlashes = flashes.filter(f => new Date(f.published_at) >= fortyEightHoursAgo);
 
   const articleUrls = articles.map(a => `
   <url>
-    <loc>${escapeXml(`${siteConfig.siteUrl}/article/${a.slug}`)}</loc>
+    <loc>${escapeXml(`${siteConfig.siteUrl}/zh/article/${a.slug}`)}</loc>
     <news:news>
       <news:publication>
         <news:name>${escapeXml(siteConfig.siteName)}</news:name>
-        <news:language>zh</news:language>
+        <news:language>zh-cn</news:language>
       </news:publication>
       <news:publication_date>${escapeXml(a.updated_at || a.published_at || a.created_at)}</news:publication_date>
       <news:title>${escapeXml(a.title)}</news:title>
     </news:news>
-    </news:news>
   </url>`).join('');
 
-  const flashUrls = flashes.map(f => `
+  const flashUrls = recentFlashes.map(f => `
   <url>
-    <loc>${escapeXml(`${siteConfig.siteUrl}/flash/${encodeFlashSlug(f as any)}`)}</loc>
+    <loc>${escapeXml(`${siteConfig.siteUrl}/zh/flash/${encodeFlashSlug(f as any)}`)}</loc>
     <news:news>
       <news:publication>
         <news:name>${escapeXml(siteConfig.siteName)}</news:name>
-        <news:language>zh</news:language>
+        <news:language>zh-cn</news:language>
       </news:publication>
       <news:publication_date>${escapeXml(f.published_at)}</news:publication_date>
       <news:title>${escapeXml(f.title)}</news:title>
