@@ -21,6 +21,7 @@ type Props = {
   emptyText?: string;
   actionLabel?: string;
   lang?: string;
+  className?: string;
 };
 
 function getCategoryBadgeLight(name?: string) {
@@ -38,6 +39,7 @@ export default function BreakingStreamBlock({
   emptyText = '暂无快讯',
   actionLabel = '全部快讯',
   lang = 'zh',
+  className = '',
 }: Props) {
   const [allItems, setAllItems] = useState<FlashNews[]>(initialItems);
   // Multi-select: set of selected tag labels. Empty = show all.
@@ -112,7 +114,7 @@ export default function BreakingStreamBlock({
       });
 
   return (
-    <section className="yn-panel p-4 sm:p-5">
+    <section className={`yn-panel flex flex-col p-4 sm:p-5 ${className}`}>
       <SectionHeader title={title} emphasis="strong" actionHref="/flash" actionLabel={actionLabel}>
         {/* Multi-select filter chips */}
         <div className="flex flex-wrap items-center gap-2">
@@ -147,9 +149,9 @@ export default function BreakingStreamBlock({
       </SectionHeader>
 
       {visibleItems.length === 0 ? (
-        <p className="py-6 text-center text-sm text-slate-500">{emptyText}</p>
+        <p className="py-6 flex-1 text-center text-sm text-slate-500">{emptyText}</p>
       ) : (
-        <div className="max-h-[450px] overflow-y-auto pr-1 sm:pr-2 custom-scrollbar -mr-1 sm:-mr-2">
+        <div className="flex-1 overflow-y-auto pr-1 sm:pr-2 custom-scrollbar -mr-1 sm:-mr-2 mt-2">
           <ul className="divide-y divide-[#ece4d8]">
           {visibleItems.slice(0, 20).map(item => {
             if (!item?.id) return null;

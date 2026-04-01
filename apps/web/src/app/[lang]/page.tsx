@@ -3,6 +3,7 @@ import LocalizedLink from '@/components/LocalizedLink';
 import type { Metadata } from 'next';
 import { createMetadata } from '@yayanews/seo';
 import dynamic from 'next/dynamic';
+import MallardDuck from '@/components/MallardDuck';
 import {
   getPublishedArticles,
   getFlashNews,
@@ -97,12 +98,21 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
           <LiveTicker title={dict.home.liveTicker} />
         </div>
       </section>
-
-      <HomeHeroEditorial lead={lead} secondaries={secondaries} dict={dict} />
-
-
-
-      <div className="container-main py-5 md:py-8 lg:py-10">
+      <HomeHeroEditorial
+        lead={lead}
+        secondaries={secondaries}
+        dict={dict}
+        rightRail={
+          <BreakingStreamBlock
+            items={flashStream}
+            title={dict.home.flashTitle}
+            emptyText={dict.news.noFlash || '暂无快讯'}
+            actionLabel={dict.common.all || '全部'}
+            lang={lang}
+            className="flex-1 h-full max-h-full"
+          />
+        }
+      />      <div className="container-main py-5 md:py-8 lg:py-10">
         <div className="grid gap-5 md:gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-12">
           <div className="space-y-5 md:space-y-8 lg:col-span-8 lg:space-y-10">
             <section>
@@ -161,7 +171,46 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
             </div>
           </div>
           <aside className="space-y-4 md:space-y-5 lg:col-span-4 lg:space-y-6">
-            <BreakingStreamBlock items={flashStream} title={dict.home.flashTitle} emptyText={dict.news.noFlash || '暂无快讯'} actionLabel={dict.common.all || '全部'} lang={lang} />
+            <div className="border border-[#ddd5ca] bg-[#f1eeea] px-4 py-5 sm:px-5">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="font-display text-[1.75rem] font-semibold leading-none tracking-[-0.04em] text-[#1a1c1c] sm:text-[2rem]">{dict.home?.hotStream || 'Hot Stream'}</h2>
+                <span className="text-[#1d5c4f]">⚡</span>
+              </div>
+              <ol className="space-y-4">
+                {secondaries.slice(0, 4).map((item, idx) => (
+                  <li key={item.id} className="grid grid-cols-[1.8rem,1fr] gap-3 border-t border-[#dfd8ce] pt-4 first:border-t-0 first:pt-0">
+                    <span className="font-display text-[1.8rem] italic leading-none text-[#a09890] sm:text-[2rem]">{String(idx + 1).padStart(2, '0')}</span>
+                    <LocalizedLink href={`/article/${item.slug}`} className="group block">
+                      <h3 className="font-display text-[1.08rem] font-semibold leading-[1.15] tracking-[-0.03em] text-[#1b201d] group-hover:text-[#1d5c4f] sm:text-[1.2rem]">
+                        {item.title}
+                      </h3>
+                      <div className="mt-2 flex flex-wrap gap-x-2 text-[11px] uppercase tracking-[0.16em] text-[#555a55]">
+                        <span>{(dict.nav as any)?.[item.category_slug || ''] || item.category_name || 'YayaNews'}</span>
+                        <span>{item.published_at?.slice(0, 10)}</span>
+                      </div>
+                    </LocalizedLink>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            <div className="overflow-hidden border border-[#0e4739] bg-[#034433] text-white shadow-[0_16px_40px_rgba(3,68,51,0.18)]">
+              <div className="flex items-start justify-between gap-4 p-5 pb-3">
+                <div>
+                  <h3 className="font-display text-[1.75rem] font-semibold leading-[1.02] tracking-[-0.04em] sm:text-[1.9rem]">{dict.home?.mascotCorner || 'Mascot Corner:'}</h3>
+                  <p className="font-display text-[1.75rem] font-semibold leading-[1.02] tracking-[-0.04em] sm:text-[1.9rem]">{dict.home?.dailyCurations || 'Daily Curations'}</p>
+                </div>
+                <MallardDuck size="md" />
+              </div>
+              <div className="px-5 pb-5">
+                <p className="max-w-[28ch] text-sm leading-7 text-emerald-50/85">
+                  {dict.home?.mascotDesc || 'Curating high-frequency market noise into a readable order of judgment: context, evidence, and finally action signals.'}
+                </p>
+                <LocalizedLink href="/guide" className="mt-5 inline-flex items-center justify-center rounded-[2px] bg-[#91f78e] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0d3f30] hover:bg-[#7be978]">
+                  {dict.home?.readDigest || 'Read digest'}
+                </LocalizedLink>
+              </div>
+            </div>
 
             {watchArticles.length > 0 ? (
               <RightRailPanel title={dict.home.marketWatch} accent actionHref="/news" actionLabel={dict.common.readMore}>

@@ -51,8 +51,8 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
 
         <div className="min-w-0 text-center">
           <LocalizedLink href="/" className="inline-flex flex-col items-center">
-            <span className="font-display text-[1.8rem] font-bold leading-none tracking-tight text-[#0d3b30] sm:text-[2.2rem] lg:text-[2.5rem]">Yaya Financial News</span>
-            <span className="mt-1 font-label text-[11px] sm:text-[13px] uppercase tracking-[0.22em] text-[#667067] whitespace-nowrap">{dict.marketIntelligence || 'Market intelligence edition'}</span>
+            <span className="font-display text-[2.1rem] font-semibold leading-none tracking-[-0.06em] text-[#0d3b30] sm:text-[2.7rem] lg:text-[3rem]">yayanews</span>
+            <span className="mt-1 font-label text-[10px] uppercase tracking-[0.22em] text-[#667067] whitespace-nowrap">{dict.marketIntelligence || 'Market intelligence edition'}</span>
           </LocalizedLink>
         </div>
 
@@ -94,15 +94,7 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
                 </LocalizedLink>
               );
             })}
-            {utilityNavKeys.map(item => (
-              <LocalizedLink
-                key={item.href}
-                href={item.href}
-                className={`border-b pb-1 text-[15px] ${isActive(item.href) ? 'border-[#14261f] font-medium text-[#101713]' : 'border-transparent text-[#5d635f] hover:text-[#101713]'}`}
-              >
-                {dict[item.key] || item.key}
-              </LocalizedLink>
-            ))}
+
             <a href="/admin" className="flex items-center gap-1.5 border-b border-transparent pb-1 text-[15px] text-[#5d635f] transition-colors hover:text-[#101713]" title="管理后台">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />

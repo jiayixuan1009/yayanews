@@ -10,6 +10,7 @@ type Props = {
   lead: Article | undefined;
   secondaries: Article[];
   dict?: any;
+  rightRail?: React.ReactNode;
 };
 
 function HeroMeta({ article, dict }: { article: Article; dict?: any }) {
@@ -41,7 +42,7 @@ function SecondaryFeature({ article, dict }: { article: Article; dict?: any }) {
   );
 }
 
-export default function HomeHeroEditorial({ lead, secondaries, dict = {} }: Props) {
+export default function HomeHeroEditorial({ lead, secondaries, dict = {}, rightRail }: Props) {
   const leadCover = lead ? getArticleCoverSrc(lead.cover_image) : null;
   const leadCoverOptimizable = leadCover ? isRemoteImageOptimizable(leadCover) : false;
   const hotItems = secondaries.slice(0, 4);
@@ -65,7 +66,7 @@ export default function HomeHeroEditorial({ lead, secondaries, dict = {} }: Prop
 
         {lead ? (
           <>
-            <div className="grid gap-6 md:gap-8 lg:gap-10 xl:grid-cols-[1fr_300px] xl:items-start">
+            <div className="grid gap-6 md:gap-8 lg:gap-10 xl:grid-cols-[1fr_300px] xl:items-stretch">
               
               {/* WSJ / Bloomberg Style Main Feature Column */}
               <div className="flex flex-col gap-4 md:gap-5">
@@ -114,48 +115,9 @@ export default function HomeHeroEditorial({ lead, secondaries, dict = {} }: Prop
 
               </div>
 
-              {/* Right Rail: Hot Stream & Mascot */}
-              <div className="space-y-6">
-                <div className="border border-[#ddd5ca] bg-[#f1eeea] px-4 py-5 sm:px-5">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <h2 className="font-display text-[1.75rem] font-semibold leading-none tracking-[-0.04em] text-[#1a1c1c] sm:text-[2rem]">{dict.home?.hotStream || 'Hot Stream'}</h2>
-                    <span className="text-[#1d5c4f]">⚡</span>
-                  </div>
-                  <ol className="space-y-4">
-                    {hotItems.map((item, idx) => (
-                      <li key={item.id} className="grid grid-cols-[1.8rem,1fr] gap-3 border-t border-[#dfd8ce] pt-4 first:border-t-0 first:pt-0">
-                        <span className="font-display text-[1.8rem] italic leading-none text-[#a09890] sm:text-[2rem]">{String(idx + 1).padStart(2, '0')}</span>
-                        <LocalizedLink href={`/article/${item.slug}`} className="group block">
-                          <h3 className="font-display text-[1.08rem] font-semibold leading-[1.15] tracking-[-0.03em] text-[#1b201d] group-hover:text-[#1d5c4f] sm:text-[1.2rem]">
-                            {item.title}
-                          </h3>
-                          <div className="mt-2 flex flex-wrap gap-x-2 text-[11px] uppercase tracking-[0.16em] text-[#555a55]">
-                            <span>{dict.nav?.[item.category_slug || ''] || item.category_name || 'YayaNews'}</span>
-                            <span>{item.published_at?.slice(0, 10)}</span>
-                          </div>
-                        </LocalizedLink>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-
-                <div className="overflow-hidden border border-[#0e4739] bg-[#034433] text-white shadow-[0_16px_40px_rgba(3,68,51,0.18)]">
-                  <div className="flex items-start justify-between gap-4 p-5 pb-3">
-                    <div>
-                      <h3 className="font-display text-[1.75rem] font-semibold leading-[1.02] tracking-[-0.04em] sm:text-[1.9rem]">{dict.home?.mascotCorner || 'Mascot Corner:'}</h3>
-                      <p className="font-display text-[1.75rem] font-semibold leading-[1.02] tracking-[-0.04em] sm:text-[1.9rem]">{dict.home?.dailyCurations || 'Daily Curations'}</p>
-                    </div>
-                    <MallardDuck size="md" />
-                  </div>
-                  <div className="px-5 pb-5">
-                    <p className="max-w-[28ch] text-sm leading-7 text-emerald-50/85">
-                      {dict.home?.mascotDesc || 'Curating high-frequency market noise into a readable order of judgment: context, evidence, and finally action signals.'}
-                    </p>
-                    <LocalizedLink href="/guide" className="mt-5 inline-flex items-center justify-center rounded-[2px] bg-[#91f78e] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0d3f30] hover:bg-[#7be978]">
-                      {dict.home?.readDigest || 'Read digest'}
-                    </LocalizedLink>
-                  </div>
-                </div>
+              {/* Right Rail Slot */}
+              <div className="flex flex-col xl:h-full">
+                {rightRail}
               </div>
             </div>
 
