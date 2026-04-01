@@ -33,16 +33,10 @@ def task_collect_and_enqueue_articles(batch_size: int = 10):
         prio = calculate_priority(topic)
         q = Queue(f'yayanews:articles:{prio}', connection=conn)
         
-        # 针对低优先级长篇挂机文（deep），如果在队伍里排着超过 30 分钟都没轮到它
-        # 意味着前端高优先新闻太多一直被堵，此时这篇长文的时效价值和算力价值已倒挂
-        # 追加 ttl=1800，让 RQ 超过 半小时 自动清理掉未开始的 low 任务。
-        enqueue_kwargs = {
-            'job_timeout': 1200
-        }
-        if prio == 'low':
-            enqueue_kwargs['ttl'] = 1800
-            
-        q.enqueue(task_process_single_article, topic=topic, **enqueue_kwargs)
+        # 针对低优先级长篇挂机文章，如果 30 分钟 (1800秒) 都没排到它，说明它已经彻底失去鲜活度，直接抛弃
+        ttl_seconds = 1800 if prio == 'low' else None
+        
+        q.enqueue(task_process_single_article, topic=topic, job_timeout=1200, ttl=ttl_seconds)
         
     return f"Enqueued {len(topics)} individual article generation jobs across priority logic"
 
