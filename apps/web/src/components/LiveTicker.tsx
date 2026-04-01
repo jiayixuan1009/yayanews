@@ -30,8 +30,9 @@ function MarqueeRow({ items, title, reverse = false }: { items: TickerItem[], ti
           const bgClass = isUp ? 'bg-[#e0f1e5] text-[#0d5930]' : 'bg-[#fce5e6] text-[#c72626]';
           const arrow = isUp ? '+' : '';
           return (
-            <span key={`${t.label}-${i}`} className="flex-shrink-0 flex items-center gap-1.5 min-w-max cursor-default">
+            <span key={`${t.label}-${i}`} className="flex-shrink-0 flex items-center gap-1.5 min-w-max cursor-default truncate">
               <span className="font-semibold text-[#89908a] transition-colors hover:text-[#1d5c4f]">{t.label}</span>
+              <span className="font-medium text-[#4b5563] ml-1">{t.price}</span>
               <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${bgClass}`}>
                 {arrow}{(t.change || 0).toFixed(1)}%
               </span>
@@ -128,8 +129,8 @@ export default function LiveTicker({ title = '市场行情' }: { title?: string 
     <div className="flex flex-col gap-[2px] text-[12px] relative w-full overflow-hidden mb-1 mt-1">
       <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
       <MarqueeRow items={us} title="美股市场" />
-      <MarqueeRow items={crypto} title="加密货币" reverse={true} />
       <MarqueeRow items={apac} title="亚太股市" />
+      <MarqueeRow items={crypto} title="加密货币" />
     </div>
   );
 }
