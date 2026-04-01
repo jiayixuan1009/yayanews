@@ -54,7 +54,7 @@ export const revalidate = 0;
 
 export default async function HomePage({ params: { lang } }: { params: { lang: string } }) {
   const dict = await getDictionary(lang as any);
-  const articles = await getPublishedArticles(lang, 22);
+  const articles = await getPublishedArticles(lang, 23);
   const flashStream = await getFlashNews(lang, 12);
   const topics = await getTopics(6);
   const categories = await getCategoriesOrdered();
