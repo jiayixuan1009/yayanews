@@ -17,25 +17,29 @@ import SectionHeader from '@/components/editorial/SectionHeader';
 
 import { createMetadata } from '@yayanews/seo';
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const tag = await getTagBySlug(params.slug);
+export async function generateMetadata({ params }: { params: { slug: string; lang: string } }): Promise<Metadata> {
+  const decodedSlug = decodeURIComponent(params.slug);
+  const tag = await getTagBySlug(decodedSlug);
   if (!tag) return {};
+  const isZh = params.lang !== 'en';
   return createMetadata({
-    title: `标签：${tag.name}`,
-    description: `浏览与「${tag.name}」相关的 YayaNews 资讯稿件`,
-    url: `/tag/${params.slug}`,
+    title: isZh ? `标签：${tag.name}` : `Tag: ${tag.name}`,
+    description: isZh ? `浏览与「${tag.name}」相关的 YayaNews 资讯稿件` : `Browse YayaNews articles related to #${tag.name}`,
+    url: `/tag/${decodedSlug}`,
+    lang: params.lang as 'zh' | 'en',
   });
 }
 
 export const revalidate = 120;
 
 export default async function TagPage({ params }: { params: { slug: string; lang: string } }) {
-  const tag = await getTagBySlug(params.slug);
+  const decodedSlug = decodeURIComponent(params.slug);
+  const tag = await getTagBySlug(decodedSlug);
   if (!tag) notFound();
 
   const dict = await getDictionary(params.lang as any);
-  const articles = await getPublishedArticlesByTagSlug(params.slug, 48, 0);
-  const total = await getArticleCountByTagSlug(params.slug);
+  const articles = await getPublishedArticlesByTagSlug(decodedSlug, 48, 0);
+  const total = await getArticleCountByTagSlug(decodedSlug);
   const popularTags = await getPopularTags(12);
   const flashMini = await getFlashNews(params.lang, 6);
   const featured = articles[0];
@@ -53,9 +57,9 @@ export default async function TagPage({ params }: { params: { slug: string; lang
 
       <p className="yn-meta mb-6 text-slate-500">
         <LocalizedLink href="/news" className="text-slate-400 hover:text-slate-200">
-          资讯首页
+          {dict.nav.newsSection}
         </LocalizedLink>
-        <span className="mx-2">/</span>
+        <span className="mx-2" aria-hidden>/</span>
         <span>{dict.tag.tagTitle}</span>
       </p>
 
