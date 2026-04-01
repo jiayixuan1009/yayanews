@@ -206,7 +206,8 @@ def insert_tags(article_id: int, tag_names: list[str]):
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             for name in tag_names:
-                slug = name.lower().replace(" ", "-")
+                from slugify import slugify
+                slug = slugify(name, max_length=50)
                 cur.execute("INSERT INTO tags (name, slug) VALUES (%s, %s) ON CONFLICT (slug) DO NOTHING", (name, slug))
                 cur.execute("SELECT id FROM tags WHERE name = %s", (name,))
                 row = cur.fetchone()
