@@ -26,9 +26,14 @@ import { createMetadata, buildNewsArticleJsonLd } from '@yayanews/seo';
 export async function generateMetadata({ params }: { params: { slug: string; lang: string } }): Promise<Metadata> {
   const article = await getArticleBySlug(params.slug);
   if (!article) return {};
+  const descFallback = article.summary
+    ? article.summary.slice(0, 155)
+    : article.content
+      ? article.content.replace(/<[^>]+>/g, '').slice(0, 152) + '...'
+      : article.title;
   return createMetadata({
     title: article.title,
-    description: article.summary || article.title,
+    description: descFallback,
     url: `/article/${params.slug}`,
     type: 'article',
     authors: [article.author],

@@ -28,10 +28,12 @@ import { siteConfig, SITE_NAME_ZH, SITE_NAME_EN, SITE_SLOGAN_ZH } from '@yayanew
 
 export function generateMetadata({ params: { lang } }: { params: { lang: 'zh' | 'en' } }): Metadata {
   return createMetadata({
-    title: `${lang === 'en' ? 'Home' : '首页'}`, // Usually overridden by template, but good practice
-    description: lang === 'en' 
-      ? 'The Fastest Financial News — Trusted by Investors. Real-time dynamic coverage of US stocks, Hong Kong stocks, crypto and derivatives.'
-      : siteConfig.description,
+    title: lang === 'en'
+      ? 'Live Financial News – US Stocks, Crypto & HK Markets'
+      : '今日财经资讯 · 美股、港股、加密货币实时新闻',
+    description: lang === 'en'
+      ? 'Get today\'s live financial news on US stocks, Hong Kong markets, crypto and derivatives. YayaNews delivers 24/7 AI-powered market intelligence and breaking analysis for investors.'
+      : '今日实时财经快讯与深度分析，覆盖美股、港股、加密货币、衍生品市场。7×24小时AI驱动资讯引擎，为投资者快一步提供市场信号与权威解读。',
     url: lang === 'en' ? '/en' : '/zh',
     lang,
     type: 'website',

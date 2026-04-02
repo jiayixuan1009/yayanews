@@ -19,10 +19,10 @@ import SectionHeader from '@/components/editorial/SectionHeader';
 export function generateMetadata({ params }: { params: { lang: string } }): Metadata {
   const isZh = params.lang !== 'en';
   return createMetadata({
-    title: isZh ? '最新资讯' : 'Latest News',
+    title: isZh ? '金融新闻深度分析 | 美股·港股·加密货币·衍生品' : 'Financial News & In-Depth Analysis | US Stocks, Crypto, HK Markets',
     description: isZh
-      ? '最新金融资讯，覆盖美股、港股、加密货币、衍生品与大宗商品市场动态'
-      : 'Latest financial news covering US stocks, HK stocks, crypto, derivatives and commodities.',
+      ? '浏览鸭鸭财经全站深度分析与实时资讯，覆盖美股指数、港股蓝筹、比特币行情、黄金原油等核心资产。专业量化与AI驱动编辑团队，为投资者提供精准市场解读。'
+      : 'Browse YayaNews in-depth financial analysis and breaking news across US equities, HK stocks, Bitcoin, crypto, gold and oil. Expert-curated and AI-powered market coverage for professional investors.',
     url: '/news',
     lang: params.lang as 'zh' | 'en',
   });

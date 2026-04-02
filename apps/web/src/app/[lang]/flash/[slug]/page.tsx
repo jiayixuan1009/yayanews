@@ -11,10 +11,9 @@ export async function generateMetadata({ params }: { params: { slug: string; lan
   if (!flashId) return {};
   const flash = await getFlashNewsById(flashId);
   if (!flash) return {};
-  const suffix = params.lang === 'en' ? '24H Flash' : '7x24速递';
   return createMetadata({
-    title: flash.title + ' - ' + suffix,
-    description: flash.content || flash.title,
+    title: flash.title, // brand suffix auto-appended by title template
+    description: (flash.content || flash.title).slice(0, 155),
     url: `/flash/${params.slug}`,
     type: 'article',
     publishedTime: flash.published_at || undefined,

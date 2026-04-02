@@ -6,10 +6,10 @@ export const revalidate = 30;
 
 export function generateMetadata({ params: { lang } }: { params: { lang: 'zh' | 'en' } }): Metadata {
   return createMetadata({
-    title: lang === 'en' ? '24H Flash News' : '7×24快讯',
-    description: lang === 'en' 
-      ? '24/7 rolling financial flash news covering US stocks, Hong Kong stocks, crypto, and derivatives.' 
-      : '7×24小时滚动金融快讯，覆盖美股、港股、加密货币、衍生品市场实时动态。',
+    title: lang === 'en' ? 'Live Financial Flash News 24/7' : '财经快讯 · 实时滚动播报',
+    description: lang === 'en'
+      ? 'YayaNews live financial flash feed — the fastest breaking market news on US equities, Hong Kong stocks, Bitcoin, Ethereum, gold and key commodities, updated around the clock every day.'
+      : '鸭鸭财经实时快讯流——精选美股、港股、加密货币、衍生品市场每日重要资讯。突发事件秒级推送，7×24全天候覆盖全球市场关键动态，助投资者及时决策。',
     url: '/flash',
     lang,
     type: 'website',
