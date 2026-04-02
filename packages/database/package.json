@@ -8,6 +8,7 @@
     "db:seed": "node scripts/seed-data.mjs"
   },
   "dependencies": {
+    "dotenv": "^16.6.1",
     "google-auth-library": "^10.6.2",
     "googleapis": "^171.4.0",
     "pg": "^8.20.0"
