@@ -214,33 +214,119 @@ export async function getRecentFlashForSitemap(limit = 1000): Promise<{ id: numb
   }));
 }
 
+/** \u83b7\u53d6\u6240\u6709 active \u4e13\u9898\u5217\u8868\uff0c\u9644\u5e26\u6587\u7ae0\u8ba1\u6570 */
 export async function getTopics(limit = 20): Promise<Topic[]> {
-  return await queryAll(`
-    SELECT t.*, COUNT(ta.article_id) as article_count
+  const rows = await queryAll(`
+    SELECT t.*,
+      COALESCE(t.name_zh, t.title) as name_zh,
+      COALESCE(t.name_en, t.title) as name_en,
+      (
+        SELECT COUNT(*)::int
+        FROM articles a
+        WHERE a.topic_id = t.id AND a.status = 'published'
+      ) as article_count
     FROM topics t
-    LEFT JOIN topic_articles ta ON t.id = ta.topic_id
     WHERE t.status = 'active'
-    GROUP BY t.id
     ORDER BY t.sort_order, t.created_at DESC
     LIMIT $1
-  `, [limit]) as Topic[];
+  `, [limit]);
+  return rows as Topic[];
 }
 
-export async function getTopicBySlug(slug: string): Promise<(Topic & { articles: Article[] }) | undefined> {
-  const topic = await queryGet<Topic>('SELECT * FROM topics WHERE slug = $1 AND status = $2', [slug, 'active']);
+/** \u83b7\u53d6\u4e13\u9898\u8be6\u60c5\uff0c\u652f\u6301\u5206\u9875\u548c\u7cbe\u9009\u6587\u7ae0 */
+export async function getTopicBySlug(
+  slug: string,
+  page = 1,
+  pageSize = 20
+): Promise<(Topic & { articles: Article[]; featured_articles: Article[]; total_count: number }) | undefined> {
+  const topic = await queryGet<Topic>(
+    `SELECT *, COALESCE(name_zh, title) as name_zh, COALESCE(name_en, title) as name_en
+     FROM topics WHERE slug = $1 AND status IN ('active', 'archive')`,
+    [slug]
+  );
   if (!topic) return undefined;
 
+  const offset = (page - 1) * pageSize;
+
+  // \u5168\u90e8\u6587\u7ae0\u5206\u9875\uff08\u6309 topic_id \u5173\u8054\uff09
   const articles = await queryAll<Article>(`
     SELECT a.*, c.name as category_name, c.slug as category_slug
     FROM articles a
-    JOIN topic_articles ta ON a.id = ta.article_id
     LEFT JOIN categories c ON a.category_id = c.id
-    WHERE ta.topic_id = $1 AND a.status = 'published'
-    ORDER BY ta.sort_order, a.published_at DESC
-  `, [topic.id]);
+    WHERE a.topic_id = $1 AND a.status = 'published' AND a.published_at <= NOW()
+    ORDER BY a.published_at DESC
+    LIMIT $2 OFFSET $3
+  `, [topic.id, pageSize, offset]);
 
-  return { ...topic, articles: articles.map(formatArticleDates) };
+  // \u6587\u7ae0\u603b\u6570
+  const countRow = await queryGet<{ count: number }>(
+    `SELECT COUNT(*)::int as count FROM articles WHERE topic_id = $1 AND status = 'published'`,
+    [topic.id]
+  );
+
+  // \u7cbe\u9009\u6587\u7ae0\uff08\u4f18\u5148\u4f7f\u7528 topic_featured_articles\uff0c\u5982\u65e7\u8868\u5b58\u5728\u5219 fallback topic_articles\uff09
+  let featured: Article[] = [];
+  try {
+    featured = await queryAll<Article>(`
+      SELECT a.*, c.name as category_name, c.slug as category_slug
+      FROM topic_featured_articles tfa
+      JOIN articles a ON a.id = tfa.article_id
+      LEFT JOIN categories c ON a.category_id = c.id
+      WHERE tfa.topic_id = $1 AND a.status = 'published'
+      ORDER BY tfa.sort_order ASC
+      LIMIT 6
+    `, [topic.id]);
+  } catch {
+    // topic_featured_articles \u8868\u5c1a\u672a\u521b\u5efa\uff0c\u4f7f\u7528\u65e7\u7cbe\u9009\u6216\u6b22\u8fce\u4e3a\u7a7a
+    featured = [];
+  }
+
+  return {
+    ...topic,
+    articles: articles.map(formatArticleDates),
+    featured_articles: featured.map(formatArticleDates),
+    total_count: countRow?.count || 0,
+  };
 }
+
+/** \u83b7\u53d6\u6587\u7ae0\u6240\u5c5e\u4e13\u9898\uff08\u542b\u540c\u4e13\u9898\u6700\u65b03\u7bc7\uff0c\u7528\u4e8e\u6587\u7ae0\u9875\u5e95\u90e8\u6a21\u5757\uff09 */
+export async function getArticleTopic(
+  articleId: number,
+  topicId: number | null | undefined
+): Promise<(Topic & { recent_articles: Article[] }) | null> {
+  if (!topicId) return null;
+
+  const topic = await queryGet<Topic>(
+    `SELECT *, COALESCE(name_zh, title) as name_zh, COALESCE(name_en, title) as name_en
+     FROM topics WHERE id = $1 AND status = 'active'`,
+    [topicId]
+  );
+  if (!topic) return null;
+
+  const recent = await queryAll<Article>(`
+    SELECT a.*, c.name as category_name, c.slug as category_slug
+    FROM articles a
+    LEFT JOIN categories c ON a.category_id = c.id
+    WHERE a.topic_id = $1 AND a.status = 'published'
+      AND a.id != $2 AND a.published_at <= NOW()
+    ORDER BY a.published_at DESC
+    LIMIT 3
+  `, [topicId, articleId]);
+
+  return {
+    ...topic,
+    recent_articles: recent.map(formatArticleDates),
+  };
+}
+
+/** \u4e13\u9898\u9875\u7528\uff1a\u83b7\u53d6 sitemap \u8f93\u51fa \u2014 \u53ea\u53d6 active \u4e13\u9898 */
+export async function getTopicsForSitemap(): Promise<{ slug: string; updated_at: string }[]> {
+  const topics = await queryAll<{ slug: string; updated_at: Date | string }>(
+    `SELECT slug, updated_at FROM topics WHERE status = 'active' ORDER BY updated_at DESC`
+  );
+  return topics.map(t => ({ slug: t.slug, updated_at: safeDateStr(t.updated_at) }));
+}
+
 
 
 export async function getArticleCount(): Promise<number> {

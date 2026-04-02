@@ -74,14 +74,30 @@ export interface FlashNews {
 
 export interface Topic {
   id: number;
-  title: string;
   slug: string;
-  description: string | null;
-  /** 专题头图 URL，建议与文章封面同源策略（图库/自上传） */
+  /** 双语显示名称 */
+  name_zh: string;
+  name_en: string;
+  /** 双语定义文本（150-300字），SEO核心字段 */
+  description_zh: string | null;
+  description_en: string | null;
+  /** 向后兼容：旧 title / description 字段 */
+  title?: string;
+  description?: string | null;
   cover_image: string | null;
-  status: 'active' | 'archived';
+  status: 'draft' | 'active' | 'archive';
   sort_order: number;
+  category_id?: number | null;
+  related_topics?: number[];
   article_count?: number;
+  created_at?: string;
+  updated_at?: string;
+  /** 专题页从查询中附带的文章列表（兼容旧接口） */
+  articles?: Article[];
+  /** 精选文章列表（最多6条，来自 topic_featured_articles） */
+  featured_articles?: Article[];
+  /** 用于文章页底部模块的最近3篇同专题文章 */
+  recent_articles?: Article[];
 }
 
 export interface Guide {

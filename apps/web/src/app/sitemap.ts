@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next';
-import { getRecentArticlesForSitemap, getTopics, getCategories, getTagsForSitemap, getRecentFlashForSitemap } from '@/lib/queries';
+import { getRecentArticlesForSitemap, getTopicsForSitemap, getCategories, getTagsForSitemap, getRecentFlashForSitemap } from '@/lib/queries';
 import { siteConfig } from '@yayanews/types';
 import { encodeFlashSlug } from '@/lib/ui-utils';
 
@@ -38,7 +38,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [categories, articles, topics, tagRows, flashes] = await Promise.all([
     getCategories().catch(() => []),
     getRecentArticlesForSitemap().catch(() => []),
-    getTopics(100).catch(() => []),
+    getTopicsForSitemap().catch(() => []),
     getTagsForSitemap().catch(() => []),
     getRecentFlashForSitemap(2000).catch(() => []),
   ]);
@@ -51,8 +51,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     localize(`/article/${a.slug}`, new Date(a.updated_at), 'weekly', 0.6)
   );
 
-  const topicPages: MetadataRoute.Sitemap = topics.flatMap(t => 
-    localize(`/topics/${t.slug}`, new Date(), 'daily', 0.7)
+  const topicPages: MetadataRoute.Sitemap = topics.flatMap(t =>
+    localize(`/topics/${t.slug}`, new Date(t.updated_at), 'daily', 0.8)
   );
 
   const tagPages: MetadataRoute.Sitemap = tagRows.flatMap(t => 

@@ -8,7 +8,7 @@ import {
   getRelatedArticles,
   getAdjacentArticles,
   getPublishedArticles,
-  getTopics,
+  getArticleTopic,
 } from '@/lib/queries';
 import CtaBanner from '@/components/CtaBanner';
 import ReadingProgress from '@/components/ReadingProgress';
@@ -17,6 +17,8 @@ import ArticleCard from '@/components/ArticleCard';
 import RightRailPanel from '@/components/editorial/RightRailPanel';
 import TopicBridge from '@/components/editorial/TopicBridge';
 import SectionHeader from '@/components/editorial/SectionHeader';
+import TopicEyebrow from '@/components/TopicEyebrow';
+import TopicMoreArticles from '@/components/TopicMoreArticles';
 import { siteConfig, type Article } from '@yayanews/types';
 import { sanitizeHtml } from '@/lib/sanitize';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
@@ -73,7 +75,9 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
       ? (await getPublishedArticles(params.lang, 8, 0, article.category_slug)).filter((a: Article) => a.id !== article.id)
       : [];
   const moreRead = sameCategory.slice(0, 4);
-  const bridgeTopic = (await getTopics(1))[0];
+  // 从文章自己的 topic_id 获取所属专题（含同专题最新3篇文章）
+  const topicId = (article as any).topic_id as number | null | undefined;
+  const articleTopic = await getArticleTopic(article.id, topicId);
   const sentiment = getSentimentLabel(article.sentiment);
   const tickers = article.tickers
     ? article.tickers
@@ -122,6 +126,7 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
                 ) : null}
               </div>
 
+              <TopicEyebrow topic={articleTopic} lang={params.lang} />
               <h1 className="yn-display mt-4 text-balance">{article.title}</h1>
 
               {article.summary ? (
@@ -240,7 +245,9 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
                 </div>
               </div>
 
-              {bridgeTopic ? <TopicBridge topicTitle={bridgeTopic.title} href={`/topics/${bridgeTopic.slug}`} /> : null}
+              {articleTopic ? <TopicBridge topicTitle={articleTopic.name_zh || articleTopic.title || ''} href={`/topics/${articleTopic.slug}`} /> : null}
+
+              <TopicMoreArticles topic={articleTopic} currentArticleId={article.id} lang={params.lang} />
 
               {article.tags && article.tags.length > 0 ? (
                 <section>
