@@ -16,13 +16,15 @@ async function run() {
   const sql = `
     WITH tag_counts AS (
       SELECT 
-        trim(both ' ' from unnest(string_to_array(tags, ','))) as tag_name,
-        COUNT(*) as article_count,
-        MIN(published_at) as first_seen,
-        MAX(published_at) as last_seen
-      FROM articles 
-      WHERE status = 'published' AND published_at >= NOW() - INTERVAL '180 days'
-      GROUP BY tag_name
+        t.name as tag_name,
+        COUNT(a.id) as article_count,
+        MIN(a.published_at) as first_seen,
+        MAX(a.published_at) as last_seen
+      FROM articles a
+      JOIN article_tags at ON a.id = at.article_id
+      JOIN tags t ON at.tag_id = t.id
+      WHERE a.status = 'published' AND a.published_at >= NOW() - INTERVAL '180 days'
+      GROUP BY t.name
     )
     SELECT tag_name, article_count::int, 
            DATE(first_seen) as first_date, 
