@@ -25,6 +25,7 @@ from pipeline.config.settings import (
 from pipeline.utils.ws_flash_buffer import drain_ws_buffer
 from pipeline.utils.database import insert_flash, now_cn, check_semantic_duplicate, get_pool
 from pipeline.utils.llm import chat, batch_translate, compute_similarity, get_embedding
+from pipeline.utils.normalizer import normalize_flash_batch
 from pipeline.utils.logger import get_logger, step_print
 
 log = get_logger("flash")
@@ -671,25 +672,39 @@ def collect_flash(count: int = 10) -> list[dict]:
     if filtered_out:
         print(f"  前置过滤: 丢弃 {filtered_out} 条无关新闻，保留 {len(all_items)} 条")
 
-    # ── 批量翻译英文内容 ──
+    # ── 双路并行翻译清洗（LLM） ──
     t1 = time.time()
-    translate_time = 0.0
-    en_items = [it for it in all_items if it.get("lang") == "en"]
-    zh_items = [it for it in all_items if it.get("lang") != "en"]
-
-    if en_items:
-        print(f"\n  批量翻译 {len(en_items)} 条英文快讯...")
-        en_items = batch_translate(en_items, batch_size=FLASH_TRANSLATE_BATCH)
-        for item in en_items:
-            item["lang"] = "zh"
+    
+    if all_items:
+        print(f"\n  并发标准化清洗 {len(all_items)} 条快讯...")
+        with ThreadPoolExecutor(max_workers=2) as norm_pool:
+            future_zh = norm_pool.submit(normalize_flash_batch, all_items, "zh")
+            future_en = norm_pool.submit(normalize_flash_batch, all_items, "en")
+            zh_items = future_zh.result()
+            en_items = future_en.result()
+        
+        normalized_items = zh_items + en_items
+        
+        # 将原始源头的 category_override, collected_at 映射回清洗结果
+        final_items = []
+        for n_item in normalized_items:
+            orig_idx = n_item.pop("id", None)
+            if orig_idx is not None and isinstance(orig_idx, int) and 0 <= orig_idx < len(all_items):
+                orig = all_items[orig_idx]
+                if orig.get("category_override"):
+                    n_item["category_override"] = orig["category_override"]
+                n_item["collected_at"] = orig.get("collected_at", now_cn())
+                if not n_item.get("channel"):
+                    n_item["channel"] = orig.get("channel")
+            else:
+                n_item["collected_at"] = now_cn()
+            final_items.append(n_item)
+            
+        all_items = final_items
         translate_time = time.time() - t1
-        print(f"  翻译完成，耗时 {translate_time:.1f}s")
-
-    all_items = en_items + zh_items
-    collected_ts = now_cn()
-    for item in all_items:
-        if "collected_at" not in item:
-            item["collected_at"] = collected_ts
+        print(f"  清洗完成，产生 {len(zh_items)} 条中文, {len(en_items)} 条英文，耗时 {translate_time:.1f}s")
+    else:
+        translate_time = 0.0
 
     # ── 分类 ──
     for item in all_items:
@@ -751,6 +766,7 @@ def collect_flash(count: int = 10) -> list[dict]:
             subcategory=subcategory,
             collected_at=item.get("collected_at"),
             embedding=embedding,
+            lang=item.get("lang", "zh"),
         )
         if fid > 0:
             inserted += 1
