@@ -535,6 +535,7 @@ export interface PipelineSourceActivity {
 
 export async function getPipelineQueues(): Promise<{ 
   pending: PipelineQueueItem[]; 
+  pendingFlashCount: number;
   published: PipelineQueueItem[];
   sources: PipelineSourceActivity[];
 }> {
@@ -562,7 +563,14 @@ export async function getPipelineQueues(): Promise<{
     ORDER BY last_seen DESC
   `);
 
-  return { pending, published, sources };
+  // 快讯排队数：查询 flash_news 中过去 10 分钟内接收但尚在缓冲的条目数
+  // flash 直接入库，所以用「10 分钟内新增且接收时间 ≈ 当前」来估算 RQ 快讯队列负载
+  const [{ c: pendingFlashCount }] = await queryAll<{ c: number }>(
+    `SELECT COUNT(*)::int as c FROM flash_news
+     WHERE published_at >= NOW() - INTERVAL '10 minutes'`
+  );
+
+  return { pending, pendingFlashCount: pendingFlashCount ?? 0, published, sources };
 }
 
 export async function getBenchmarks(limit = 50, offset = 0): Promise<BenchmarkSummary> {
