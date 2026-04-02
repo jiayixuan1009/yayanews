@@ -542,13 +542,14 @@ export async function getPipelineQueues(): Promise<{
     `SELECT id, title, status, updated_at FROM articles
      WHERE status IN ('draft','review') ORDER BY updated_at DESC LIMIT 40`
   );
+
+  // 已投递 = 已发布文章列表
   const published = await queryAll<PipelineQueueItem>(
     `SELECT id, title, slug, published_at FROM articles
-     WHERE status = 'published' ORDER BY published_at DESC LIMIT 30`
+     WHERE status = 'published' ORDER BY published_at DESC LIMIT 40`
   );
   
   // Aggregate source activity from Flash News
-  // We extract the root data source name before the '/' (e.g., "NewsAPI/BBC" -> "NewsAPI")
   const sources = await queryAll<PipelineSourceActivity>(`
     SELECT 
       SPLIT_PART(source, '/', 1) as source,
