@@ -51,10 +51,11 @@ const FLASH_STEPS = [
 
 export default function PipelineView() {
   const [status, setStatus] = useState<PipelineStatus>({ running: false, pid: null, log: '' });
-  const [queues, setQueues] = useState<{ pending: QueueItem[]; published: QueueItem[]; sources: SourceActivity[] }>({
+  const [queues, setQueues] = useState<{ pending: QueueItem[]; published: QueueItem[]; sources: SourceActivity[]; pendingFlashCount: number }>({
     pending: [],
     published: [],
     sources: [],
+    pendingFlashCount: 0,
   });
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'all' | 'articles' | 'flash'>('all');
@@ -78,11 +79,12 @@ export default function PipelineView() {
   const fetchQueues = useCallback(() => {
     adminFetch('/api/admin/pipeline-queues')
       .then(r => r.json())
-      .then((data: { pending?: QueueItem[]; published?: QueueItem[]; sources?: SourceActivity[] }) => {
+      .then((data: { pending?: QueueItem[]; published?: QueueItem[]; sources?: SourceActivity[]; pendingFlashCount?: number }) => {
         setQueues({
           pending: data.pending || [],
           published: data.published || [],
           sources: data.sources || [],
+          pendingFlashCount: data.pendingFlashCount ?? 0,
         });
       })
       .catch(() => {});
@@ -228,8 +230,8 @@ export default function PipelineView() {
         </div>
       </div>
 
-      {/* 2. Top Factory Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
+      {/* 2. Top Factory Metrics — 5 cards on md+ */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 shrink-0">
         <div className="rounded-lg border border-primary-500/30 bg-primary-950/10 p-2.5 flex flex-col justify-center relative overflow-hidden">
           <div className="text-xs font-medium text-primary-300 flex items-center gap-1.5 mb-0.5">
             <span className={`h-1.5 w-1.5 rounded-full ${status.metrics?.started ? 'bg-primary-400 animate-pulse' : 'bg-slate-600'}`} />
@@ -241,9 +243,15 @@ export default function PipelineView() {
         </div>
         <div className="rounded-lg border border-slate-700/50 bg-slate-800/30 p-2.5 flex flex-col justify-center">
            <div className="text-xs font-medium text-slate-400 flex items-center gap-1.5 mb-0.5">
-             <span className={`h-1.5 w-1.5 rounded-full ${queues.pending.length > 0 ? 'bg-amber-400 animate-pulse' : 'bg-slate-500'}`} />排队等待中 (Queued)
+             <span className={`h-1.5 w-1.5 rounded-full ${queues.pending.length > 0 ? 'bg-amber-400 animate-pulse' : 'bg-slate-500'}`} />文章排队 (Draft)
            </div>
            <div className="text-xl font-bold text-slate-300 font-mono leading-none">{queues.pending.length}</div>
+        </div>
+        <div className="rounded-lg border border-cyan-900/30 bg-cyan-950/10 p-2.5 flex flex-col justify-center">
+           <div className="text-xs font-medium text-cyan-400 flex items-center gap-1.5 mb-0.5">
+             <span className={`h-1.5 w-1.5 rounded-full ${queues.pendingFlashCount > 0 ? 'bg-cyan-400 animate-pulse' : 'bg-slate-500'}`} />快讯近10分钟
+           </div>
+           <div className="text-xl font-bold text-cyan-300 font-mono leading-none">{queues.pendingFlashCount}</div>
         </div>
         <div className="rounded-lg border border-red-900/30 bg-red-950/10 p-2.5 flex flex-col justify-center">
            <div className="text-xs font-medium text-red-400 flex items-center gap-1.5 mb-0.5">
