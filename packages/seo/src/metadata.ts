@@ -31,7 +31,7 @@ const DEFAULT_KEYWORDS_EN = [
 
 // The default OG/Twitter image should be the site's official OG card.
 // When not available, fall back to the article placeholder.
-const DEFAULT_OG_IMAGE = '/images/og-default.png';
+const DEFAULT_OG_IMAGE = '/brand/logo-square.png';
 
 export function createMetadata(options: MetadataOptions = {}): Metadata {
   const {

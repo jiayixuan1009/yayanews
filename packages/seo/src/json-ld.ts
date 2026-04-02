@@ -15,7 +15,7 @@ export function buildNewsArticleJsonLd(article: Article): Record<string, any> {
       name: siteConfig.siteName,
       logo: {
         '@type': 'ImageObject',
-        url: `${siteConfig.siteUrl}/images/yayanews-logo.png`, // Update placeholder if needed
+        url: `${siteConfig.siteUrl}/brand/logo-square.png`,
       },
       url: siteConfig.siteUrl,
     },

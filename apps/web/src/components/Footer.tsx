@@ -1,5 +1,6 @@
 import LocalizedLink from '@/components/LocalizedLink';
 import { siteConfig } from '@yayanews/types';
+import BrandLogo from '@/components/BrandLogo';
 
 export default function Footer({ lang = 'zh', dict }: { lang?: string, dict: Record<string, string> }) {
   const footerColumns = {
@@ -28,10 +29,8 @@ export default function Footer({ lang = 'zh', dict }: { lang?: string, dict: Rec
         <div className="border-b border-[#255e50] pb-8 sm:pb-10">
           <div className="grid gap-6 lg:grid-cols-[1.2fr,0.8fr] lg:items-end">
             <div>
-              <p className="font-label text-[11px] uppercase tracking-[0.2em] text-[#91f78e]">{dict.slogan1 || 'The daily edition'}</p>
-              <LocalizedLink href="/" className="mt-2 inline-block font-display text-[2.35rem] font-semibold leading-none tracking-[-0.06em] text-[#dfffe0] sm:text-[2.8rem]">
-                yayanews
-              </LocalizedLink>
+              <p className="font-label text-[11px] uppercase tracking-[0.2em] text-[#91f78e] mb-3">{dict.slogan1 || 'The daily edition'}</p>
+              <BrandLogo variant="footer" lang={lang} />
               <p className="mt-4 max-w-[38ch] text-sm leading-7 text-emerald-50/82">
                 {dict.slogan2 || 'Financial news editorial desk.'}
               </p>

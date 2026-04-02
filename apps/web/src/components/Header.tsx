@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { siteConfig } from '@yayanews/types';
 import { ORDERED_NAV_CATEGORIES } from '@/lib/constants';
+import BrandLogo from '@/components/BrandLogo';
 
 const primaryNav = [
   { label: '首页', href: '/' },
@@ -56,10 +57,10 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
         </div>
 
         <div className="min-w-0 text-center">
-          <LocalizedLink href="/" className="inline-flex flex-col items-center">
-            <span className="font-display text-[2.1rem] font-semibold leading-none tracking-[-0.06em] text-[#0d3b30] sm:text-[2.7rem] lg:text-[3rem]">yayanews</span>
-            <span className="mt-1 font-label text-[10px] uppercase tracking-[0.22em] text-[#667067] whitespace-nowrap">{dict.marketIntelligence || 'Market intelligence edition'}</span>
-          </LocalizedLink>
+          <div className="inline-flex flex-col items-center">
+            <BrandLogo variant="header" lang={lang} />
+            <span className="mt-1.5 font-label text-[10px] uppercase tracking-[0.22em] text-[#667067] whitespace-nowrap">{dict.marketIntelligence || 'Market intelligence edition'}</span>
+          </div>
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
