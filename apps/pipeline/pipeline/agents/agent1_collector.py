@@ -90,6 +90,7 @@ def _topics_from_rss(category_slug: str) -> list[dict]:
                 "category_slug": category_slug,
                 "category_id": cat["id"],
                 "source": "rss",
+                "source_lang": feed.get("lang", "zh"),  # 继承信源语言标签，默认中文
                 "source_url": item.get("link", ""),
                 "original_content": item.get("summary", ""),
             })

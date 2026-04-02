@@ -6,23 +6,65 @@ from rq import Queue
 from pipeline.utils.redis_conn import get_redis_connection
 
 def calculate_priority(topic: dict) -> str:
-    """Evaluate topic features and assign a queue priority."""
-    source = topic.get('source', '')
-    type_ = topic.get('type', '')
+    """
+    内容创作队列优先级分类器 (v3 信源强化版)
+
+    文章队列共有两种信源：
+      - rss          → CoinDesk / CoinTelegraph / SeekingAlpha 等权威外媒 RSS
+      - ai_generated → LLM 基于关键词发散生成的选题
+
+    判断维度：来源(source) × 分类(category) × 文章类型(type)
+
+    三档定义：
+    - high    = 权威外媒真实外电 → 代表现实事件，时效最强，必须插队
+    - default = 核心市场主干内容 → AI 发散但高相关性，按序稳定产出
+    - low     = 边缘填充内容     → 非核心 AI 发散，资源空闲时处理
+    """
+    source   = topic.get('source', '')
+    type_    = topic.get('type', 'standard')
     category = topic.get('category_slug', '')
-    
-    # 方案 B：高中低优先级重新排序
-    
-    # 👑 最高优先级：唯一的特权留给现实世界的突发新闻
-    if source != 'ai_generated':
+
+    # ─── 信源层 ───────────────────────────────────────────────
+    # 文章队列中，只有 source='rss' 代表真实外媒抓取（区别于快讯通道的多路 API）
+    is_real_news = source == 'rss'
+    # 英文信源比中文信源高半档：英文外媒在信息传播链中是第一手来源，时效更强
+    is_english   = topic.get('source_lang', 'zh') == 'en'
+
+    # ─── 分类层 ───────────────────────────────────────────────
+    CORE_MARKETS   = {'us-stock', 'hk-stock', 'crypto'}   # 高波动，分秒必争
+    ACTIVE_MARKETS = {'derivatives'}                        # 日内行情，节奏略缓
+
+    is_core   = category in CORE_MARKETS
+    is_active = category in ACTIVE_MARKETS
+    is_deep   = type_ == 'deep'
+
+    # ══════════════════════════════════════════════════════════
+    # 优先级决策树
+    # ══════════════════════════════════════════════════════════
+
+    # 👑 HIGH：英文外媒 RSS（CoinDesk / CoinTelegraph / SeekingAlpha 等）
+    #    信息传播链第一手，时效最强，无论哪个市场都无条件插队
+    if is_real_news and is_english:
         return 'high'
-        
-    # 🐌 最低优先级：时效性最弱的纯 AI 发散普通短文（比如衍生品、部分宏观等常规凑数播报）
-    if type_ == 'standard' and category not in ['us-stock', 'hk-stock', 'crypto']:
+
+    # 🟢 DEFAULT (高位)：中文 RSS 外电 → 比 AI 发散更接近现实，但弱于英文一线
+    if is_real_news:
+        return 'default'
+
+    # 🟢 DEFAULT：核心市场的所有 AI 内容（深度文 + 标准文）
+    if is_core:
+        return 'default'
+
+    # 🟢 DEFAULT：衍生品深度研报（高留存价值，不降级）
+    if is_active and is_deep:
+        return 'default'
+
+    # 🐌 LOW：衍生品普通短文（AI 发散凑数播报）
+    if is_active:
         return 'low'
-        
-    # 🟢 正常优先级（中坚力量）：深度长文(deep)、美股、港股、加密货币等核心分类
-    return 'default'
+
+    # 🐌 LOW：其他分类 AI 内容（兜底）
+    return 'low'
 
 def task_collect_and_enqueue_articles(batch_size: int = 10):
     """供 RQ 队列调用的阶段一解耦任务：仅采集选题，然后依据优先级规则分发。"""
