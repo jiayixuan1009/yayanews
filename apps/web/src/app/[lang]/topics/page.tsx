@@ -38,7 +38,7 @@ export default async function TopicsPage() {
                   <div className="relative mb-3 aspect-video overflow-hidden rounded-yn-md border border-slate-800/80 bg-slate-900">
                     <Image
                       src={topic.cover_image}
-                      alt={topic.title}
+                      alt={topic.name_zh || topic.title || topic.slug}
                       fill
                       sizes="(max-width: 640px) 100vw, 33vw"
                       className="object-cover transition-opacity duration-200 group-hover:opacity-95"
@@ -48,10 +48,10 @@ export default async function TopicsPage() {
                   </div>
                 ) : null}
                 <h2 className="text-lg font-semibold tracking-tight text-white group-hover:text-emerald-400/95">
-                  {topic.title}
+                  {topic.name_zh || topic.title || topic.slug}
                 </h2>
-                {topic.description ? (
-                  <p className="mt-2 text-sm text-slate-400 line-clamp-2">{topic.description}</p>
+                {(topic.description_zh || topic.description) ? (
+                  <p className="mt-2 text-sm text-slate-400 line-clamp-2">{topic.description_zh || topic.description}</p>
                 ) : null}
                 <div className="mt-auto flex items-center justify-between border-t border-slate-800/80 pt-3 text-xs text-slate-500">
                   <span>{topic.article_count || 0} 篇</span>
