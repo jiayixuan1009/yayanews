@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: { params: { slug: string; lan
   const flashId = decodeFlashSlug(params.slug);
   if (!flashId) return {};
   const flash = await getFlashNewsById(flashId);
-  if (!flash) return {};
+  if (!flash || (flash.lang && flash.lang !== params.lang)) return {};
   return createMetadata({
     title: flash.title, // brand suffix auto-appended by title template
     description: (flash.content || flash.title).slice(0, 155),
@@ -31,7 +31,7 @@ export default async function FlashDetailPage({ params }: { params: { slug: stri
   if (!flashId) notFound();
 
   const flash = await getFlashNewsById(flashId);
-  if (!flash) notFound();
+  if (!flash || (flash.lang && flash.lang !== params.lang)) notFound();
 
   return (
     <div className="container-main py-8 sm:py-12 lg:py-16 min-h-[70vh]">

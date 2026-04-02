@@ -25,7 +25,7 @@ import { createMetadata, buildNewsArticleJsonLd } from '@yayanews/seo';
 
 export async function generateMetadata({ params }: { params: { slug: string; lang: string } }): Promise<Metadata> {
   const article = await getArticleBySlug(params.slug);
-  if (!article) return {};
+  if (!article || (article.lang && article.lang !== params.lang)) return {};
   const descFallback = article.summary
     ? article.summary.slice(0, 155)
     : article.content
@@ -62,7 +62,7 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
   }
 
   const article = await getArticleBySlug(params.slug);
-  if (!article) notFound();
+  if (!article || (article.lang && article.lang !== params.lang)) notFound();
 
   const related = await getRelatedArticles(article.id, article.category_id, 5);
   const { prev, next } = await getAdjacentArticles(article.id);
