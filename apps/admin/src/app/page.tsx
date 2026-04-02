@@ -9,6 +9,7 @@ import SpeedView from './components/views/SpeedView';
 import BenchmarkView from './components/views/BenchmarkView';
 import ArticlesView from './components/views/ArticlesView';
 import FlashView from './components/views/FlashView';
+import TopicsView from './components/views/TopicsView';
 
 export default function AdminSPA() {
   const [activeTab, setActiveTab] = useState('pipeline');
@@ -21,6 +22,7 @@ export default function AdminSPA() {
       case 'benchmark': return <BenchmarkView />;
       case 'articles':  return <ArticlesView />;
       case 'flash':     return <FlashView />;
+      case 'topics':    return <TopicsView />;
       case 'dashboard':
       default:          return <DashboardView onNavigate={setActiveTab} />;
     }
