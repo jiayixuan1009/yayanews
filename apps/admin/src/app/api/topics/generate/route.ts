@@ -95,9 +95,9 @@ export async function POST(req: NextRequest) {
     const candidates = records.filter(r => 
       r.tag_name && r.tag_name.length > 1 && 
       !GLOBAL_BLACKLIST.has(r.tag_name) && !GLOBAL_BLACKLIST.has(r.tag_name.toLowerCase())
-    ).slice(0, 5); // MVP process max 5 tags to prevent timeout & hallucinations
+    ).slice(0, 2); // MVP limit to 2 tags to strictly prevent 60s Nginx Gateway Timeouts
 
-    logs.push(`🔍 捕获到 ${candidates.length} 个非黑名单高频热门 Tag（Top 5）。`);
+    logs.push(`🔍 捕获到 ${candidates.length} 个非黑名单高频热门 Tag（Top 2）。`);
 
     for (const candidate of candidates) {
       logs.push(`\n🔬 剖析候选 Tag: [${candidate.tag_name}] (近30天关联 ${candidate.article_count} 篇文章)`);
