@@ -143,3 +143,13 @@
 .animate-flash-slide-in {
   animation: flash-slide-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
+
+/* ── Live Ticker Marquee Keyframes (Prevent Tailwind Purge) ────────── */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes marquee_reverse {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0%); }
+}
