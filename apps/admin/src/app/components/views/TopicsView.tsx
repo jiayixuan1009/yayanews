@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface Topic {
   id: number;
@@ -50,7 +51,7 @@ export default function TopicsView() {
   const fetchTopics = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/topics', { headers: { 'x-admin-secret': 'yayanews2024' } });
+      const res = await adminFetch('/api/admin/topics', { headers: { 'x-admin-secret': 'yayanews2024' } });
       const data = await res.json();
       setTopics(data.topics || []);
     } catch { /* silent */ }
@@ -59,7 +60,7 @@ export default function TopicsView() {
 
   const fetchFeatured = useCallback(async (topicId: number) => {
     try {
-      const res = await fetch(`/api/topics/${topicId}`, { headers: { 'x-admin-secret': 'yayanews2024' } });
+      const res = await adminFetch(`/api/admin/topics/${topicId}`, { headers: { 'x-admin-secret': 'yayanews2024' } });
       const data = await res.json();
       setFeatured(data.featured || []);
     } catch { setFeatured([]); }
@@ -94,10 +95,10 @@ export default function TopicsView() {
 
   async function handleSave() {
     setSaving(true); setMsg(null);
-    const url = editMode && selected ? `/api/topics/${selected.id}` : '/api/topics';
+    const url = editMode && selected ? `/api/admin/topics/${selected.id}` : '/api/admin/topics';
     const method = editMode ? 'PUT' : 'POST';
     try {
-      const res = await fetch(url, {
+      const res = await adminFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json', 'x-admin-secret': 'yayanews2024' },
         body: JSON.stringify(form),
@@ -111,7 +112,7 @@ export default function TopicsView() {
 
   async function handleArchive(t: Topic) {
     if (!confirm(`确认归档专题「${t.name_zh}」？\n归档后不可恢复为上线状态（不可继续新增文章），但 URL 保持有效。`)) return;
-    await fetch(`/api/topics/${t.id}`, {
+    await adminFetch(`/api/admin/topics/${t.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'x-admin-secret': 'yayanews2024' },
       body: JSON.stringify({ status: 'archive' }),
@@ -123,7 +124,7 @@ export default function TopicsView() {
     if (!selected) return;
     const ids = featuredInput.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
     const merged = Array.from(new Set([...featured.map(f => f.id), ...ids])).slice(0, 6);
-    const res = await fetch(`/api/topics/${selected.id}/featured`, {
+    const res = await adminFetch(`/api/admin/topics/${selected.id}/featured`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'x-admin-secret': 'yayanews2024' },
       body: JSON.stringify({ article_ids: merged }),
@@ -136,7 +137,7 @@ export default function TopicsView() {
   async function removeFeatured(articleId: number) {
     if (!selected) return;
     const newIds = featured.filter(f => f.id !== articleId).map(f => f.id);
-    await fetch(`/api/topics/${selected.id}/featured`, {
+    await adminFetch(`/api/admin/topics/${selected.id}/featured`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'x-admin-secret': 'yayanews2024' },
       body: JSON.stringify({ article_ids: newIds }),
@@ -148,7 +149,7 @@ export default function TopicsView() {
     if (!confirm('这将会触发大语言模型对全站近 30 天的高频标签进行扫描，耗时可能较长（约10-30秒）。是否开始？')) return;
     setDiscovering(true);
     try {
-      const res = await fetch('/api/topics/generate', {
+      const res = await adminFetch('/api/admin/topics/generate', {
         method: 'POST',
         headers: { 'x-admin-secret': 'yayanews2024' }
       });
