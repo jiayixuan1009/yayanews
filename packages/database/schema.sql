@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS articles (
     id SERIAL PRIMARY KEY, title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE,
     summary TEXT, content TEXT NOT NULL, cover_image TEXT,
     category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL, 
+    parent_id INTEGER REFERENCES articles(id) ON DELETE CASCADE,
     author TEXT DEFAULT 'YayaNews',
     status TEXT DEFAULT 'draft',
     article_type TEXT DEFAULT 'standard',
@@ -102,6 +103,7 @@ ALTER TABLE articles ADD COLUMN IF NOT EXISTS key_points TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS source TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_url TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS subcategory TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES articles(id) ON DELETE CASCADE;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS embedding vector(1536);
 
 -- add missing columns to flash_news

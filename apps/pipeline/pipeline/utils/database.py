@@ -78,7 +78,8 @@ def insert_article(
     collected_at: Optional[str] = None,
     lang: str = "zh",
     embedding: Optional[list[float]] = None,
-    cover_image: str = ""
+    cover_image: str = "",
+    parent_id: Optional[int] = None
 ) -> int:
     ts = now_cn()
     conn = get_conn()
@@ -88,13 +89,13 @@ def insert_article(
                 """INSERT INTO articles
                 (title, slug, summary, content, category_id, author, status, article_type,
                  sentiment, tickers, key_points, source, source_url, subcategory,
-                 collected_at, published_at, created_at, updated_at, lang, embedding, cover_image)
+                 collected_at, published_at, created_at, updated_at, lang, embedding, cover_image, parent_id)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s,
-                        %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+                        %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
                 (title, slug, summary, content, category_id, author, status, article_type,
                  sentiment, tickers, key_points, source, source_url, subcategory,
-                 collected_at or ts, published_at or ts, ts, ts, lang, embedding, cover_image)
+                 collected_at or ts, published_at or ts, ts, ts, lang, embedding, cover_image, parent_id)
             )
             article_id = cur.fetchone()[0]
         conn.commit()
@@ -142,7 +143,8 @@ def update_article_full(
     subcategory: str = "",
     lang: str = "zh",
     embedding: Optional[list[float]] = None,
-    cover_image: str = ""
+    cover_image: str = "",
+    parent_id: Optional[int] = None
 ) -> bool:
     ts = now_cn()
     conn = get_conn()
@@ -154,13 +156,13 @@ def update_article_full(
                     author=%s, status=%s, article_type=%s, sentiment=%s,
                     tickers=%s, key_points=%s, source=%s, source_url=%s,
                     subcategory=%s, published_at=%s, updated_at=%s,
-                    lang=%s, embedding=%s, cover_image=%s
+                    lang=%s, embedding=%s, cover_image=%s, parent_id=%s
                 WHERE id=%s
             """, (title, slug, summary, content, category_id,
                   author, status, article_type, sentiment,
                   tickers, key_points, source, source_url,
                   subcategory, published_at or ts, ts,
-                  lang, embedding, cover_image, article_id))
+                  lang, embedding, cover_image, parent_id, article_id))
         conn.commit()
         log.info(f"Article updated: id={article_id}, slug={slug}")
         

@@ -57,11 +57,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     localize(`/news/${c.slug}`, new Date(), 'hourly', 0.8)
   );
 
-  const articlePages: MetadataRoute.Sitemap = articles.map(a => {
-    const isEn = a.slug.endsWith('-en');
+  const articlePages: MetadataRoute.Sitemap = articles.map((a: any) => {
+    const isEn = a.lang === 'en';
     const langPrefix = isEn ? '/en' : '/zh';
-    const zhPath = `/zh/article/${isEn ? a.slug.replace(/-en$/, '') : a.slug}`;
-    const enPath = `/en/article/${isEn ? a.slug : a.slug + '-en'}`;
+    const zhPath = `/zh/article/${isEn ? (a.sibling_slug || a.slug) : a.slug}`;
+    const enPath = `/en/article/${isEn ? a.slug : (a.sibling_slug || a.slug + '-en')}`;
     const encodedPath = encodeURI(`/article/${a.slug}`);
     return {
       url: `${baseUrl}${langPrefix}${encodedPath}`,

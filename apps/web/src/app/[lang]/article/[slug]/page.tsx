@@ -26,7 +26,7 @@ import { isRemoteImageOptimizable } from '@/lib/remote-image';
 import { createMetadata, buildNewsArticleJsonLd } from '@yayanews/seo';
 
 export async function generateMetadata({ params }: { params: { slug: string; lang: string } }): Promise<Metadata> {
-  const article = await getArticleBySlug(params.slug);
+  const article = await getArticleBySlug(params.slug) as (Article & { sibling_slug?: string }) | undefined;
   if (!article || (article.lang && article.lang !== params.lang)) return {};
   const descFallback = article.summary
     ? article.summary.slice(0, 155)
@@ -34,10 +34,11 @@ export async function generateMetadata({ params }: { params: { slug: string; lan
       ? article.content.replace(/<[^>]+>/g, '').slice(0, 152) + '...'
       : article.title;
 
-  const isEnDoc = params.slug.endsWith('-en');
-  const baseSlug = isEnDoc ? params.slug.replace(/-en$/, '') : params.slug;
-  const enSlug = isEnDoc ? params.slug : `${params.slug}-en`;
-  const zhSlug = baseSlug;
+  const isEnDoc = params.lang === 'en';
+  
+  // Natively pull the related slugs based on DB linkage, fallback to current slug if orphaned
+  const zhSlug = isEnDoc ? (article.sibling_slug || params.slug) : params.slug;
+  const enSlug = isEnDoc ? params.slug : (article.sibling_slug || `${params.slug}-en`);
 
   return createMetadata({
     title: article.title,

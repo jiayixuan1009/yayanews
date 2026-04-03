@@ -70,7 +70,7 @@ export default function PipelineView() {
       .then((data: PipelineStatus) => {
         setStatus(data);
         if (logRef.current) {
-          logRef.current.scrollTop = logRef.current.scrollHeight;
+          logRef.current.scrollTop = 0;
         }
       })
       .catch(() => {});

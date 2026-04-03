@@ -11,12 +11,12 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 load_dotenv(PROJECT_ROOT / ".env")
 
-# ── LLM 配置 ──
-LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://api.minimaxi.com/v1")
+# ── LLM 配置（Deepseek，兼容 OpenAI 格式）──
+LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://api.deepseek.com/v1")
 LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
 if not LLM_API_KEY:
     raise EnvironmentError("LLM_API_KEY environment variable is required. Set it in .env or system env.")
-LLM_MODEL = os.environ.get("LLM_MODEL", "MiniMax-M2.1")
+LLM_MODEL = os.environ.get("LLM_MODEL", "deepseek-chat")
 
 # ── 每轮生产配置 ──
 BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "10"))

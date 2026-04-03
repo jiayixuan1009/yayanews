@@ -88,13 +88,15 @@ export async function getArticleCountByType(categorySlug?: string, articleType?:
   return res?.count || 0;
 }
 
-export async function getArticleBySlug(slug: string): Promise<Article | undefined> {
-  const article = await queryGet(`
-    SELECT a.*, c.name as category_name, c.slug as category_slug
+export async function getArticleBySlug(slug: string): Promise<(Article & { sibling_slug?: string }) | undefined> {
+  const article = await queryGet<{ sibling_slug?: string }>(`
+    SELECT a.*, c.name as category_name, c.slug as category_slug,
+           sib.slug as sibling_slug
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
+    LEFT JOIN articles sib ON (a.lang = 'zh' AND sib.parent_id = a.id) OR (a.lang = 'en' AND sib.id = a.parent_id)
     WHERE a.slug = $1 AND a.status = 'published'
-  `, [slug]) as Article | undefined;
+  `, [slug]) as (Article & { sibling_slug?: string }) | undefined;
 
   if (article) {
     article.tags = await getArticleTags(article.id);
@@ -334,13 +336,18 @@ export async function getArticleCount(): Promise<number> {
   return row?.count || 0;
 }
 
-export async function getRecentArticlesForSitemap(): Promise<{ slug: string; updated_at: string }[]> {
-  const articles = await queryAll<{ slug: string; updated_at: Date | string }>(`
-    SELECT slug, updated_at FROM articles
-    WHERE status = 'published' ORDER BY published_at DESC
+export async function getRecentArticlesForSitemap(): Promise<{ slug: string; updated_at: string; lang: string; sibling_slug?: string }[]> {
+  const articles = await queryAll<{ slug: string; updated_at: Date | string; lang: string; sibling_slug?: string }>(`
+    SELECT a.slug, a.updated_at, a.lang,
+           sib.slug as sibling_slug
+    FROM articles a
+    LEFT JOIN articles sib ON (a.lang = 'zh' AND sib.parent_id = a.id) OR (a.lang = 'en' AND sib.id = a.parent_id)
+    WHERE a.status = 'published' ORDER BY a.published_at DESC
   `);
   return articles.map(a => ({
     slug: a.slug,
+    lang: a.lang,
+    sibling_slug: a.sibling_slug,
     updated_at: safeDateStr(a.updated_at)
   }));
 }

@@ -5,9 +5,10 @@ Agent 6: 英文双语翻译 (English Translator)
 """
 import json
 import time
+from slugify import slugify
 from pipeline.utils.llm import chat
 from pipeline.utils.logger import get_logger, step_print
-from pipeline.utils.database import get_pool, insert_article, insert_tags
+from pipeline.utils.database import get_pool, insert_article, insert_tags, slug_exists
 from psycopg2.extras import RealDictCursor
 from pipeline.config.settings import PIPELINE_LLM_WORKERS
 
@@ -77,6 +78,16 @@ Output JSON Format ONLY:
         if start >= 0 and end > start:
             data = json.loads(result[start:end])
             
+            en_slug_base = slugify(data.get("title", f"EN {zh_article['title'][:30]}"), max_length=80)
+            if not en_slug_base:
+                en_slug_base = f"{zh_article['slug']}-en"
+            
+            en_slug = en_slug_base
+            counter = 1
+            while slug_exists(en_slug):
+                en_slug = f"{en_slug_base}-{counter}"
+                counter += 1
+
             # Map back required fields from zh_article and translated data
             return {
                 **zh_article,
@@ -86,7 +97,8 @@ Output JSON Format ONLY:
                 "tags": data.get("tags", []),
                 "sentiment": (data.get("sentiment") or "neutral").lower(),
                 "lang": "en",
-                "slug": f"{zh_article['slug']}-en" 
+                "slug": en_slug,
+                "parent_id": zh_article["id"]
             }
     except Exception as e:
         log.warning(f"Failed to parse Agent 6 translation JSON for article {zh_article['id']}: {e}")
@@ -133,7 +145,8 @@ def translate_queue(batch_size: int = 5) -> list[dict]:
                 tickers=zh["tickers"], # Keep original tickers
                 source=zh["source"],
                 subcategory=zh["subcategory"],
-                lang="en"
+                lang="en",
+                parent_id=en_draft["parent_id"]
             )
             
             if fid > 0:
