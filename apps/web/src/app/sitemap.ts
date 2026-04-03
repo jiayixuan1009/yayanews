@@ -9,6 +9,10 @@ export const revalidate = 3600; // Cache for 1 hour to prevent timeout on large 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = siteConfig.siteUrl;
 
+  function safeEncodeURI(uri: string) {
+    return encodeURI(uri).replace(/&/g, '%26').replace(/</g, '%3C').replace(/>/g, '%3E');
+  }
+
   function localize(
     path: string,
     lastModified?: Date,
@@ -16,7 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority?: number
   ): MetadataRoute.Sitemap {
     // Encode non-ASCII characters (e.g. Chinese tag slugs) in URL path
-    const encodedPath = path === '/' ? '' : encodeURI(path);
+    const encodedPath = path === '/' ? '' : safeEncodeURI(path);
     const zhUrl = `${baseUrl}/zh${encodedPath}`;
     const enUrl = `${baseUrl}/en${encodedPath}`;
     const alternates = { languages: { zh: zhUrl, en: enUrl } };
@@ -62,7 +66,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const langPrefix = isEn ? '/en' : '/zh';
     const zhPath = `/zh/article/${isEn ? (a.sibling_slug || a.slug) : a.slug}`;
     const enPath = `/en/article/${isEn ? a.slug : (a.sibling_slug || a.slug + '-en')}`;
-    const encodedPath = encodeURI(`/article/${a.slug}`);
+    const encodedPath = safeEncodeURI(`/article/${a.slug}`);
     return {
       url: `${baseUrl}${langPrefix}${encodedPath}`,
       lastModified: safeDate(a.updated_at),
@@ -70,8 +74,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
       alternates: {
         languages: {
-          zh: `${baseUrl}${encodeURI(zhPath)}`,
-          en: `${baseUrl}${encodeURI(enPath)}`,
+          zh: `${baseUrl}${safeEncodeURI(zhPath)}`,
+          en: `${baseUrl}${safeEncodeURI(enPath)}`,
         }
       }
     };
