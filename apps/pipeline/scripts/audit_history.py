@@ -17,21 +17,20 @@ from pipeline.utils.logger import get_logger
 log = get_logger("audit_history")
 
 PROMPT_TEMPLATE = """你是一个严苛的金融内容风控制度员。
-请核对以下 YayaNews 生成的中文新闻文章是否出现了严重的事实造假或捏造数据。
-【原始素材】
-{source}
+接下来你需要对以下以前发布的 YayaNews 中文新闻文章进行【自洽性和常识性安全核查】。由于历史文章的原始素材已不再保留，请你仅根据文章本身进行判断：
 
-【生成的文章】
+【待审文章】
 {content}
 
 【核查规则】
-1. 生成的文章中的任何具体数字（金额、百分比、日期）必须能在原始素材中找到出处，或者属于极度明显的客观大背景常识（如"美联储今年降息"）。如果凭空捏造了具体的价格、涨跌幅、或者在文中引用了素材中不存在的机构言论，则必须驳回。
-2. 只要核心逻辑和数字没有无中生有，就可以通过，不管翻译风格如何。
+1. 检查文章是否存在极度违背金融常识的明显拼凑（例如：宣称比特币跌破1美元，苹果公司破产等不可能的离谱数字）。
+2. 如果文章涉及过于离谱或带有严重导向性造假的情绪化描述，请驳回。
+3. 只要大方向合理、符合一般正常的行情报道或行业内容，就予以通过。不要过于吹毛求疵。
 
 请严格仅输出一个 JSON（不要任何 markdown 或其他废话）：
-{{"status": "approved", "reason": "通过原因"}}
+{{"status": "approved", "reason": "大体合理"}}
 或者
-{{"status": "rejected", "reason": "驳回原因：捏造了...数据"}}
+{{"status": "rejected", "reason": "驳回原因：违背常识..."}}
 """
 
 def upgrade_schema():
@@ -67,7 +66,7 @@ def process_batch():
     articles_to_check = []
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT id, title, content, original_content FROM articles WHERE status = 'published' AND audit_status = 'approved' ORDER BY id DESC")
+            cur.execute("SELECT id, title, content FROM articles WHERE status = 'published' AND audit_status = 'approved' ORDER BY id DESC")
             articles_to_check = cur.fetchall()
     except Exception as e:
         log.error(f"Failed to fetch articles: {e}")
@@ -81,12 +80,9 @@ def process_batch():
     approved_count = 0
     
     for row in articles_to_check:
-        a_id, title, content, source = row
-        if not source or len(str(source).strip()) < 20:
-            log.info(f"[{a_id}] {title} ... skipped (no original content / original or deep article)")
-            continue
-            
-        prompt = PROMPT_TEMPLATE.format(source=str(source)[:2500], content=str(content)[:2500])
+        a_id, title, content = row
+        
+        prompt = PROMPT_TEMPLATE.format(content=str(content)[:2500])
         
         try:
             res = chat("你是金融内容风控员，只能输出 JSON。", prompt, temperature=0.1, max_tokens=200)
