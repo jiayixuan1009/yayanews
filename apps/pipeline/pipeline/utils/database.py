@@ -85,6 +85,16 @@ def insert_article(
     conn = get_conn()
     try:
         with conn.cursor() as cur:
+            # Check slug uniqueness and mutate if collision exists
+            original_slug = slug
+            counter = 1
+            while True:
+                cur.execute("SELECT id FROM articles WHERE slug = %s", (slug,))
+                if not cur.fetchone():
+                    break
+                slug = f"{original_slug}-{counter}"
+                counter += 1
+                
             cur.execute(
                 """INSERT INTO articles
                 (title, slug, summary, content, category_id, author, status, article_type,
