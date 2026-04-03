@@ -157,7 +157,7 @@ FLASH_CHANNELS = {
         "timeout": 15,
     },
     "llm_fallback": {
-        "enabled": True,
+        "enabled": False,   # 关闭 LLM 凭空生成快讯，节省 Token
         "weight": 0,
     },
 }
@@ -170,6 +170,10 @@ FLASH_WS_DRAIN_MAX = int(os.environ.get("FLASH_WS_DRAIN_MAX", "25"))
 # 文章 Pipeline：选题并行分类数、LLM 并行度（写作/SEO）
 PIPELINE_COLLECT_WORKERS = int(os.environ.get("PIPELINE_COLLECT_WORKERS", "4"))
 PIPELINE_LLM_WORKERS = int(os.environ.get("PIPELINE_LLM_WORKERS", "4"))
+
+# ── Agent 6 英文翻译控制（按需翻译，节省 ~17% Token）──
+ENABLE_REALTIME_TRANSLATION = os.environ.get("ENABLE_REALTIME_TRANSLATION", "0") == "1"
+TRANSLATION_MIN_VIEWS = int(os.environ.get("TRANSLATION_MIN_VIEWS", "30"))
 
 # ── 站点配置 ──
 SITE_NAME = "YayaNews"

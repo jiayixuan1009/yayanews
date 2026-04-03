@@ -110,12 +110,14 @@ def translate_queue(batch_size: int = 5) -> list[dict]:
     mutates them into native English formats via the LLM pipeline, and synchronizes 
     them back to the PostgreSQL database with `lang='en'`.
     
-    Args:
-        batch_size (int): Max concurrent translation tasks.
-        
-    Returns:
-        list[dict]: Output metadata of all successfully translated and ingested English articles.
+    When ENABLE_REALTIME_TRANSLATION is False, this function is a no-op to save tokens.
     """
+    from pipeline.config.settings import ENABLE_REALTIME_TRANSLATION, TRANSLATION_MIN_VIEWS
+    
+    if not ENABLE_REALTIME_TRANSLATION:
+        print("\n[Agent 6] 实时翻译已关闭 (ENABLE_REALTIME_TRANSLATION=0)，跳过英文翻译以节省 Token。")
+        return []
+    
     Candidates = _get_translation_candidates(limit=batch_size)
     if not Candidates:
         print("\n[Agent 6] 无需翻译的文章。")
