@@ -7,8 +7,8 @@ export function buildNewsArticleJsonLd(article: Article): Record<string, any> {
     headline: article.title,
     description: article.summary || article.title,
     image: article.cover_image || undefined,
-    datePublished: article.published_at,
-    dateModified: article.updated_at,
+    datePublished: article.published_at ? new Date(article.published_at).toISOString() : undefined,
+    dateModified: article.updated_at ? new Date(article.updated_at).toISOString() : undefined,
     author: { '@type': 'Person', name: article.author || 'YayaNews' },
     publisher: {
       '@type': 'Organization',

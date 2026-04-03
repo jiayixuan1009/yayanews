@@ -15,6 +15,7 @@ export interface MetadataOptions {
   keywords?: string[];
   noIndex?: boolean;
   lang?: 'zh' | 'en';
+  alternatesLanguages?: Record<string, string>;
 }
 
 const DEFAULT_KEYWORDS_ZH = [
@@ -60,9 +61,12 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
   const finalDesc = description ?? defaultDesc;
   const finalTitle = title ?? `${brandName} — ${slogan}`;
   const finalImage = image ?? DEFAULT_OG_IMAGE;
-  const fullUrl = url
-    ? `${siteConfig.siteUrl}${url.startsWith('/') ? url : `/${url}`}`
-    : siteConfig.siteUrl;
+  const localePrefix = isZh ? '/zh' : '/en';
+  // Strip any existing locale prefix if accidentally passed
+  const cleanUrl = url ? (url.startsWith('/') ? url : `/${url}`).replace(/^\/(zh|en)(\/|$)/, '$2') : '';
+  const finalCanonical = canonical ?? `${localePrefix}${cleanUrl}`;
+
+  const fullUrl = `${siteConfig.siteUrl}${finalCanonical}`;
   const defaultKeywords = isZh ? DEFAULT_KEYWORDS_ZH : DEFAULT_KEYWORDS_EN;
 
   const metadata: Metadata = {
@@ -74,10 +78,10 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
     keywords: keywords ?? defaultKeywords,
     metadataBase: new URL(siteConfig.siteUrl),
     alternates: {
-      canonical: canonical ?? url ?? '/',
-      languages: {
-        'zh-CN': `/zh${url ?? ''}`,
-        'en-US': `/en${url ?? ''}`,
+      canonical: finalCanonical,
+      languages: options.alternatesLanguages || {
+        'zh-CN': `/zh${cleanUrl}`,
+        'en-US': `/en${cleanUrl}`,
       },
     },
     openGraph: {

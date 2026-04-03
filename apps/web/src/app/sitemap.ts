@@ -4,6 +4,7 @@ import { siteConfig } from '@yayanews/types';
 import { encodeFlashSlug } from '@/lib/ui-utils';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 3600; // Cache for 1 hour to prevent timeout on large datasets
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = siteConfig.siteUrl;
@@ -14,13 +15,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency?: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never',
     priority?: number
   ): MetadataRoute.Sitemap {
-    const zhUrl = `${baseUrl}/zh${path === '/' ? '' : path}`;
-    const enUrl = `${baseUrl}/en${path === '/' ? '' : path}`;
+    // Encode non-ASCII characters (e.g. Chinese tag slugs) in URL path
+    const encodedPath = path === '/' ? '' : encodeURI(path);
+    const zhUrl = `${baseUrl}/zh${encodedPath}`;
+    const enUrl = `${baseUrl}/en${encodedPath}`;
     const alternates = { languages: { zh: zhUrl, en: enUrl } };
     return [
       { url: zhUrl, lastModified, changeFrequency, priority, alternates },
       { url: enUrl, lastModified, changeFrequency, priority, alternates },
     ];
+  }
+
+  /** Safe date parser — returns valid Date or current date as fallback */
+  function safeDate(d: any): Date {
+    if (!d) return new Date();
+    const parsed = new Date(d);
+    return isNaN(parsed.getTime()) ? new Date() : parsed;
   }
 
   const staticPages: MetadataRoute.Sitemap = [
@@ -47,20 +57,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     localize(`/news/${c.slug}`, new Date(), 'hourly', 0.8)
   );
 
-  const articlePages: MetadataRoute.Sitemap = articles.flatMap(a => 
-    localize(`/article/${a.slug}`, new Date(a.updated_at), 'weekly', 0.6)
-  );
+  const articlePages: MetadataRoute.Sitemap = articles.map(a => {
+    const isEn = a.slug.endsWith('-en');
+    const langPrefix = isEn ? '/en' : '/zh';
+    const zhPath = `/zh/article/${isEn ? a.slug.replace(/-en$/, '') : a.slug}`;
+    const enPath = `/en/article/${isEn ? a.slug : a.slug + '-en'}`;
+    const encodedPath = encodeURI(`/article/${a.slug}`);
+    return {
+      url: `${baseUrl}${langPrefix}${encodedPath}`,
+      lastModified: safeDate(a.updated_at),
+      changeFrequency: 'weekly',
+      priority: 0.6,
+      alternates: {
+        languages: {
+          zh: `${baseUrl}${encodeURI(zhPath)}`,
+          en: `${baseUrl}${encodeURI(enPath)}`,
+        }
+      }
+    };
+  });
 
   const topicPages: MetadataRoute.Sitemap = topics.flatMap(t =>
-    localize(`/topics/${t.slug}`, new Date(t.updated_at), 'daily', 0.8)
+    localize(`/topics/${t.slug}`, safeDate(t.updated_at), 'daily', 0.8)
   );
 
   const tagPages: MetadataRoute.Sitemap = tagRows.flatMap(t => 
-    localize(`/tag/${t.slug}`, new Date(t.updated_at), 'daily', 0.55)
+    localize(`/tag/${t.slug}`, safeDate(t.updated_at), 'daily', 0.55)
   );
 
   const flashPages: MetadataRoute.Sitemap = flashes.flatMap(f => 
-    localize(`/flash/${encodeFlashSlug(f as any)}`, new Date(f.updated_at), 'weekly', 0.5)
+    localize(`/flash/${encodeFlashSlug(f as any)}`, safeDate(f.updated_at), 'weekly', 0.5)
   );
 
   return [...staticPages, ...categoryPages, ...articlePages, ...topicPages, ...tagPages, ...flashPages];

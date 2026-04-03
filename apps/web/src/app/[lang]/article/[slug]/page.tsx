@@ -33,6 +33,12 @@ export async function generateMetadata({ params }: { params: { slug: string; lan
     : article.content
       ? article.content.replace(/<[^>]+>/g, '').slice(0, 152) + '...'
       : article.title;
+
+  const isEnDoc = params.slug.endsWith('-en');
+  const baseSlug = isEnDoc ? params.slug.replace(/-en$/, '') : params.slug;
+  const enSlug = isEnDoc ? params.slug : `${params.slug}-en`;
+  const zhSlug = baseSlug;
+
   return createMetadata({
     title: article.title,
     description: descFallback,
@@ -44,6 +50,10 @@ export async function generateMetadata({ params }: { params: { slug: string; lan
     modifiedTime: article.updated_at || undefined,
     section: article.category_name || undefined,
     lang: params.lang as 'zh' | 'en',
+    alternatesLanguages: {
+      'zh-CN': `/zh/article/${zhSlug}`,
+      'en-US': `/en/article/${enSlug}`,
+    },
   });
 }
 

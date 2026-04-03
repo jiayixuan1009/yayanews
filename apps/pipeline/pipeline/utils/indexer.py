@@ -30,7 +30,7 @@ def _do_indexnow_ping(full_urls):
         "urlList": full_urls
     }
     try:
-        resp = requests.post("https://api.indexnow.org/indexnow", json=payload, timeout=5)
+        resp = requests.post("https://www.bing.com/indexnow", json=payload, timeout=5)
         resp.raise_for_status()
         log.info(f"Pinged IndexNow successfully: {len(full_urls)} URLs")
     except Exception as e:
