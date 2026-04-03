@@ -45,6 +45,7 @@ export default function TopicsView() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [featuredInput, setFeaturedInput] = useState('');
+  const [discovering, setDiscovering] = useState(false);
 
   const fetchTopics = useCallback(async () => {
     setLoading(true);
@@ -143,6 +144,31 @@ export default function TopicsView() {
     fetchFeatured(selected.id);
   }
 
+  async function handleAutoDiscover() {
+    if (!confirm('这将会触发大语言模型对全站近 30 天的高频标签进行扫描，耗时可能较长（约10-30秒）。是否开始？')) return;
+    setDiscovering(true);
+    try {
+      const res = await fetch('/api/topics/generate', {
+        method: 'POST',
+        headers: { 'x-admin-secret': 'yayanews2024' }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (data.createdTopics && data.createdTopics.length > 0) {
+          alert(`🎉 挖掘成功！共识别并自动聚合了 ${data.createdTopics.length} 个新突发事件专题，并已移入草稿箱。`);
+        } else {
+          alert('✅ 扫描完毕。当前没有足够热度或无符合事件标准的新专题候选。');
+        }
+        fetchTopics();
+      } else {
+        alert(`❌ 探索失败：${data.error || '服务器未知错误'}`);
+      }
+    } catch (e) {
+      alert(`❌ 网络错误：${String(e)}`);
+    }
+    setDiscovering(false);
+  }
+
   return (
     <div className="space-y-6">
       {/* 顶栏 */}
@@ -151,15 +177,24 @@ export default function TopicsView() {
           <h2 className="text-xl font-semibold text-white">专题管理</h2>
           <p className="mt-1 text-sm text-slate-400">管理内容专题，构建 Hub-Spoke 内链网络</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          新建专题
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleAutoDiscover}
+            disabled={discovering}
+            className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50"
+          >
+            {discovering ? '系统推演中...' : '✨ AI 全域嗅探发现'}
+          </button>
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            手工建专题
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr,400px]">
