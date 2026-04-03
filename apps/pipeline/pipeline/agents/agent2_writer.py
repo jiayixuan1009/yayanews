@@ -25,6 +25,7 @@ SYSTEM_PROMPT = """你是专业金融新闻记者和分析师，服务于 YayaNe
 
 重要规则：
 - 不得编造任何具体数字、价格、涨跌幅——如果不确定真实数据，用"据报道"、"市场数据显示"等模糊表述
+- 严禁脑补、捏造或虚构未在素材中出现的关键时间点、机构名称、引言
 - 所有观点分析必须有逻辑依据，不能凭空推测
 - 输出格式：纯 HTML 正文（使用 <p>, <h2>, <h3>, <ul>, <li>, <strong> 等标签）
 - 不要输出 markdown，不要输出 ```html 包裹，直接输出 HTML 内容"""
@@ -63,7 +64,7 @@ JSON 格式（仅此一个 JSON 对象）：
   "key_points": ["要点1","要点2","要点3"]
 }}"""
 
-    result = chat(SYSTEM_PROMPT, prompt, temperature=0.7, max_tokens=4096)
+    result = chat(SYSTEM_PROMPT, prompt, temperature=0.4, max_tokens=4096)
     return _parse_result(result, topic)
 
 
@@ -88,10 +89,12 @@ def _rewrite_from_source(topic: dict) -> dict:
 5. 文末加风险提示
 6. 输出纯 HTML
 
+8. 绝不能在文中补充不存在的具体财报数字、外部价格数据或未经素材确认的事件！
+
 JSON（单对象，含 SEO，与上文原创稿相同字段）：
 {{"content":"<p>...</p>","seo_title":"...","seo_description":"...","tags":[],"sentiment":"neutral","tickers":[],"key_points":[]}}"""
 
-    result = chat(SYSTEM_PROMPT, prompt, temperature=0.7, max_tokens=4096)
+    result = chat(SYSTEM_PROMPT, prompt, temperature=0.2, max_tokens=4096)
     return _parse_result(result, topic)
 
 
