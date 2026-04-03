@@ -107,7 +107,7 @@ HEALTHY=false
 for i in $(seq 1 $HEALTH_RETRIES); do
     sleep $HEALTH_INTERVAL
     HTTP_CODE=$(curl -sf -o /dev/null -w "%{http_code}" "$HEALTH_URL" 2>/dev/null || echo "000")
-    if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ]; then
+    if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ] || [ "$HTTP_CODE" = "308" ]; then
         HEALTHY=true
         log "   ✅ 健康检查通过 (HTTP $HTTP_CODE, 尝试 $i/$HEALTH_RETRIES)"
         break
