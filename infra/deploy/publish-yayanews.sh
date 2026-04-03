@@ -71,11 +71,14 @@ export NODE_ENV=production
 npm run build 2>&1 | tail -3
 
 # standalone 模式需要手动复制静态资源（路径相对于各 app 子目录）
+mkdir -p apps/web/.next/standalone/.next
+mkdir -p apps/admin/.next/standalone/.next
 cp -r apps/web/public apps/web/.next/standalone/public
 cp -r apps/web/.next/static apps/web/.next/standalone/.next/static
 # Admin app may not have a public dir, copy only static bundle
 cp -r apps/admin/.next/static apps/admin/.next/standalone/.next/static 2>/dev/null || true
 log "   ✅ 构建完成"
+
 
 # ── 4. 重启服务 ──
 log "♻️  重启 PM2 服务..."
