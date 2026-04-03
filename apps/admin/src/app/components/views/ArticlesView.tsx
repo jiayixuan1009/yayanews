@@ -196,6 +196,7 @@ export default function ArticlesView() {
                   <th className="text-left px-4 py-3 font-medium w-16">情感</th>
                   <th className="text-left px-4 py-3 font-medium w-16">浏览</th>
                   <th className="text-left px-4 py-3 font-medium w-16">状态</th>
+                  <th className="text-left px-4 py-3 font-medium w-16">风控</th>
                   <th className="text-left px-4 py-3 font-medium w-20">耗时</th>
                   <th className="text-left px-4 py-3 font-medium w-36">时间</th>
                   <th className="text-left px-4 py-3 font-medium w-20">操作</th>
@@ -204,12 +205,12 @@ export default function ArticlesView() {
               <tbody className="divide-y divide-slate-800/50">
                 {data && 'error' in data ? (
                   <tr>
-                    <td colSpan={10} className="py-12 text-center text-red-500">
+                    <td colSpan={11} className="py-12 text-center text-red-500">
                       访问失败 - {(data as any).error}
                     </td>
                   </tr>
                 ) : !data?.articles || data.articles.length === 0 ? (
-                  <tr><td colSpan={10} className="text-center py-12 text-slate-500">暂无数据</td></tr>
+                  <tr><td colSpan={11} className="text-center py-12 text-slate-500">暂无数据</td></tr>
                 ) : (
                   data.articles.map(a => (
                     <tr key={a.id} className="text-slate-300 hover:bg-slate-800/30 cursor-pointer" onClick={() => openDetail(a.id)}>
@@ -233,6 +234,15 @@ export default function ArticlesView() {
                       <td className="px-4 py-3"><SentimentBadge value={a.sentiment} /></td>
                       <td className="px-4 py-3 text-slate-500">{a.view_count}</td>
                       <td className="px-4 py-3"><StatusBadge value={a.status} /></td>
+                      <td className="px-4 py-3">
+                        {a.audit_status === 'rejected' ? (
+                          <span className="inline-block rounded-full bg-red-500/20 px-2 py-0.5 text-[11px] font-medium text-red-400" title={a.audit_reason || '被风控拦截'}>拦截</span>
+                        ) : a.audit_status === 'pending' ? (
+                          <span className="inline-block rounded-full bg-amber-500/20 px-2 py-0.5 text-[11px] font-medium text-amber-400">待审</span>
+                        ) : (
+                          <span className="inline-block rounded-full bg-green-500/20 px-2 py-0.5 text-[11px] font-medium text-green-400">正常</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3"><ProcessingTime seconds={a.processing_seconds} /></td>
                       <td className="px-4 py-3 text-xs text-slate-500">{a.created_at?.slice(0, 16)}</td>
                       <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
@@ -303,6 +313,11 @@ export default function ArticlesView() {
                     </span>
                     <SentimentBadge value={selected.sentiment} />
                     <StatusBadge value={selected.status} />
+                    {selected.audit_status === 'rejected' && (
+                      <span className="rounded-full bg-red-500/20 px-2.5 py-1 font-medium text-red-400">
+                        风控驳回: {selected.audit_reason}
+                      </span>
+                    )}
                     {selected.tickers && selected.tickers.split(',').map(t => (
                       <span key={t} className="rounded-full bg-slate-800 px-2.5 py-1 text-slate-400">{t.trim()}</span>
                     ))}

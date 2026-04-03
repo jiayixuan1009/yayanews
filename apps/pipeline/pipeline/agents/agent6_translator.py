@@ -146,7 +146,8 @@ def translate_queue(batch_size: int = 5) -> list[dict]:
                 source=zh["source"],
                 subcategory=zh["subcategory"],
                 lang="en",
-                parent_id=en_draft["parent_id"]
+                parent_id=en_draft["parent_id"],
+                cover_image=zh.get("cover_image", "")
             )
             
             if fid > 0:
