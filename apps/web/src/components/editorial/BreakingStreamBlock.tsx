@@ -172,21 +172,16 @@ export default function BreakingStreamBlock({
             </span>
             {countdown}s
           </div>
-          {actionLabel && (
-            <a href={`/${lang}/flash`} className="shrink-0 font-label text-xs font-semibold uppercase tracking-[0.14em] text-[#1d5c4f] hover:text-[#143d33]">
-              {actionLabel}
-            </a>
-          )}
         </div>
       </div>
 
       {/* ── 标签栏：5个同行，不换行，横向滚动 ──────────────────── */}
-      <div className="mb-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+      <div className="mb-3 flex items-center gap-1 overflow-x-auto no-scrollbar pb-0.5">
         {/* 全部按钮 */}
         <button
           type="button"
           onClick={() => setSelectedTags(new Set())}
-          className={`inline-flex shrink-0 items-center rounded border px-2.5 py-1 text-[11px] font-semibold transition-all ${
+          className={`inline-flex shrink-0 items-center rounded border px-2 py-0.5 text-[11px] font-semibold transition-all ${
             selectedTags.size === 0
               ? 'border-[#0d3b30] bg-[#0d3b30] text-white shadow-sm'
               : 'border-[#ddd5ca] bg-white text-[#667067] hover:border-[#0d3b30]/40 hover:text-[#0d3b30]'
@@ -201,10 +196,10 @@ export default function BreakingStreamBlock({
               key={tag.label}
               type="button"
               onClick={() => toggleTag(tag.label)}
-              className={`inline-flex shrink-0 items-center gap-1 rounded border px-2.5 py-1 text-[11px] font-semibold transition-all ${
+              className={`inline-flex shrink-0 items-center gap-1 rounded border px-2 py-0.5 text-[11px] transition-all ${
                 active
-                  ? 'border-[#0d3b30] bg-[#0d3b30] text-white shadow-sm'
-                  : 'border-[#ddd5ca] bg-white text-[#667067] hover:border-[#0d3b30]/40 hover:text-[#0d3b30]'
+                  ? 'border-[#0d3b30] bg-[#0d3b30] text-white shadow-sm font-semibold'
+                  : 'border-[#ddd5ca] bg-white text-[#667067] hover:border-[#0d3b30]/40 hover:text-[#0d3b30] font-medium'
               }`}
             >
               {active && <span className="text-[9px]">✓</span>}

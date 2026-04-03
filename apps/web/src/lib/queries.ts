@@ -78,7 +78,7 @@ export async function getPublishedArticles(lang: string = 'zh', limit = 20, offs
 }
 
 export async function getArticleCountByType(categorySlug?: string, articleType?: string): Promise<number> {
-  let sql = "SELECT COUNT(*)::int as count FROM articles a LEFT JOIN categories c ON a.category_id = c.id WHERE a.status = 'published'";
+  let sql = "SELECT COUNT(*)::int as count FROM articles a LEFT JOIN categories c ON a.category_id = c.id WHERE a.status = 'published' AND a.audit_status = 'approved'";
   const params: unknown[] = [];
   let paramIdx = 1;
   if (categorySlug) { sql += ` AND c.slug = $${paramIdx++}`; params.push(categorySlug); }
@@ -149,7 +149,7 @@ export async function getFlashMaxId(lang: string = 'zh', categorySlug?: string):
 
 export async function getPublishedArticleMaxId(lang: string = 'zh'): Promise<number> {
   const row = await queryGet<{ m: number | null }>(
-    `SELECT MAX(id) as m FROM articles WHERE status = 'published' AND lang = $1`,
+    `SELECT MAX(id) as m FROM articles WHERE status = 'published' AND audit_status = 'approved' AND lang = $1`,
     [lang]
   );
   return row?.m ?? 0;
@@ -262,7 +262,7 @@ export async function getTopicBySlug(
 
   // \u6587\u7ae0\u603b\u6570
   const countRow = await queryGet<{ count: number }>(
-    `SELECT COUNT(*)::int as count FROM articles WHERE topic_id = $1 AND status = 'published'`,
+    `SELECT COUNT(*)::int as count FROM articles WHERE topic_id = $1 AND status = 'published' AND audit_status = 'approved'`,
     [topic.id]
   );
 
@@ -332,7 +332,7 @@ export async function getTopicsForSitemap(): Promise<{ slug: string; updated_at:
 
 
 export async function getArticleCount(): Promise<number> {
-  const row = await queryGet<{ count: number }>("SELECT COUNT(*)::int as count FROM articles WHERE status = 'published'");
+  const row = await queryGet<{ count: number }>("SELECT COUNT(*)::int as count FROM articles WHERE status = 'published' AND audit_status = 'approved'");
   return row?.count || 0;
 }
 
