@@ -45,6 +45,24 @@ function processApp(appName) {
     copyRecursiveSync(publicSrc, publicDest);
   }
 
+  // Next.js 14 Standalone bug workaround: App Router metadata images dynamically require image-optimizer
+  const nextServerSrc = path.join(rootDir, 'node_modules', 'next', 'dist', 'server', 'image-optimizer.js');
+  const nextServerDest = path.join(standaloneDir, 'node_modules', 'next', 'dist', 'server', 'image-optimizer.js');
+  if (fs.existsSync(nextServerSrc)) {
+    console.log(`[${appName}] Copying missing image-optimizer.js to standalone...`);
+    // Ensure dir exists
+    fs.mkdirSync(path.dirname(nextServerDest), { recursive: true });
+    fs.copyFileSync(nextServerSrc, nextServerDest);
+  }
+  
+  // also copy next/dist/shared/lib/image-config-context.js if it helps 
+  const squooshSrc = path.join(rootDir, 'node_modules', 'next', 'dist', 'server', 'lib', 'squoosh');
+  const squooshDest = path.join(standaloneDir, 'node_modules', 'next', 'dist', 'server', 'lib', 'squoosh');
+  if (fs.existsSync(squooshSrc)) {
+    console.log(`[${appName}] Copying missing squoosh optimizer lib to standalone...`);
+    copyRecursiveSync(squooshSrc, squooshDest);
+  }
+
   console.log(`[${appName}] ✅ Successfully prepared standalone directory.`);
 }
 
