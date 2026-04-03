@@ -37,7 +37,7 @@ log "${GREEN}🚀 部署开始${NC} — commit: $CURRENT_COMMIT"
 # ── 1. 数据库备份 ──
 log "🗄️  备份数据库..."
 BACKUP_FILE="$BACKUP_DIR/$(date '+%Y%m%d_%H%M%S')_pre_deploy.sql.gz"
-if pg_dump yayanews 2>/dev/null | gzip > "$BACKUP_FILE"; then
+if sudo -u postgres pg_dump yayanews 2>/dev/null | gzip > "$BACKUP_FILE"; then
     log "   ✅ 备份完成: $(basename $BACKUP_FILE) ($(du -h $BACKUP_FILE | cut -f1))"
 else
     log "${YELLOW}   ⚠️  数据库备份失败（继续部署）${NC}"
