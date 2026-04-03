@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS articles (
     id SERIAL PRIMARY KEY, title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE,
     summary TEXT, content TEXT NOT NULL, cover_image TEXT,
     category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL, 
+    topic_id INTEGER REFERENCES topics(id) ON DELETE SET NULL,
     parent_id INTEGER REFERENCES articles(id) ON DELETE CASCADE,
     author TEXT DEFAULT 'YayaNews',
     status TEXT DEFAULT 'draft',
@@ -39,6 +40,11 @@ CREATE TABLE IF NOT EXISTS topics (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS topic_articles (
+    topic_id INTEGER REFERENCES topics(id) ON DELETE CASCADE,
+    article_id INTEGER REFERENCES articles(id) ON DELETE CASCADE,
+    sort_order INTEGER DEFAULT 0, PRIMARY KEY (topic_id, article_id)
+);
+CREATE TABLE IF NOT EXISTS topic_featured_articles (
     topic_id INTEGER REFERENCES topics(id) ON DELETE CASCADE,
     article_id INTEGER REFERENCES articles(id) ON DELETE CASCADE,
     sort_order INTEGER DEFAULT 0, PRIMARY KEY (topic_id, article_id)
