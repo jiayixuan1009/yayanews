@@ -63,32 +63,47 @@ interface YahooChart {
 
 async function fetchTicker(ticker: string) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=7d`;
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; YayaNews/1.0)',
-    },
-    next: { revalidate: 60 },
-  });
-  if (!res.ok) throw new Error(`Yahoo Finance ${ticker}: ${res.status}`);
-  const json = (await res.json()) as YahooChart;
-  const result = json.chart?.result?.[0];
-  if (!result) throw new Error(`No data for ${ticker}`);
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+      },
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) throw new Error(`Yahoo Finance ${ticker}: ${res.status}`);
+    const json = (await res.json()) as YahooChart;
+    const result = json.chart?.result?.[0];
+    if (!result) throw new Error(`No data for ${ticker}`);
 
-  const meta = result.meta;
-  const closes = result.indicators.quote[0]?.close ?? [];
-  const sparkline = closes.filter((v): v is number => v !== null && !isNaN(v));
-  const prev = meta.previousClose ?? sparkline[sparkline.length - 2] ?? meta.regularMarketPrice;
-  const pct = prev ? ((meta.regularMarketPrice - prev) / prev) * 100 : 0;
+    const meta = result.meta;
+    const closes = result.indicators.quote[0]?.close ?? [];
+    const sparkline = closes.filter((v): v is number => v !== null && !isNaN(v));
+    const prev = meta.previousClose ?? sparkline[sparkline.length - 2] ?? meta.regularMarketPrice;
+    const pct = prev ? ((meta.regularMarketPrice - prev) / prev) * 100 : 0;
 
-  return {
-    id: ticker,
-    symbol: ticker,
-    name: TICKER_NAMES[ticker] ?? meta.shortName ?? meta.longName ?? ticker,
-    current_price: meta.regularMarketPrice,
-    price_change_percentage_24h: pct,
-    currency: meta.currency ?? 'USD',
-    sparkline_in_7d: { price: sparkline },
-  };
+    return {
+      id: ticker,
+      symbol: ticker,
+      name: TICKER_NAMES[ticker] ?? meta.shortName ?? meta.longName ?? ticker,
+      current_price: meta.regularMarketPrice,
+      price_change_percentage_24h: pct,
+      currency: meta.currency ?? 'USD',
+      sparkline_in_7d: { price: sparkline },
+    };
+  } catch (err) {
+    // Fallback to avoid empty ticker UI on server IP blocks
+    return {
+      id: ticker,
+      symbol: ticker,
+      name: TICKER_NAMES[ticker] ?? ticker,
+      current_price: '--',
+      price_change_percentage_24h: 0,
+      currency: 'USD',
+      sparkline_in_7d: { price: [] },
+    };
+  }
 }
 
 export async function GET(req: NextRequest) {

@@ -1,4 +1,4 @@
-import MallardDuck from '@/components/MallardDuck';
+import Image from 'next/image';
 
 type Zone = 'hero' | 'banner' | 'topic' | 'guidance';
 
@@ -7,20 +7,15 @@ type Props = {
   className?: string;
 };
 
-/**
- * 品牌鸭仅出现在指定槽位：hero/banner/topic/guidance。
- * 小尺寸、低对比，避免与头条标题竞争（locked rules）。
- */
 export default function DuckAccent({ zone, className = '' }: Props) {
-  const opacity = zone === 'hero' ? 'opacity-[0.35]' : 'opacity-30';
+  const opacity = zone === 'hero' ? 'opacity-[0.1]' : 'opacity-[0.05]';
   return (
     <div
-      className={`pointer-events-none select-none ${opacity} ${className}`}
+      className={`pointer-events-none select-none rounded-full overflow-hidden ${opacity} ${className}`}
       aria-hidden
       title=""
     >
-      {/* 符号化小 IP：欧洲漫编辑气质由 MallardDuck SVG 承担；此处仅控制尺度与位置 */}
-      <MallardDuck size="sm" className="text-emerald-700/80" />
+      <Image src="/brand/logo-square.svg" alt="" width={32} height={32} />
     </div>
   );
 }

@@ -53,8 +53,8 @@ export default function HomeHeroEditorial({ lead, secondaries, dict = {}, rightR
       <div className="container-main py-4 md:py-6 lg:py-8">
         <div className="mb-4 flex items-center justify-between gap-4 border-b border-[#ddd5ca] pb-3">
           <div className="flex items-center gap-3">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#8fcb79] bg-[#91f78e]/50">
-              <MallardDuck size="sm" />
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#8fcb79] bg-[#91f78e]/50 overflow-hidden">
+              <Image src="/brand/logo-square.svg" alt="YayaNews" width={32} height={32} className="object-cover" />
             </span>
             <div>
               <p className="yn-meta text-[#1d5c4f]">{dict.home?.livingArchive || 'The Living Archive'}</p>
@@ -77,7 +77,7 @@ export default function HomeHeroEditorial({ lead, secondaries, dict = {}, rightR
                     {lead.article_type === 'deep' ? (dict.home?.investigativeFeature || 'Investigative feature') : (dict.home?.featuredReport || 'Featured report')}
                   </div>
                   <LocalizedLink href={`/article/${lead.slug}`} className="group block mb-2">
-                    <h1 className="font-display text-[2.2rem] md:text-[2.8rem] lg:text-[3.4rem] font-bold leading-[1.05] tracking-[-0.03em] text-[#111713] group-hover:text-[#1d5c4f]">
+                    <h1 className="font-display text-[2rem] md:text-[2.5rem] lg:text-[3rem] font-bold leading-[1.05] tracking-[-0.03em] text-[#111713] group-hover:text-[#1d5c4f]">
                       {lead.title}
                     </h1>
                   </LocalizedLink>
@@ -88,8 +88,8 @@ export default function HomeHeroEditorial({ lead, secondaries, dict = {}, rightR
                   <LocalizedLink href={`/article/${lead.slug}`} className="group block">
                     <div className="relative aspect-[3/2] overflow-hidden border border-[#1b241f] bg-[#0d1411] shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
                       {leadCover ? <Image src={leadCover} alt={lead.title} fill priority sizes="(max-width: 1280px) 70vw, 50vw" className="object-cover transition duration-500 group-hover:scale-[1.02]" unoptimized={leadCover.endsWith('.svg') || !leadCoverOptimizable} /> : null}
-                      <div className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-[2px] border border-[#c6d2ca] bg-[#f6f3ee]/90 shadow-sm">
-                        <MallardDuck size="sm" />
+                      <div className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-[2px] border border-[#c6d2ca] bg-[#f6f3ee]/90 shadow-sm overflow-hidden">
+                        <Image src="/brand/logo-square.svg" alt="YayaNews" width={32} height={32} />
                       </div>
                     </div>
                   </LocalizedLink>

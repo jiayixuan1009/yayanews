@@ -3,7 +3,9 @@ import LocalizedLink from '@/components/LocalizedLink';
 import type { Metadata } from 'next';
 import { createMetadata } from '@yayanews/seo';
 import dynamic from 'next/dynamic';
-import MallardDuck from '@/components/MallardDuck';
+import Image from 'next/image';
+import { getArticleCoverSrc } from '@/lib/article-image';
+import { isRemoteImageOptimizable } from '@/lib/remote-image';
 import {
   getPublishedArticles,
   getFlashNews,
@@ -105,14 +107,14 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
         secondaries={secondaries}
         dict={dict}
         rightRail={
-          <BreakingStreamBlock
-            items={flashStream}
-            title={dict.home.flashTitle}
-            emptyText={dict.news.noFlash || '暂无快讯'}
-            actionLabel={dict.common.all || '全部'}
-            lang={lang}
-            className="flex-none h-[1000px] w-full overflow-hidden"
-          />
+            <BreakingStreamBlock
+              items={flashStream}
+              title={dict.home.flashTitle}
+              emptyText={dict.news.noFlash || '暂无快讯'}
+              actionLabel={dict.common.all || '全部'}
+              lang={lang}
+              className="flex-none h-[1050px] w-full overflow-hidden"
+            />
         }
       />      <div className="container-main py-5 md:py-8 lg:py-10">
         <div className="grid gap-5 md:gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-12">
@@ -159,8 +161,35 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
               <section>
                 <SectionHeader title={dict.home.editorsPicks} emphasis="default" />
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {moreArticles.map(a => (
-                    <ArticleCard key={a.id} article={a} dict={dict} />
+                  {moreArticles.map(item => (
+                    <LocalizedLink key={item.id} href={`/article/${item.slug}`} className="group flex flex-col gap-3">
+                      <div className="text-[11px] uppercase tracking-[0.16em] text-[#1d5c4f] font-semibold">
+                        {item.category_name ? ((dict.nav as any)?.[item.category_slug || ''] || item.category_name) : 'Yaya Financial News'}
+                      </div>
+                      <div className="relative aspect-[16/10] overflow-hidden bg-[#e9e3d8]">
+                        <Image 
+                          src={getArticleCoverSrc(item.cover_image)} 
+                          alt={item.title} 
+                          fill 
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                          className="object-cover transition duration-500 group-hover:scale-[1.05]" 
+                          unoptimized={getArticleCoverSrc(item.cover_image).endsWith('.svg') || !isRemoteImageOptimizable(getArticleCoverSrc(item.cover_image))}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-display text-[1.25rem] font-bold leading-[1.2] tracking-[-0.02em] text-[#111713] group-hover:text-[#1d5c4f]">
+                          {item.title}
+                        </h3>
+                        {item.summary ? (
+                          <p className="mt-2 text-sm leading-relaxed text-slate-600 line-clamp-2">{stripHtml(item.summary)}</p>
+                        ) : null}
+                      </div>
+                      <div className="mt-auto flex items-center gap-2 text-[11px] uppercase text-[#667067] tracking-[0.12em]">
+                         <span>{item.author}</span>
+                         <span className="inline-block w-1 h-1 rounded-full bg-[#c8d0c7]" />
+                         <span>{item.published_at?.slice(0, 10)}</span>
+                      </div>
+                    </LocalizedLink>
                   ))}
                 </div>
               </section>
@@ -187,7 +216,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
                         {item.title}
                       </h3>
                       <div className="mt-2 flex flex-wrap gap-x-2 text-[11px] uppercase tracking-[0.16em] text-[#555a55]">
-                        <span>{(dict.nav as any)?.[item.category_slug || ''] || item.category_name || 'YayaNews'}</span>
+                        <span>{(dict.nav as any)?.[item.category_slug || ''] || item.category_name || 'Yaya Financial News'}</span>
                         <span>{item.published_at?.slice(0, 10)}</span>
                       </div>
                     </LocalizedLink>
@@ -202,7 +231,9 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
                   <h3 className="font-display text-[1.75rem] font-semibold leading-[1.02] tracking-[-0.04em] sm:text-[1.9rem]">{dict.home?.mascotCorner || 'Mascot Corner:'}</h3>
                   <p className="font-display text-[1.75rem] font-semibold leading-[1.02] tracking-[-0.04em] sm:text-[1.9rem]">{dict.home?.dailyCurations || 'Daily Curations'}</p>
                 </div>
-                <MallardDuck size="md" />
+                <div className="flex-shrink-0 rounded-full border-2 border-[#8fcb79] bg-[#91f78e]/50 overflow-hidden w-12 h-12 flex items-center justify-center">
+                  <Image src="/brand/logo-square.svg" alt="Yaya Financial News" width={48} height={48} className="object-cover" />
+                </div>
               </div>
               <div className="px-5 pb-5">
                 <p className="max-w-[28ch] text-sm leading-7 text-emerald-50/85">

@@ -21,7 +21,7 @@ export default function BrandLogo({ variant = 'header', className = '', lang = '
         priority={!isFooter}
       />
       <span className={`font-display font-semibold leading-none tracking-[-0.04em] ${isFooter ? 'text-[2.2rem] text-[#dfffe0]' : 'text-[2.4rem] lg:text-[2.8rem] text-[#0d3b30]'}`}>
-        yayanews
+        Yaya Financial News
       </span>
     </LocalizedLink>
   );
