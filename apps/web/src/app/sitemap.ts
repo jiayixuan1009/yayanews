@@ -61,7 +61,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     localize(`/news/${c.slug}`, new Date(), 'hourly', 0.8)
   );
 
-  const articlePages: MetadataRoute.Sitemap = articles.map((a: any) => {
+  const articlePages: MetadataRoute.Sitemap = articles
+    .filter((a: any) => !a.slug.includes('&') && (!a.sibling_slug || !a.sibling_slug.includes('&')))
+    .map((a: any) => {
     const isEn = a.lang === 'en';
     const langPrefix = isEn ? '/en' : '/zh';
     const zhPath = `/zh/article/${isEn ? (a.sibling_slug || a.slug) : a.slug}`;
@@ -81,13 +83,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     };
   });
 
-  const topicPages: MetadataRoute.Sitemap = topics.flatMap(t =>
+  const topicPages: MetadataRoute.Sitemap = topics
+    .filter(t => !t.slug.includes('&'))
+    .flatMap(t =>
     localize(`/topics/${t.slug}`, safeDate(t.updated_at), 'daily', 0.8)
   );
 
-  const tagPages: MetadataRoute.Sitemap = tagRows.flatMap(t => 
-    localize(`/tag/${t.slug}`, safeDate(t.updated_at), 'daily', 0.55)
-  );
+  const tagPages: MetadataRoute.Sitemap = tagRows
+    .filter(t => !t.slug.includes('&'))
+    .flatMap(t => 
+      localize(`/tag/${t.slug}`, safeDate(t.updated_at), 'daily', 0.55)
+    );
 
   const flashPages: MetadataRoute.Sitemap = flashes.flatMap(f => 
     localize(`/flash/${encodeFlashSlug(f as any)}`, safeDate(f.updated_at), 'weekly', 0.5)
