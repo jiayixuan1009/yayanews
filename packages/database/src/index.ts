@@ -14,6 +14,10 @@ export function getDb(): Pool {
       connectionString,
       max: 20,
     });
+    // Prevent unhandled rejection crashes from idle clients
+    pool.on('error', (err, client) => {
+      console.error('Unexpected error on idle client', err);
+    });
   }
   return pool;
 }
