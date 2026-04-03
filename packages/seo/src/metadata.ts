@@ -80,8 +80,8 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
     alternates: {
       canonical: finalCanonical,
       languages: options.alternatesLanguages || {
-        'zh-CN': `/zh${cleanUrl}`,
-        'en-US': `/en${cleanUrl}`,
+        'zh': `/zh${cleanUrl}`,
+        'en': `/en${cleanUrl}`,
       },
     },
     openGraph: {

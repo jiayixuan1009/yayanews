@@ -52,8 +52,8 @@ export async function generateMetadata({ params }: { params: { slug: string; lan
     section: article.category_name || undefined,
     lang: params.lang as 'zh' | 'en',
     alternatesLanguages: {
-      'zh-CN': `/zh/article/${zhSlug}`,
-      'en-US': `/en/article/${enSlug}`,
+      'zh': `/zh/article/${zhSlug}`,
+      'en': `/en/article/${enSlug}`,
     },
   });
 }

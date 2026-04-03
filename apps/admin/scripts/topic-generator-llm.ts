@@ -151,7 +151,7 @@ async function run() {
         llmResult.description_en, // description_en
         cat?.id || null
       ]);
-      console.log(`✅ 入库成功！已作为 Pending(draft) 提案静卧在 CMS 等待审批。(新 ID: ${res[0].id})`);
+      console.log(`✅ 入库成功！已作为 Pending(draft) 提案静卧在 CMS 等待审批。(新 ID: ${(res as any)[0].id})`);
     }
   }
 
