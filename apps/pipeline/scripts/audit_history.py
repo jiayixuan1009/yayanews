@@ -45,13 +45,22 @@ def upgrade_schema():
             """)
             if cur.fetchone():
                 log.info("Schema already upgraded.")
-                return True
+            else:
+                log.info("Upgrading articles schema (adding audit_status & audit_reason)...")
+                cur.execute("ALTER TABLE articles ADD COLUMN audit_status VARCHAR(20) DEFAULT 'approved';")
+                cur.execute("ALTER TABLE articles ADD COLUMN audit_reason TEXT;")
                 
-            log.info("Upgrading articles schema (adding audit_status & audit_reason)...")
-            cur.execute("ALTER TABLE articles ADD COLUMN audit_status VARCHAR(20) DEFAULT 'approved';")
-            cur.execute("ALTER TABLE articles ADD COLUMN audit_reason TEXT;")
-            # Default to approved for older ones not audited yet so site doesn't break, 
-            # we will overwrite immediately for bad ones below.
+            # Always ensure English articles have cover_images populated from their parent
+            cur.execute("""
+                UPDATE articles e
+                SET cover_image = z.cover_image
+                FROM articles z
+                WHERE e.lang='en' 
+                  AND e.parent_id = z.id 
+                  AND (e.cover_image IS NULL OR e.cover_image = '');
+            """)
+            log.info("Historical English cover_images fixed.")
+            
         conn.commit()
         return True
     except Exception as e:

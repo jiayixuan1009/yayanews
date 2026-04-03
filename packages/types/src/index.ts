@@ -40,6 +40,8 @@ export interface Article {
   tags?: Tag[];
   processing_seconds?: number | null;
   lang?: string;
+  audit_status?: 'pending' | 'approved' | 'rejected';
+  audit_reason?: string | null;
 }
 
 export interface SubCategory {
