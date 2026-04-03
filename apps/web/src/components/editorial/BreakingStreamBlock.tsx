@@ -97,6 +97,7 @@ export default function BreakingStreamBlock({
   // ── WebSocket live push ──────────────────────────────────────────────────
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    const activeTimersMap = newItemTimerRef.current;
     let ws: WebSocket;
     let cancelled = false;
     const connect = () => {
@@ -119,7 +120,7 @@ export default function BreakingStreamBlock({
             const timer = setTimeout(() => {
               setNewItemIds(prev => { const n = new Set(prev); n.delete(newFlash.id); return n; });
             }, 700);
-            newItemTimerRef.current.set(newFlash.id, timer);
+            activeTimersMap.set(newFlash.id, timer);
           }
         } catch { /**/ }
       };
@@ -130,7 +131,7 @@ export default function BreakingStreamBlock({
       cancelled = true;
       ws?.close();
       // Clean up any pending animation timers
-      newItemTimerRef.current.forEach(t => clearTimeout(t));
+      activeTimersMap.forEach(t => clearTimeout(t));
     };
   }, [lang]);
 

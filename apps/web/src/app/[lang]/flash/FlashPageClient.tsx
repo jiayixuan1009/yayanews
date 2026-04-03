@@ -121,7 +121,7 @@ export default function FlashPageClient({ initialCat, lang = 'zh' }: { initialCa
     } finally {
       setLoading(false);
     }
-  }, [activeCat]);
+  }, [activeCat, lang]);
 
   useEffect(() => {
     setLoading(true);
@@ -163,7 +163,7 @@ export default function FlashPageClient({ initialCat, lang = 'zh' }: { initialCa
       cancelled = true;
       es?.close();
     };
-  }, [activeCat, esSince, fetchData]);
+  }, [activeCat, esSince, fetchData, lang]);
 
   const grouped = groupByDate(items);
 
