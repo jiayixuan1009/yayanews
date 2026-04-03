@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: 'website',
       images: topic.cover_image
         ? [{ url: topic.cover_image, width: 1200, height: 630 }]
-        : [{ url: `${siteConfig.siteUrl}/brand/logo-square.png`, width: 512, height: 512 }],
+        : [{ url: `${siteConfig.siteUrl}/brand/logo-square.svg`, width: 512, height: 512 }],
     },
   };
 }
