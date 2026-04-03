@@ -4,6 +4,9 @@ import json
 import time
 from datetime import datetime
 
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), "../../../.env"))
+
 # Adjust Python path to load pipeline modules
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
