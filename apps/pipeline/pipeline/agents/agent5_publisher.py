@@ -152,6 +152,15 @@ def publish(articles: list[dict]) -> list[dict]:
         if article_id > 0:
             if tags:
                 insert_tags(article_id, tags)
+                
+            from pipeline.agents.agent7_auditor import audit_article
+            audit_article(
+                article_id=article_id,
+                title=title,
+                content=content,
+                source=article.get("original_content", "")
+            )
+            
             published.append({**article, "id": article_id})
             s_label = f" [{sentiment}]" if sentiment else ""
             print(f"  [{i}] PUBLISHED: id={article_id}{s_label} slug={slug}")
