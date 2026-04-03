@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import type { FlashNews } from '@yayanews/types';
-import SectionHeader from './SectionHeader';
 import LocalizedLink from '@/components/LocalizedLink';
 import { encodeFlashSlug } from '@/lib/ui-utils';
 
@@ -145,76 +144,96 @@ export default function BreakingStreamBlock({
 
   return (
     <section className={`yn-panel flex flex-col p-4 sm:p-5 ${className}`}>
-      <SectionHeader title={title} emphasis="strong" actionHref="/flash" actionLabel={actionLabel}>
-        {/* Multi-select filter chips */}
-        <div className="flex flex-wrap items-center gap-2">
-          {filterTags.map(tag => {
-            const active = selectedTags.has(tag.label);
-            return (
-              <button
-                key={tag.label}
-                type="button"
-                onClick={() => toggleTag(tag.label)}
-                className={`inline-flex items-center gap-1 rounded border px-3 py-1 text-[12px] font-semibold transition-all ${
-                  active
-                    ? 'border-[#0d3b30] bg-[#0d3b30] text-white shadow-sm'
-                    : 'border-[#ddd5ca] bg-white text-[#667067] hover:border-[#0d3b30]/40 hover:text-[#0d3b30]'
-                }`}
-              >
-                {active && <span className="text-[10px]">✓</span>}
-                {tag.label}
-              </button>
-            );
-          })}
-          {selectedTags.size > 0 && (
-            <button
-              type="button"
-              onClick={() => setSelectedTags(new Set())}
-              className="text-[12px] text-[#89908a] hover:text-[#0d3b30] underline underline-offset-2 transition-colors ml-1"
-            >
-              {lang === 'en' ? 'Clear' : '清除'}
-            </button>
-          )}
-          <div className="ml-auto flex items-center gap-1.5 text-[11px] text-[#89908a]">
+
+      {/* ── 头部：标题 + 倒计时 同行 ──────────────────────────── */}
+      <div className="mb-3 flex items-center justify-between gap-2 border-b border-[#ece4d8] pb-3">
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-4 w-0.5 shrink-0 rounded-sm bg-[#1d5c4f]" aria-hidden />
+          <h2 className="yn-heading leading-none">{title}</h2>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 text-[11px] text-[#89908a]">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
             {countdown}s
           </div>
+          {actionLabel && (
+            <a href={`/${lang}/flash`} className="shrink-0 font-label text-xs font-semibold uppercase tracking-[0.14em] text-[#1d5c4f] hover:text-[#143d33]">
+              {actionLabel}
+            </a>
+          )}
         </div>
-      </SectionHeader>
+      </div>
 
+      {/* ── 标签栏：5个同行，不换行，横向滚动 ──────────────────── */}
+      <div className="mb-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+        {/* 全部按钮 */}
+        <button
+          type="button"
+          onClick={() => setSelectedTags(new Set())}
+          className={`inline-flex shrink-0 items-center rounded border px-2.5 py-1 text-[11px] font-semibold transition-all ${
+            selectedTags.size === 0
+              ? 'border-[#0d3b30] bg-[#0d3b30] text-white shadow-sm'
+              : 'border-[#ddd5ca] bg-white text-[#667067] hover:border-[#0d3b30]/40 hover:text-[#0d3b30]'
+          }`}
+        >
+          {lang === 'en' ? 'All' : '全部'}
+        </button>
+        {filterTags.map(tag => {
+          const active = selectedTags.has(tag.label);
+          return (
+            <button
+              key={tag.label}
+              type="button"
+              onClick={() => toggleTag(tag.label)}
+              className={`inline-flex shrink-0 items-center gap-1 rounded border px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                active
+                  ? 'border-[#0d3b30] bg-[#0d3b30] text-white shadow-sm'
+                  : 'border-[#ddd5ca] bg-white text-[#667067] hover:border-[#0d3b30]/40 hover:text-[#0d3b30]'
+              }`}
+            >
+              {active && <span className="text-[9px]">✓</span>}
+              {tag.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── 列表：第一行「时间 + 类别」，第二行「标题」 ─────────── */}
       {visibleItems.length === 0 ? (
         <p className="py-6 flex-1 text-center text-sm text-slate-500">{emptyText}</p>
       ) : (
-        <div className="flex-1 overflow-y-auto pr-1 sm:pr-2 custom-scrollbar -mr-1 sm:-mr-2 mt-2">
+        <div className="flex-1 overflow-y-auto pr-1 sm:pr-2 custom-scrollbar -mr-1 sm:-mr-2">
           <ul className="divide-y divide-[#ece4d8]">
-          {visibleItems.slice(0, 20).map(item => {
-            if (!item?.id) return null;
-            return (
-              <li key={item.id} className="py-3 first:pt-0">
-                <LocalizedLink
-                  href={`/flash/${encodeFlashSlug(item as any)}`}
-                  className="group grid grid-cols-[52px,1fr] gap-3 relative rounded-lg -mx-2 px-2 hover:bg-[#f8f3ea] transition-colors py-1 cursor-pointer"
-                >
-                  <span className="font-label text-[11px] uppercase tracking-[0.16em] text-[#667067] pt-0.5">
-                    {item.published_at?.slice(11, 16) ?? '—'}
-                  </span>
-                  <div className="min-w-0">
-                    {item.category_name && (
-                      <span className={`inline-block mb-1 px-1.5 py-0.5 rounded border text-[10px] font-medium leading-none ${getCategoryBadgeLight(item.category_name)}`}>
-                        {translateCategoryName(item.category_name, lang)}
-                      </span>
-                    )}
-                    <p className="font-body text-sm font-medium leading-6 text-slate-800 line-clamp-2 group-hover:text-[#1d5c4f] transition-colors">
+            {visibleItems.slice(0, 20).map(item => {
+              if (!item?.id) return null;
+              return (
+                <li key={item.id} className="py-2.5 first:pt-0">
+                  <LocalizedLink
+                    href={`/flash/${encodeFlashSlug(item as any)}`}
+                    className="group block rounded-lg -mx-2 px-2 py-1 hover:bg-[#f8f3ea] transition-colors cursor-pointer"
+                  >
+                    {/* Row 1: 时间 + 类别 */}
+                    <div className="flex items-center gap-2 mb-1">
+                      <time className="font-label text-[11px] uppercase tracking-[0.12em] text-[#89908a] leading-none tabular-nums">
+                        {item.published_at?.slice(11, 16) ?? '—'}
+                      </time>
+                      {item.category_name && (
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium leading-none ${getCategoryBadgeLight(item.category_name)}`}>
+                          {translateCategoryName(item.category_name, lang)}
+                        </span>
+                      )}
+                    </div>
+                    {/* Row 2: 标题 */}
+                    <p className="font-body text-sm font-medium leading-[1.5] text-slate-800 line-clamp-2 group-hover:text-[#1d5c4f] transition-colors">
                       {item.title}
                     </p>
-                  </div>
-                </LocalizedLink>
-              </li>
-            );
-          })}
+                  </LocalizedLink>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
