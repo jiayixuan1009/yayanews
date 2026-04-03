@@ -80,6 +80,16 @@ cp -r apps/admin/.next/static apps/admin/.next/standalone/.next/static 2>/dev/nu
 log "   ✅ 构建完成"
 
 
+# ── 3.5 数据库同步（防止由于漏跑脚本造成的应用 SSR 崩溃）──
+log "🔄 执行运行时数据库 Schema 与脱节补充检测..."
+export PYTHONPATH="$(pwd)/apps/pipeline"
+if [ -f apps/pipeline/scripts/fix_schema.py ]; then
+    python3 apps/pipeline/scripts/fix_schema.py 2>&1 | tail -3
+    log "   ✅ 数据库修复预热完毕"
+else
+    log "${YELLOW}   ⚠️ 未检测到 schema 修复脚本${NC}"
+fi
+
 # ── 4. 重启服务 ──
 log "♻️  重启 PM2 服务..."
 if command -v pm2 >/dev/null 2>&1; then
