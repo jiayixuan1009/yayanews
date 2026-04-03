@@ -1,20 +1,40 @@
-"""LLM 调用封装，兼容 OpenAI API 格式。支持单次对话和批量翻译。"""
+"""LLM 调用封装，兼容 OpenAI API 格式。支持主备双线路路由与自动兜底。"""
 import json
+import time
 from openai import OpenAI
-from pipeline.config.settings import LLM_BASE_URL, LLM_API_KEY, LLM_MODEL
+from pipeline.config.settings import (
+    LLM_BASE_URL, LLM_API_KEY, LLM_MODEL, LLM_REASONER_MODEL,
+    LLM_FALLBACK_BASE_URL, LLM_FALLBACK_API_KEY, LLM_FALLBACK_MODEL,
+)
 from pipeline.utils.logger import get_logger
 
 log = get_logger("llm")
 
-_client = None
+_primary_client = None
+_fallback_client = None
+
+
+def _get_primary() -> OpenAI:
+    global _primary_client
+    if _primary_client is None:
+        _primary_client = OpenAI(base_url=LLM_BASE_URL, api_key=LLM_API_KEY, timeout=120.0, max_retries=2)
+        log.info(f"LLM primary client initialized: base={LLM_BASE_URL}, model={LLM_MODEL}")
+    return _primary_client
+
+
+def _get_fallback() -> OpenAI | None:
+    global _fallback_client
+    if not LLM_FALLBACK_API_KEY:
+        return None
+    if _fallback_client is None:
+        _fallback_client = OpenAI(base_url=LLM_FALLBACK_BASE_URL, api_key=LLM_FALLBACK_API_KEY, timeout=120.0, max_retries=3)
+        log.info(f"LLM fallback client initialized: base={LLM_FALLBACK_BASE_URL}, model={LLM_FALLBACK_MODEL}")
+    return _fallback_client
 
 
 def get_client() -> OpenAI:
-    global _client
-    if _client is None:
-        _client = OpenAI(base_url=LLM_BASE_URL, api_key=LLM_API_KEY, timeout=120.0, max_retries=3)
-        log.info(f"LLM client initialized: base={LLM_BASE_URL}, model={LLM_MODEL}")
-    return _client
+    """向后兼容：返回主线路客户端。"""
+    return _get_primary()
 
 
 def chat(
@@ -24,14 +44,39 @@ def chat(
     temperature: float = 0.7,
     max_tokens: int = 4096,
 ) -> str:
-    """发送一次 LLM 对话并返回文本结果。"""
-    client = get_client()
+    """发送一次 LLM 对话。主线路优先，失败自动切换兜底线路。"""
     model = model or LLM_MODEL
 
-    log.debug(f"LLM request: model={model}, prompt_len={len(user_prompt)}")
+    # ── 1. 尝试主线路 ──
+    try:
+        client = _get_primary()
+        log.debug(f"LLM [primary] request: model={model}, prompt_len={len(user_prompt)}")
+        t0 = time.monotonic()
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        result = response.choices[0].message.content.strip()
+        log.info(f"LLM [primary] OK: model={model}, len={len(result)}, {time.monotonic()-t0:.1f}s")
+        return result
+    except Exception as e:
+        log.warning(f"LLM [primary] failed ({type(e).__name__}: {e}), trying fallback...")
 
-    response = client.chat.completions.create(
-        model=model,
+    # ── 2. 兜底线路 ──
+    fallback = _get_fallback()
+    if fallback is None:
+        raise RuntimeError(f"LLM primary failed and no fallback configured: {e}")
+
+    fallback_model = LLM_FALLBACK_MODEL or model
+    log.debug(f"LLM [fallback] request: model={fallback_model}, prompt_len={len(user_prompt)}")
+    t0 = time.monotonic()
+    response = fallback.chat.completions.create(
+        model=fallback_model,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -39,9 +84,8 @@ def chat(
         temperature=temperature,
         max_tokens=max_tokens,
     )
-
     result = response.choices[0].message.content.strip()
-    log.debug(f"LLM response: len={len(result)}")
+    log.info(f"LLM [fallback] OK: model={fallback_model}, len={len(result)}, {time.monotonic()-t0:.1f}s")
     return result
 
 

@@ -13,28 +13,46 @@ const GLOBAL_BLACKLIST = new Set([
 ]);
 
 async function callLLM(prompt: string): Promise<any> {
-  const apiKey = process.env.LLM_API_KEY || process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('Server mapping implies missing LLM_API_KEY or OPENAI_API_KEY in environment.');
+  const providers = [
+    {
+      name: 'primary',
+      apiKey: process.env.LLM_API_KEY || '',
+      baseUrl: process.env.LLM_BASE_URL || 'https://openrouter.fans/v1/chat/completions',
+      model: process.env.LLM_MODEL || 'deepseek-chat',
+    },
+    {
+      name: 'fallback',
+      apiKey: process.env.LLM_FALLBACK_API_KEY || process.env.OPENAI_API_KEY || '',
+      baseUrl: process.env.LLM_FALLBACK_BASE_URL ? `${process.env.LLM_FALLBACK_BASE_URL}/chat/completions` : 'https://api.deepseek.com/v1/chat/completions',
+      model: process.env.LLM_FALLBACK_MODEL || 'deepseek-chat',
+    },
+  ].filter(p => p.apiKey);
+
+  if (providers.length === 0) {
+    throw new Error('No LLM API key configured (LLM_API_KEY or LLM_FALLBACK_API_KEY).');
   }
 
-  // Uses OpenAI Compatible format (either DeepSeek or OpenAI defaults)
-  const baseUrl = process.env.LLM_BASE_URL || 'https://api.openai.com/v1/chat/completions';
-  const modelName = process.env.LLM_MODEL || 'gpt-4o-mini';
+  let lastError: Error | null = null;
 
-  const res = await fetch(baseUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: modelName,
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'system',
-          content: `你是一个资深财经内容架构师。你的任务是将散乱的新闻分组为特定的"突发事件/重要专题"。
+  for (const provider of providers) {
+    try {
+      const url = provider.baseUrl.includes('/chat/completions')
+        ? provider.baseUrl
+        : `${provider.baseUrl}/chat/completions`;
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${provider.apiKey}`
+        },
+        body: JSON.stringify({
+          model: provider.model,
+          response_format: { type: 'json_object' },
+          messages: [
+            {
+              role: 'system',
+              content: `你是一个资深财经内容架构师。你的任务是将散乱的新闻分组为特定的"突发事件/重要专题"。
 如果你认为提供的新闻资讯内容属于泛泛而谈的宏观分析（如"行情解读"或"以太坊价格分析"或"个股日常波动"），请回答 JSON 字段 "is_event": false。
 只有当这些新闻围绕某个特定的、具体的、会持续发展或者有确切终局的现实特定动作与事件时（例如"美联储2026连续降息"或"英伟达发布下一代AI芯片"或"MtGox门头沟巨额抛售"），才回答 "is_event": true 并生定如下 JSON 格式：
 {
@@ -46,24 +64,28 @@ async function callLLM(prompt: string): Promise<any> {
   "slug": "url-friendly-slug-with-date", // MUST contain year/action, eg: fed-rate-cut-2026
   "category_slug": "crypto" // select loosely one from [crypto, us-stocks, derivatives, forex, bonds]
 }`
-        },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.1
-    })
-  });
+            },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.1
+        })
+      });
 
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`LLM API returned error: ${txt}`);
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`[${provider.name}] HTTP ${res.status}: ${txt.slice(0, 200)}`);
+      }
+
+      const json = await res.json();
+      return JSON.parse(json.choices[0].message.content);
+    } catch (err: any) {
+      lastError = err;
+      console.warn(`LLM [${provider.name}] failed: ${err?.message}, trying next...`);
+      continue;
+    }
   }
 
-  const json = await res.json();
-  try {
-    return JSON.parse(json.choices[0].message.content);
-  } catch (e) {
-    throw new Error('Failed to parse LLM JSON schema payload.');
-  }
+  throw new Error(`All LLM providers failed. Last error: ${lastError?.message}`);
 }
 
 export async function POST(req: NextRequest) {
