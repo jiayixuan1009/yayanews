@@ -13,7 +13,7 @@ export default function BrandLogo({ variant = 'header', className = '', lang = '
   return (
     <LocalizedLink href="/" className={`inline-flex items-center gap-2.5 ${className}`}>
       <Image 
-        src="/brand/logo-square.png" 
+        src="/brand/logo-square.svg" 
         alt="YayaNews Logo" 
         width={isFooter ? 36 : 40} 
         height={isFooter ? 36 : 40} 
