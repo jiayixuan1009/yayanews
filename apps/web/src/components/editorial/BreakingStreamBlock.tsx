@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import type { FlashNews } from '@yayanews/types';
 import LocalizedLink from '@/components/LocalizedLink';
 import { encodeFlashSlug } from '@/lib/ui-utils';
@@ -61,9 +61,11 @@ export default function BreakingStreamBlock({
   className = '',
 }: Props) {
   const [allItems, setAllItems] = useState<FlashNews[]>(initialItems);
-  // Multi-select: set of selected tag labels. Empty = show all.
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [countdown, setCountdown] = useState(60);
+  // Track IDs of freshly-added items so we can animate them sliding in
+  const [newItemIds, setNewItemIds] = useState<Set<number>>(new Set());
+  const newItemTimerRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
 
   // ── Fetch fresh data from same API as FlashPage ──────────────────────────
   const fetchFresh = useCallback(async () => {
@@ -112,13 +114,24 @@ export default function BreakingStreamBlock({
               if (prev.find(p => p.id === newFlash.id)) return prev;
               return [newFlash, ...prev].slice(0, 60);
             });
+            // Mark as new for animation, then clear after 700ms
+            setNewItemIds(prev => new Set(prev).add(newFlash.id));
+            const timer = setTimeout(() => {
+              setNewItemIds(prev => { const n = new Set(prev); n.delete(newFlash.id); return n; });
+            }, 700);
+            newItemTimerRef.current.set(newFlash.id, timer);
           }
         } catch { /**/ }
       };
       ws.onclose = () => { if (!cancelled) setTimeout(connect, 3000); };
     };
     connect();
-    return () => { cancelled = true; ws?.close(); };
+    return () => {
+      cancelled = true;
+      ws?.close();
+      // Clean up any pending animation timers
+      newItemTimerRef.current.forEach(t => clearTimeout(t));
+    };
   }, [lang]);
 
   // ── Multi-select category filtering ──────────────────────────────────────
@@ -201,7 +214,7 @@ export default function BreakingStreamBlock({
         })}
       </div>
 
-      {/* ── 列表：第一行「时间 + 类别」，第二行「标题」 ─────────── */}
+      {/* ── 列表：新条目滑入动画 ──────────────────────────────── */}
       {visibleItems.length === 0 ? (
         <p className="py-6 flex-1 text-center text-sm text-slate-500">{emptyText}</p>
       ) : (
@@ -209,8 +222,14 @@ export default function BreakingStreamBlock({
           <ul className="divide-y divide-[#ece4d8]">
             {visibleItems.slice(0, 20).map(item => {
               if (!item?.id) return null;
+              const isNew = newItemIds.has(item.id);
               return (
-                <li key={item.id} className="py-2.5 first:pt-0">
+                <li
+                  key={item.id}
+                  className={`py-2.5 first:pt-0 transition-all duration-500 ${
+                    isNew ? 'animate-flash-slide-in' : ''
+                  }`}
+                >
                   <LocalizedLink
                     href={`/flash/${encodeFlashSlug(item as any)}`}
                     className="group block rounded-lg -mx-2 px-2 py-1 hover:bg-[#f8f3ea] transition-colors cursor-pointer"

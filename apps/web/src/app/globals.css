@@ -125,3 +125,21 @@
     @apply font-label text-[11px] uppercase tracking-[0.16em] text-[#667067] hover:text-[#14261f];
   }
 }
+
+/* ── Utility: hide scrollbar (cross-browser) ─────────────────────────── */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+/* ── New flash item slide-in animation ───────────────────────────────── */
+/* When a new item is prepended to the list, it slides in from the top   */
+@keyframes flash-slide-in {
+  0%   { opacity: 0; transform: translateY(-12px); }
+  60%  { opacity: 1; transform: translateY(2px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-flash-slide-in {
+  animation: flash-slide-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
