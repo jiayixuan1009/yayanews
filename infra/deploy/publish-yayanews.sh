@@ -6,9 +6,9 @@
 # ────────────────────────────────────────────────────────────
 set -euo pipefail
 
-APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-LOG_FILE="$APP_DIR/deploy/deploy.log"
-BACKUP_DIR="$APP_DIR/backups"
+APP_DIR="$(cd "$(dirname "$0")/../.." && pwd)"   # project root (infra/deploy -> infra -> root)
+LOG_FILE="$(cd "$(dirname "$0")" && pwd)/deploy.log"  # keep log beside deploy script
+BACKUP_DIR="$(cd "$(dirname "$0")/.." && pwd)/backups"  # infra/backups/
 HEALTH_URL="http://127.0.0.1:3002"
 HEALTH_RETRIES=5
 HEALTH_INTERVAL=3
@@ -112,8 +112,9 @@ if [ "$HEALTHY" = false ]; then
     npm ci --include=dev 2>/dev/null
     export NODE_ENV=production
     npm run build 2>/dev/null
-    cp -r public .next/standalone/public
-    cp -r .next/static .next/standalone/.next/static
+    cp -r apps/web/public apps/web/.next/standalone/public 2>/dev/null || true
+    cp -r apps/web/.next/static apps/web/.next/standalone/.next/static 2>/dev/null || true
+    cp -r apps/admin/.next/static apps/admin/.next/standalone/.next/static 2>/dev/null || true
     pm2 restart ecosystem.config.cjs --update-env 2>/dev/null
 
     log "${YELLOW}⏪ 已回滚到 $PREV_COMMIT${NC}"
