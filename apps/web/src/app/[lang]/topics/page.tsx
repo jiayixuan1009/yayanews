@@ -12,11 +12,11 @@ export const metadata: Metadata = {
   openGraph: { title: '热门专题 | YayaNews', description: '深度追踪市场重大事件，聚合相关报道' },
 };
 
-export const revalidate = 300;
+export const revalidate = 0;
 
 export default async function TopicsPage() {
   const topics = await getTopics(50);
-
+  
   return (
     <div className="container-main py-6 sm:py-8">
       <header className="mb-8 border-b border-[#ddd5ca] pb-6">

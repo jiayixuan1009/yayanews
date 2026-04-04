@@ -23,5 +23,3 @@ services:
       DATABASE_URL: postgresql://yayanews:yayanews_master@host.docker.internal:5432/yayanews
     env_file:
       - .env
-    volumes:
-      - ./data:/app/data
