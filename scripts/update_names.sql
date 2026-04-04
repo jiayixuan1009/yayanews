@@ -1,0 +1,10 @@
+UPDATE topics SET name_zh = '英伟达', name_en = 'NVIDIA' WHERE slug = 'nvidia';
+UPDATE topics SET name_zh = '特斯拉', name_en = 'Tesla' WHERE slug = 'tesla';
+UPDATE topics SET name_zh = '苹果', name_en = 'Apple' WHERE slug = 'apple';
+UPDATE topics SET name_zh = '微软与OpenAI', name_en = 'Microsoft & OpenAI' WHERE slug = 'microsoft-openai';
+UPDATE topics SET name_zh = '比特币ETF', name_en = 'Bitcoin ETF' WHERE slug = 'bitcoin-etf';
+UPDATE topics SET name_zh = '比特币减半', name_en = 'Bitcoin Halving' WHERE slug = 'bitcoin-halving';
+UPDATE topics SET name_zh = '美联储利率', name_en = 'Fed Interest Rates' WHERE slug = 'fed-interest-rates';
+UPDATE topics SET name_zh = 'AI浪潮', name_en = 'AI Boom' WHERE slug = 'artificial-intelligence-boom';
+UPDATE topics SET name_zh = '财报季', name_en = 'Earnings Season' WHERE slug = 'earnings-season';
+UPDATE topics SET name_zh = '加密监管', name_en = 'Crypto Regulation' WHERE slug = 'crypto-regulation';

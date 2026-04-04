@@ -1,7 +1,7 @@
 import { siteConfig, type Article } from '@yayanews/types';
 
-export function buildNewsArticleJsonLd(article: Article): Record<string, any> {
-  return {
+export function buildNewsArticleJsonLd(article: Article, topic?: any): Record<string, any> {
+  const jsonLd: Record<string, any> = {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
     headline: article.title,
@@ -20,7 +20,23 @@ export function buildNewsArticleJsonLd(article: Article): Record<string, any> {
       url: siteConfig.siteUrl,
     },
     mainEntityOfPage: `${siteConfig.siteUrl}/article/${article.slug}`,
+    articleSection: article.category_name ? [article.category_name] : undefined,
   };
+
+  if (topic) {
+    jsonLd.about = {
+      '@type': 'Thing',
+      name: topic.name_zh || topic.title || topic.slug,
+      url: `${siteConfig.siteUrl}/topics/${topic.slug}`
+    };
+    if (jsonLd.articleSection) {
+      jsonLd.articleSection.push(topic.name_zh || topic.title || topic.slug);
+    } else {
+      jsonLd.articleSection = [topic.name_zh || topic.title || topic.slug];
+    }
+  }
+
+  return jsonLd;
 }
 
 export function buildBreadcrumbJsonLd(items: { name: string; url: string }[]): Record<string, any> {
