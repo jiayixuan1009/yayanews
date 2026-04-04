@@ -68,7 +68,7 @@
 | **前端** | Next.js 14 (App Router) + TypeScript + Tailwind CSS | SSG/ISR/SSR 混合渲染，SEO 友好 |
 | **数据库** | SQLite (better-sqlite3, WAL) | 零运维，单文件，读写不阻塞，满足当前吞吐 |
 | **内容 Pipeline** | Python 多 Agent：**采集→生成→审核→SEO→发布**；选题/写作/SEO 元数据 **多路并行**；**写作可同次产出 SEO 字段，Agent4 完整时跳过元数据 LLM**，仍保留 slug/内链/免责声明/CTA | 阶段逻辑不变，批次总耗时与 token 可降 |
-| **LLM** | MiniMax-M2.1（OpenAI 兼容 API） | 中文质量好，成本低 |
+| **LLM** | DeepSeek V3 (deepseek-chat) / R1 (deepseek-reasoner) | 智能分发：常规快讯与文章走高并发V3，深度解析走满血R1模型保证逻辑深度。成本仅为GPT-4十分之一 |
 | **快讯采集** | 多通道：Finnhub REST、**新浪财经滚动 + 中文 RSS**、Marketaux、CryptoCompare、CoinGecko、英文 RSS、**Finnhub WS→JSONL 缓冲（周期 run 批量翻译入库）**、LLM 兜底 | 中文源减英译；WS 缩短信源到缓冲的等待（相对纯轮询） |
 | **常驻与部署** | **PM2**：`finnhub_ws_flash` + `run_daemon`（间隔见 **§十五.1**） | 7×24 感知与生产 |
 | **用户侧刷新** | **SSE**：`/api/flash/events`、`/api/live/events`（服务端轮询 DB 推事件，前端再拉 JSON） | 新快讯/新文露出加速；与「真 WS 广播」区别见 **§十五.3** |
@@ -632,7 +632,7 @@ SQLite 优先；MiniMax 可切换；规则审核省 token；多通道快讯；`c
 | **PM2 + 子进程跑 Python** | **Kubernetes Job / Cloud Run / AWS Lambda 定时** | 弹性扩缩、故障隔离、与云监控一体 | 团队熟悉度与冷启动；当前量级 cron 够用 |
 | **Finnhub REST + WS** | **Polygon、NewsAPI、Benzinga、交易所官方 WS** | 标的/市场更贴业务、延迟或覆盖更优 | 成本、合规、接入量；Finnhub 综合门槛低 |
 | **自研 ThreadPool 采集** | **Celery / RQ + Redis** | 任务队列、重试、可视监控、削峰 | 多一个常驻组件；当前 Python 脚本链简单直接 |
-| **MiniMax 单模型** | **多模型路由**（快讯用小模型、深度文用大模型） | 成本与延迟更优、可 A/B | 对接与路由策略要维护 |
+| **DeepSeek (V3/R1)** | **多模型多模态矩阵**（GPT-4o/Claude 3.5） | 针对跨模态图文生文、复杂财报 PDF 解析更强 | 目前文本新闻解析中 DeepSeek 兼顾极速与极低成本，效果极佳 |
 | **批量 LLM 翻译快讯** | **流式翻译或专用翻译 API** | T3 更短 | 质量与格式控制；批量 JSON 更稳 |
 | **Next.js 自托管 SQLite** | **Vercel + 外置 DB + Edge** | 全球边缘、TTFB | 费用与数据层改造 |
 | **手工/半自动 PSI** | **Lighthouse CI / PageSpeed API 定时入库** | §14.4 的 PSI 自动闭环 | 需 API Key 与存储设计 |
