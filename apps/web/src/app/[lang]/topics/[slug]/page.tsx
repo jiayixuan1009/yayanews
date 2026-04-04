@@ -46,17 +46,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export async function generateStaticParams() {
-  try {
-    const topics = await getTopics(100);
-    return topics.map(t => ({ slug: t.slug }));
-  } catch {
-    return [];
-  }
-}
-
-/** 分页第2+页 canonical 指向第1页 */
-export const revalidate = 300;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function TopicDetailPage({ params, searchParams }: Props) {
   const page = Math.max(1, parseInt(searchParams.page || '1', 10));
