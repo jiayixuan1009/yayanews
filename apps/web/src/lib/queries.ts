@@ -230,7 +230,7 @@ export async function getTopics(limit = 20): Promise<Topic[]> {
     FROM topics t
     WHERE t.status = 'active'
     ORDER BY t.sort_order, t.created_at DESC
-    LIMIT $1
+    LIMIT $1::int
   `, [limit]);
   return rows as Topic[];
 }
@@ -243,7 +243,7 @@ export async function getTopicBySlug(
 ): Promise<(Topic & { articles: Article[]; featured_articles: Article[]; total_count: number }) | undefined> {
   const topic = await queryGet<Topic>(
     `SELECT *, COALESCE(name_zh, title) as name_zh, COALESCE(name_en, title) as name_en
-     FROM topics WHERE slug = $1 AND status IN ('active', 'archive')`,
+     FROM topics WHERE slug = $1::text AND status IN ('active', 'archive')`,
     [slug]
   );
   if (!topic) return undefined;

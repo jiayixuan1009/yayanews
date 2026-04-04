@@ -15,7 +15,7 @@ export default function DuckAccent({ zone, className = '' }: Props) {
       aria-hidden
       title=""
     >
-      <Image src="/brand/logo-square.svg" alt="" width={32} height={32} />
+      <Image src="/brand/logo-square.svg" alt="YayaNews Decorative Icon" width={32} height={32} />
     </div>
   );
 }

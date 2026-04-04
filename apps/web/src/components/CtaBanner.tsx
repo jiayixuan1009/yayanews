@@ -6,7 +6,7 @@ export default function CtaBanner({ dict = {} }: { dict?: any }) {
   return (
     <div className="yn-panel relative overflow-hidden border-[#cdd9d3] bg-[#eef6f3] p-5 sm:p-6">
       <div className="absolute -right-2 -top-2 opacity-[0.05] grayscale sm:opacity-[0.08] rounded-full overflow-hidden" aria-hidden>
-        <Image src="/brand/logo-square.svg" alt="" width={80} height={80} />
+        <Image src="/brand/logo-square.svg" alt="YayaNews Logo Decorator" width={80} height={80} />
       </div>
       <div className="relative">
         <p className="mb-1 font-label text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1d5c4f]">{cta.tag || '交易入口'}</p>

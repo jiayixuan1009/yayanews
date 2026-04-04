@@ -88,7 +88,7 @@ export default function PriceDetailClient({ slug }: { slug: string }) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-center gap-4">
           {coin.image?.large ? (
-            <Image src={coin.image.large} alt="" width={56} height={56} className="rounded-full" />
+            <Image src={coin.image.large} alt={`${coin.name} Logo`} width={56} height={56} className="rounded-full" />
           ) : null}
           <div>
             <h1 className="text-2xl font-bold text-white sm:text-3xl">{coin.name}</h1>
