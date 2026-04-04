@@ -399,7 +399,7 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(buildNewsArticleJsonLd(article)),
+          __html: JSON.stringify(buildNewsArticleJsonLd(article, articleTopic)),
         }}
       />
     </div>
