@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 import AdminAuthGate from './components/AdminAuthGate';
 
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 export const metadata: Metadata = {
   title: 'YayaNews Admin',
   description: 'YayaNews Administration Panel',

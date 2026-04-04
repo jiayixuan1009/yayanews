@@ -13,6 +13,9 @@ export function getDb(): Pool {
     pool = new Pool({
       connectionString,
       max: 20,
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 30000,
+      query_timeout: 10000,
     });
     // Prevent unhandled rejection crashes from idle clients
     pool.on('error', (err, client) => {
