@@ -10,6 +10,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from pipeline.utils.llm import chat
+from pipeline.llm_config import get_model_for_channel
 from pipeline.utils.logger import get_logger, step_print
 from pipeline.config.settings import CATEGORIES, PIPELINE_LLM_WORKERS
 
@@ -59,7 +60,9 @@ JSON 格式（仅此一个 JSON 对象）：
   "key_points": ["要点1","要点2","要点3"]
 }}"""
 
-    result = chat(SYSTEM_PROMPT, prompt, temperature=0.4, max_tokens=4096)
+    # 深度研报用 reasoner 模型（更强推理），标准文用 chat（更快更便宜）
+    model = get_model_for_channel("quality" if article_type == "deep" else "default")
+    result = chat(SYSTEM_PROMPT, prompt, model=model, temperature=0.4, max_tokens=4096)
     return _parse_result(result, topic)
 
 
@@ -89,7 +92,8 @@ def _rewrite_from_source(topic: dict) -> dict:
 JSON（单对象，含 SEO，与上文原创稿相同字段）：
 {{"content":"<p>...</p>","seo_title":"...","seo_description":"...","tags":[],"sentiment":"neutral","tickers":[],"key_points":[]}}"""
 
-    result = chat(SYSTEM_PROMPT, prompt, temperature=0.2, max_tokens=4096)
+    model = get_model_for_channel("quality" if article_type == "deep" else "default")
+    result = chat(SYSTEM_PROMPT, prompt, model=model, temperature=0.2, max_tokens=4096)
     return _parse_result(result, topic)
 
 
