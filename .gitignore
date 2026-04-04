@@ -58,3 +58,9 @@ deploy.tar.gz
 # ── 一次性运维脚本（不入库）──
 packages/database/cleanup.js
 packages/database/delete_via_pg.js
+test-db.ts
+setup-logo.js
+remote-nominate.js
+output.html
+temp_remote_env.txt
+.env.remote_bak
