@@ -34,5 +34,6 @@ export const ORDERED_NAV_CATEGORIES = [
   { label: '港股 & 亚太', href: '/news/hk-stock' },
   { label: '衍生品与宏观', href: '/news/derivatives' },
   { label: '加密资产', href: '/news/crypto' },
+  { label: '专题', href: '/topics' },
   { label: 'AI与前沿科技', href: '/news/ai' },
 ];
