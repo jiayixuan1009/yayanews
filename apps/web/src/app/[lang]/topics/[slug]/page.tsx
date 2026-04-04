@@ -154,11 +154,11 @@ export default async function TopicDetailPage({ params, searchParams }: Props) {
           {/* 主栏 */}
           <main>
             <header className="mb-8 border-b border-[#ddd5ca] pb-8">
-              <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.2em] text-[#1d5c4f] flex items-center gap-2">
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#0d3b30] flex items-center gap-2">
                 <span>{isZh ? '专题报道' : 'Topic Coverage'}</span>
-                {topic.market && <span className="opacity-60 font-normal">| {topic.market}</span>}
+                {topic.market && <span className="font-semibold">| {topic.market}</span>}
               </p>
-              <h1 className="text-2xl font-bold leading-tight tracking-tight text-[#101713] sm:text-3xl lg:text-4xl">
+              <h1 className="text-2xl font-black leading-tight tracking-tight text-black sm:text-3xl lg:text-4xl">
                 {name}
               </h1>
               
