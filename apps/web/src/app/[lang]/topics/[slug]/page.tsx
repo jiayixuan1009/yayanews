@@ -18,11 +18,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const isZh = params.lang !== 'en';
   const name = isZh ? topic.name_zh : topic.name_en;
   const desc = isZh ? topic.description_zh : topic.description_en;
-  const titleSuffix = isZh ? '专题报道' : 'Topic Coverage';
+  const metaTitle = topic.meta_title || `${name} ${isZh ? '专题报道' : 'Topic Coverage'} | YayaNews`;
+  const metaDesc = topic.meta_description || (desc || '').slice(0, isZh ? 120 : 160);
 
   return {
-    title: `${name} ${titleSuffix} | YayaNews`,
-    description: (desc || '').slice(0, isZh ? 120 : 160),
+    title: metaTitle,
+    description: metaDesc,
     // draft 状态前台 404，不会走到这里；archive 状态 noindex
     robots: topic.status === 'archive' ? 'noindex, follow' : 'index, follow',
     alternates: {
@@ -34,8 +35,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       },
     },
     openGraph: {
-      title: `${name} ${titleSuffix} | YayaNews`,
-      description: (desc || '').slice(0, 160),
+      title: metaTitle,
+      description: metaDesc,
       url: `${siteConfig.siteUrl}/${params.lang}/topics/${params.slug}`,
       type: 'website',
       images: topic.cover_image
@@ -73,7 +74,7 @@ export default async function TopicDetailPage({ params, searchParams }: Props) {
   const featuredIds = new Set((topic.featured_articles || []).map(a => a.id));
 
   // Schema.org CollectionPage
-  const jsonLd = {
+  const jsonLd: any = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
     name,
@@ -91,12 +92,35 @@ export default async function TopicDetailPage({ params, searchParams }: Props) {
     },
   };
 
+  const faqItems = topic.faq_items && Array.isArray(topic.faq_items) ? topic.faq_items : [];
+  let faqSchema = null;
+  if (faqItems.length > 0) {
+    faqSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqItems.map(item => ({
+        '@type': 'Question',
+        name: isZh ? item.q_zh : item.q_en,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: isZh ? item.a_zh : item.a_en,
+        }
+      }))
+    };
+  }
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
 
       <div className="container-main py-6 sm:py-8 lg:py-10">
         {/* 归档状态横幅 */}
@@ -129,15 +153,37 @@ export default async function TopicDetailPage({ params, searchParams }: Props) {
         <div className="grid gap-10 lg:grid-cols-[1fr,320px]">
           {/* 主栏 */}
           <main>
-            {/* 专题标题区 */}
             <header className="mb-8 border-b border-[#ddd5ca] pb-8">
-              <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.2em] text-[#1d5c4f]">
-                {isZh ? '专题报道' : 'Topic Coverage'}
+              <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.2em] text-[#1d5c4f] flex items-center gap-2">
+                <span>{isZh ? '专题报道' : 'Topic Coverage'}</span>
+                {topic.market && <span className="opacity-60 font-normal">| {topic.market}</span>}
               </p>
               <h1 className="text-2xl font-bold leading-tight tracking-tight text-[#101713] sm:text-3xl lg:text-4xl">
                 {name}
               </h1>
-              {desc && (
+              
+              {/* Keywords and Tickers */}
+              {(topic.keywords?.length || topic.related_tickers?.length) ? (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {topic.related_tickers?.map(t => (
+                    <span key={t} className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700">
+                      ${t}
+                    </span>
+                  ))}
+                  {topic.keywords?.slice(0, 5).map(k => (
+                    <span key={k} className="rounded-full bg-[#f2ede9] px-2.5 py-0.5 text-xs font-medium text-[#4a5250]">
+                      #{k}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+
+              {/* Hero Summary */}
+              {(topic.hero_summary_zh || topic.hero_summary_en) ? (
+                <p className="mt-5 max-w-3xl text-[16px] font-medium leading-8 text-[#2c3631]">
+                  {isZh ? (topic.hero_summary_zh || desc) : (topic.hero_summary_en || desc)}
+                </p>
+              ) : desc && (
                 <p className="mt-5 max-w-3xl text-[16px] leading-8 text-[#4a5250]">
                   {desc}
                 </p>
@@ -244,22 +290,49 @@ export default async function TopicDetailPage({ params, searchParams }: Props) {
             )}
           </main>
 
-          {/* 右侧边栏：相关专题 */}
+          {/* 右侧边栏：相关专题与 FAQ */}
           <aside className="hidden lg:block">
-            <div className="sticky top-24">
+            <div className="sticky top-24 space-y-6">
               <div className="border border-[#ddd5ca] p-5">
-                <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#1d5c4f]">
+                <h2 className="mb-4 text-[11px] font-bold uppercase tracking-[0.18em] text-[#1d5c4f]">
                   {isZh ? '关于本专题' : 'About this topic'}
                 </h2>
                 <p className="text-sm leading-7 text-[#4a5250]">
-                  {(desc || '').slice(0, 120)}{(desc || '').length > 120 ? '…' : ''}
+                  {(desc || '').slice(0, 150)}{(desc || '').length > 150 ? '…' : ''}
                 </p>
+                {topic.seo_body_zh && isZh && (
+                  <div className="mt-3 text-xs leading-6 text-[#667067] prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: topic.seo_body_zh }} />
+                )}
+                {topic.seo_body_en && !isZh && (
+                  <div className="mt-3 text-xs leading-6 text-[#667067] prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: topic.seo_body_en }} />
+                )}
                 <div className="mt-4 border-t border-[#ddd5ca] pt-4 text-sm text-[#667067]">
                   <span className="block">
                     {isZh ? `共 ${topic.total_count || 0} 篇报道` : `${topic.total_count || 0} articles`}
                   </span>
                 </div>
               </div>
+
+              {faqItems.length > 0 && (
+                <div className="border border-[#ddd5ca] p-5 bg-[#fcfaf8]">
+                  <h2 className="mb-4 text-[11px] font-bold uppercase tracking-[0.18em] text-[#1d5c4f]">
+                    {isZh ? '常见问题 (FAQ)' : 'FAQ'}
+                  </h2>
+                  <div className="space-y-4">
+                    {faqItems.map((item, idx) => (
+                      <details key={idx} className="group">
+                        <summary className="flex cursor-pointer items-center justify-between text-sm font-semibold text-[#101713] list-none">
+                          <span className="pr-2">{isZh ? item.q_zh : item.q_en}</span>
+                          <span className="shrink-0 text-[#1d5c4f] group-open:rotate-180 transition-transform">▼</span>
+                        </summary>
+                        <p className="mt-2 text-xs leading-6 text-[#4a5250]">
+                          {isZh ? item.a_zh : item.a_en}
+                        </p>
+                      </details>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </aside>
         </div>

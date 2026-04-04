@@ -90,6 +90,20 @@ export interface Topic {
   status: 'draft' | 'active' | 'archive';
   sort_order: number;
   category_id?: number | null;
+  
+  topic_type?: string;
+  market?: string;
+  priority?: number;
+  keywords?: string[];
+  related_tickers?: string[];
+  hero_summary_zh?: string | null;
+  hero_summary_en?: string | null;
+  seo_body_zh?: string | null;
+  seo_body_en?: string | null;
+  faq_items?: Array<{ q_zh: string; a_zh: string; q_en: string; a_en: string }>;
+  meta_title?: string | null;
+  meta_description?: string | null;
+
   related_topics?: number[];
   article_count?: number;
   created_at?: string;

@@ -13,6 +13,15 @@ interface Topic {
   status: 'draft' | 'active' | 'archive';
   article_count: number;
   updated_at?: string;
+  topic_type?: string;
+  market?: string;
+  keywords?: string[];
+  related_tickers?: string[];
+  hero_summary_zh?: string | null;
+  hero_summary_en?: string | null;
+  meta_title?: string | null;
+  meta_description?: string | null;
+  faq_items?: any[];
 }
 
 interface FeaturedArticle {
@@ -33,6 +42,11 @@ const EMPTY_FORM = {
   slug: '', name_zh: '', name_en: '',
   description_zh: '', description_en: '',
   status: 'draft' as 'draft' | 'active' | 'archive', cover_image: '',
+  topic_type: 'narrative', market: 'us-stock',
+  keywords: '', related_tickers: '',
+  hero_summary_zh: '', hero_summary_en: '',
+  meta_title: '', meta_description: '',
+  faq_items: '[]',
 };
 
 export default function TopicsView() {
@@ -85,6 +99,15 @@ export default function TopicsView() {
       description_en: t.description_en || '',
       status: t.status,
       cover_image: '',
+      topic_type: t.topic_type || 'narrative',
+      market: t.market || 'us-stock',
+      keywords: t.keywords?.join(', ') || '',
+      related_tickers: t.related_tickers?.join(', ') || '',
+      hero_summary_zh: t.hero_summary_zh || '',
+      hero_summary_en: t.hero_summary_en || '',
+      meta_title: t.meta_title || '',
+      meta_description: t.meta_description || '',
+      faq_items: t.faq_items ? JSON.stringify(t.faq_items, null, 2) : '[]',
     });
     setEditMode(true);
     setSelected(t);
@@ -97,11 +120,28 @@ export default function TopicsView() {
     setSaving(true); setMsg(null);
     const url = editMode && selected ? `/api/admin/topics/${selected.id}` : '/api/admin/topics';
     const method = editMode ? 'PUT' : 'POST';
+    
     try {
+      let parsedFaq = [];
+      try {
+        parsedFaq = JSON.parse(form.faq_items || '[]');
+      } catch (e) {
+        setMsg({ type: 'err', text: 'FAQ 格式错误：不仅是有效的 JSON' });
+        setSaving(false);
+        return;
+      }
+
+      const payload = {
+        ...form,
+        keywords: form.keywords.split(',').map(s => s.trim()).filter(Boolean),
+        related_tickers: form.related_tickers.split(',').map(s => s.trim()).filter(Boolean),
+        faq_items: parsedFaq,
+      };
+
       const res = await adminFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json', 'x-admin-secret': 'yayanews2024' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) { setMsg({ type: 'err', text: data.error || '保存失败' }); }
@@ -274,6 +314,31 @@ export default function TopicsView() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
+                <label className="block mb-1 text-xs font-medium text-slate-400">专题类型</label>
+                <select value={form.topic_type} onChange={e => setForm(f => ({ ...f, topic_type: e.target.value }))}
+                  className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white">
+                  <option value="company">公司实体</option>
+                  <option value="macro">宏观经济</option>
+                  <option value="crypto_event">加密事件</option>
+                  <option value="narrative">主线叙事</option>
+                  <option value="earnings">财报季</option>
+                </select>
+              </div>
+              <div>
+                <label className="block mb-1 text-xs font-medium text-slate-400">所属市场</label>
+                <select value={form.market} onChange={e => setForm(f => ({ ...f, market: e.target.value }))}
+                  className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white">
+                  <option value="us-stock">美股市场</option>
+                  <option value="hk-stock">港股/亚洲</option>
+                  <option value="crypto">加密资产</option>
+                  <option value="derivatives">衍生品/外汇</option>
+                  <option value="ai">AI前沿</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
                 <label className="block mb-1 text-xs font-medium text-slate-400">中文标题 *</label>
                 <input type="text" value={form.name_zh} onChange={e => setForm(f => ({ ...f, name_zh: e.target.value }))}
                   placeholder="比特币减半 2024"
@@ -285,6 +350,20 @@ export default function TopicsView() {
                   placeholder="Bitcoin Halving 2024"
                   className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder:text-slate-600" />
               </div>
+            </div>
+
+            <div>
+              <label className="block mb-1 text-xs font-medium text-slate-400">中文 Hero 概要</label>
+              <textarea rows={2} value={form.hero_summary_zh} onChange={e => setForm(f => ({ ...f, hero_summary_zh: e.target.value }))}
+                placeholder="短小的概要描述，显示在页面顶部..."
+                className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder:text-slate-600 resize-none" />
+            </div>
+
+            <div>
+              <label className="block mb-1 text-xs font-medium text-slate-400">英文 Hero 概要</label>
+              <textarea rows={2} value={form.hero_summary_en} onChange={e => setForm(f => ({ ...f, hero_summary_en: e.target.value }))}
+                placeholder="Short summary for the hero section..."
+                className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder:text-slate-600 resize-none" />
             </div>
 
             <div>
@@ -312,7 +391,27 @@ export default function TopicsView() {
                 placeholder="English description of this topic…"
                 className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder:text-slate-600 resize-none" />
             </div>
+            <div>
+              <label className="block mb-1 text-xs font-medium text-slate-400">SEO 优化关键词（逗号分隔）</label>
+              <input type="text" value={form.keywords} onChange={e => setForm(f => ({ ...f, keywords: e.target.value }))}
+                placeholder="AI芯片, NVDA, 算力..."
+                className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder:text-slate-600" />
+            </div>
 
+            <div>
+              <label className="block mb-1 text-xs font-medium text-slate-400">相关股票代码（逗号分隔）</label>
+              <input type="text" value={form.related_tickers} onChange={e => setForm(f => ({ ...f, related_tickers: e.target.value }))}
+                placeholder="NVDA, TSLA, AAPL..."
+                className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder:text-slate-600" />
+            </div>
+
+            <div>
+              <label className="block mb-1 text-xs font-medium text-slate-400">FAQ 列表 (JSON 数组)</label>
+              <textarea rows={4} value={form.faq_items}
+                onChange={e => setForm(f => ({ ...f, faq_items: e.target.value }))}
+                placeholder='[{"q_zh":"问题", "a_zh":"答案", "q_en": "Question", "a_en": "Answer"}]'
+                className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white text-mono placeholder:text-slate-600 resize-none" />
+            </div>
             <div>
               <label className="block mb-1 text-xs font-medium text-slate-400">状态</label>
               <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as any }))}
