@@ -20,13 +20,16 @@ DEEPSEEK_MODEL_REASONER = "deepseek-reasoner"    # DeepSeek-R1，深度推理（
 MINIMAX_MODEL_STANDARD = DEEPSEEK_MODEL_STANDARD
 MINIMAX_MODEL_HIGHSPEED = DEEPSEEK_MODEL_STANDARD
 
-# 渠道 -> 模型：Deepseek 当前统一使用 deepseek-chat
+# 渠道 -> 模型：按任务特性分配
+# - highspeed/fast/realtime: 快讯翻译、选题等速度优先场景 → chat
+# - quality: 深度研报，需要分析推理能力 → reasoner
+# - 其余: 标准文章、SEO 等 → chat
 CHANNEL_TO_MODEL = {
     "highspeed": DEEPSEEK_MODEL_STANDARD,
     "fast": DEEPSEEK_MODEL_STANDARD,
     "realtime": DEEPSEEK_MODEL_STANDARD,
     "default": DEEPSEEK_MODEL_STANDARD,
-    "quality": DEEPSEEK_MODEL_STANDARD,
+    "quality": DEEPSEEK_MODEL_REASONER,     # 深度研报专用
     "standard": DEEPSEEK_MODEL_STANDARD,
     "": DEEPSEEK_MODEL_STANDARD,
 }
