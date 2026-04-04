@@ -23,5 +23,3 @@ services:
       DATABASE_URL: REDACTED
     env_file:
       - .env
-    volumes:
-      - ./data:/app/data

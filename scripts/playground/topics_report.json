@@ -1,0 +1,158 @@
+[
+  {
+    "id": 1,
+    "slug": "nvidia",
+    "cover_image": "/images/topics/nvidia.png",
+    "status": "active"
+  },
+  {
+    "id": 2,
+    "slug": "apple",
+    "cover_image": "/images/topics/apple.png",
+    "status": "active"
+  },
+  {
+    "id": 3,
+    "slug": "tesla",
+    "cover_image": "/images/topics/tesla.png",
+    "status": "active"
+  },
+  {
+    "id": 4,
+    "slug": "microsoft",
+    "cover_image": "/images/topics/microsoft-openai.png",
+    "status": "active"
+  },
+  {
+    "id": 5,
+    "slug": "amd",
+    "cover_image": "/images/topics/amd.png",
+    "status": "active"
+  },
+  {
+    "id": 6,
+    "slug": "google",
+    "cover_image": "/images/topics/google.png",
+    "status": "active"
+  },
+  {
+    "id": 7,
+    "slug": "meta",
+    "cover_image": "/images/topics/meta.png",
+    "status": "active"
+  },
+  {
+    "id": 8,
+    "slug": "intc",
+    "cover_image": "/images/topics/intc.png",
+    "status": "active"
+  },
+  {
+    "id": 9,
+    "slug": "smci",
+    "cover_image": "/images/topics/smci.png",
+    "status": "active"
+  },
+  {
+    "id": 10,
+    "slug": "coinbase",
+    "cover_image": "/images/topics/coinbase.png",
+    "status": "active"
+  },
+  {
+    "id": 11,
+    "slug": "openai",
+    "cover_image": "/images/topics/openai.png",
+    "status": "active"
+  },
+  {
+    "id": 12,
+    "slug": "anthropic",
+    "cover_image": "/images/topics/anthropic.png",
+    "status": "active"
+  },
+  {
+    "id": 13,
+    "slug": "xai",
+    "cover_image": "/images/topics/xai.png",
+    "status": "active"
+  },
+  {
+    "id": 14,
+    "slug": "spacex",
+    "cover_image": "/images/topics/spacex.png",
+    "status": "active"
+  },
+  {
+    "id": 15,
+    "slug": "tiktok",
+    "cover_image": "/images/topics/tiktok.png",
+    "status": "active"
+  },
+  {
+    "id": 16,
+    "slug": "telegram",
+    "cover_image": "/images/topics/telegram.png",
+    "status": "active"
+  },
+  {
+    "id": 17,
+    "slug": "chatgpt",
+    "cover_image": "/images/topics/chatgpt.png",
+    "status": "active"
+  },
+  {
+    "id": 18,
+    "slug": "sora",
+    "cover_image": "/images/topics/sora.png",
+    "status": "active"
+  },
+  {
+    "id": 19,
+    "slug": "llm",
+    "cover_image": "/images/topics/artificial-intelligence-boom.png",
+    "status": "active"
+  },
+  {
+    "id": 20,
+    "slug": "defi",
+    "cover_image": "/images/topics/defi.png",
+    "status": "active"
+  },
+  {
+    "id": 21,
+    "slug": "layer2",
+    "cover_image": "/images/topics/layer2.png",
+    "status": "active"
+  },
+  {
+    "id": 22,
+    "slug": "fed",
+    "cover_image": "/images/topics/fed-interest-rates.png",
+    "status": "active"
+  },
+  {
+    "id": 23,
+    "slug": "cpi",
+    "cover_image": "/images/topics/cpi.png",
+    "status": "active"
+  },
+  {
+    "id": 24,
+    "slug": "earnings",
+    "cover_image": "/images/topics/earnings-season.png",
+    "status": "active"
+  },
+  {
+    "id": 25,
+    "slug": "btc",
+    "cover_image": "/images/topics/bitcoin-etf.png",
+    "status": "active"
+  },
+  {
+    "id": 26,
+    "slug": "eth",
+    "cover_image": "/images/topics/eth.png",
+    "status": "active"
+  }
+]
