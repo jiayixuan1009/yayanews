@@ -14,7 +14,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
   try {
     const body = await req.json();
-    const { name_zh, name_en, description_zh, description_en, status, cover_image, sort_order } = body;
+    const { 
+      name_zh, name_en, description_zh, description_en, status, cover_image, sort_order,
+      topic_type, market, keywords, related_tickers, hero_summary_zh, hero_summary_en, faq_items, meta_title, meta_description
+    } = body;
 
     // 激活时校验定义文本
     if (status === 'active' && (!description_zh || description_zh.length < 50)) {
@@ -32,10 +35,28 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         status = COALESCE($5, status),
         cover_image = COALESCE($6, cover_image),
         sort_order = COALESCE($7, sort_order),
+        topic_type = COALESCE($8, topic_type),
+        market = COALESCE($9, market),
+        keywords = COALESCE($10, keywords),
+        related_tickers = COALESCE($11, related_tickers),
+        hero_summary_zh = COALESCE($12, hero_summary_zh),
+        hero_summary_en = COALESCE($13, hero_summary_en),
+        faq_items = COALESCE($14, faq_items),
+        meta_title = COALESCE($15, meta_title),
+        meta_description = COALESCE($16, meta_description),
         updated_at = NOW()
-      WHERE id = $8`,
-      [name_zh || null, name_en || null, description_zh || null, description_en || null,
-       status || null, cover_image || null, sort_order ?? null, id]
+      WHERE id = $17`,
+      [
+        name_zh || null, name_en || null, description_zh || null, description_en || null,
+        status || null, cover_image || null, sort_order ?? null,
+        topic_type || null, market || null,
+        Array.isArray(keywords) ? keywords : null,
+        Array.isArray(related_tickers) ? related_tickers : null,
+        hero_summary_zh || null, hero_summary_en || null,
+        faq_items ? JSON.stringify(faq_items) : null,
+        meta_title || null, meta_description || null,
+        id
+      ]
     );
 
     return NextResponse.json({ success: true });

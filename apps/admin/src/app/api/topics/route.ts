@@ -31,7 +31,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { slug, name_zh, name_en, description_zh, description_en, status = 'draft', category_id, cover_image } = body;
+    const { 
+      slug, name_zh, name_en, description_zh, description_en, status = 'draft', category_id, cover_image,
+      topic_type, market, keywords, related_tickers, hero_summary_zh, hero_summary_en, faq_items, meta_title, meta_description
+    } = body;
 
     if (!slug || !name_zh || !name_en) {
       return NextResponse.json({ error: 'slug, name_zh, name_en 为必填项' }, { status: 400 });
@@ -50,10 +53,22 @@ export async function POST(req: NextRequest) {
     }
 
     const rows = await queryAll<{ id: number }>(
-      `INSERT INTO topics (slug, name_zh, name_en, title, description_zh, description_en, description, status, category_id, cover_image, sort_order, created_at, updated_at)
-       VALUES ($1, $2, $3, $2, $4, $5, $4, $6, $7, $8, 0, NOW(), NOW())
+      `INSERT INTO topics (
+        slug, name_zh, name_en, title, description_zh, description_en, description, status, category_id, cover_image, sort_order,
+        topic_type, market, keywords, related_tickers, hero_summary_zh, hero_summary_en, faq_items, meta_title, meta_description,
+        created_at, updated_at
+       )
+       VALUES ($1, $2, $3, $2, $4, $5, $4, $6, $7, $8, 0, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW(), NOW())
        RETURNING id`,
-      [slug, name_zh, name_en, description_zh || '', description_en || '', status, category_id || null, cover_image || null]
+      [
+        slug, name_zh, name_en, description_zh || '', description_en || '', status, category_id || null, cover_image || null,
+        topic_type || 'narrative', market || null, 
+        Array.isArray(keywords) ? keywords : [], 
+        Array.isArray(related_tickers) ? related_tickers : [],
+        hero_summary_zh || null, hero_summary_en || null,
+        faq_items ? JSON.stringify(faq_items) : '[]',
+        meta_title || null, meta_description || null
+      ]
     );
 
     return NextResponse.json({ id: rows[0]?.id, success: true });
