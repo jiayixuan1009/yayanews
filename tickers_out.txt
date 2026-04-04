@@ -1,0 +1,14 @@
+ ticker | article_count 
+--------+---------------
+ BTC    |           293
+ NVDA   |           209
+ ETH    |           180
+ AAPL   |           125
+ TSLA   |            89
+ MSFT   |            58
+ AMD    |            39
+ GOOGL  |            39
+ META   |            23
+ INTC   |            21
+(10 rows)
+

@@ -1,0 +1,24 @@
+         tag_name         | article_count 
+--------------------------+---------------
+ Cryptocurrency           |           125
+ Market Analysis          |           112
+ Bitcoin                  |           102
+ Federal Reserve          |            92
+ DeFi                     |            90
+ 加密货币                 |            84
+ Ethereum                 |            60
+ ETF                      |            57
+ Stock Market             |            56
+ Tech Stocks              |            52
+ Gold                     |            50
+ Geopolitical Risk        |            50
+ Derivatives              |            47
+ 美股                     |            45
+ 比特币                   |            44
+ Digital Assets           |            43
+ Options                  |            42
+ Layer2                   |            42
+ Institutional Investment |            42
+ Artificial Intelligence  |            40
+(20 rows)
+

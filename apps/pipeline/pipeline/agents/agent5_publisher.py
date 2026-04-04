@@ -153,6 +153,9 @@ def publish(articles: list[dict]) -> list[dict]:
             if tags:
                 insert_tags(article_id, tags)
                 
+            from pipeline.utils.topic_tagger import auto_assign_topic
+            auto_assign_topic(article_id, title, ",".join(tickers) if tickers else "")
+
             from pipeline.agents.agent7_auditor import audit_article
             audit_article(
                 article_id=article_id,
