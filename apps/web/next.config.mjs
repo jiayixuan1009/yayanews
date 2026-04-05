@@ -65,7 +65,6 @@ const remotePatterns = [
 
 const nextConfig = {
   output: 'standalone',
-  transpilePackages: ['@yayanews/database', '@yayanews/seo', '@yayanews/types'],
   compress: true,
   poweredByHeader: false,
   optimizeFonts: false,
