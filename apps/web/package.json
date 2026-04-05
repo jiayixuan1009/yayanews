@@ -9,6 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource-variable/newsreader": "^5.2.10",
+    "@fontsource-variable/public-sans": "^5.2.7",
     "@google-analytics/data": "^5.2.1",
     "@tailwindcss/typography": "^0.5.19",
     "@yayanews/database": "*",

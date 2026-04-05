@@ -8,6 +8,11 @@ import '../globals.css';
 import { getDictionary } from '@/lib/dictionaries';
 import dynamic from 'next/dynamic';
 
+// ── Local self-hosted variable fonts ─────────────────────────────────────
+import '@fontsource-variable/inter';
+import '@fontsource-variable/public-sans';
+import '@fontsource-variable/newsreader';
+
 // ── Lazy-loaded: don't participate in first paint ────────────────────────
 const Toaster = dynamic(
   () => import('sonner').then(m => ({ default: m.Toaster })),
@@ -37,16 +42,12 @@ export default async function RootLayout({
 }) {
   const dict = await getDictionary(params.lang as any);
   return (
-    <html lang={params.lang}>
+    <html lang={params.lang} style={{
+      '--font-inter': '"Inter Variable", sans-serif',
+      '--font-public-sans': '"Public Sans Variable", sans-serif',
+      '--font-newsreader': '"Newsreader Variable", serif',
+    } as React.CSSProperties}>
       <head>
-        {/* Preconnect to font CDNs for faster DNS + TLS handshake */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* Google Fonts — display=swap prevents FOIT */}
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:wght@400;600;700&family=Public+Sans:wght@400;500;600;700&display=swap"
-        />
         {/* Preconnect to external data APIs used by LiveTicker */}
         <link rel="dns-prefetch" href="https://api.coingecko.com" />
         <link rel="dns-prefetch" href="https://assets.coingecko.com" />
