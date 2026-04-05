@@ -25,6 +25,10 @@ echo "[4/5] Installing dependencies and executing safe build..."
 npm install --include=dev
 npm run build -w @yayanews/web
 
+echo "[4.5/5] Copying static assets for standalone deployment..."
+cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static
+cp -r apps/web/public apps/web/.next/standalone/apps/web/public
+
 echo "[5/5] Build SUCCESS. Restarting production server..."
 pm2 restart yayanews
 
