@@ -1,4 +1,4 @@
-'use client';
+
 
 /**
  * 绿头鸭卡通形象：用于 KV、Banner、Logo、模块边框等。

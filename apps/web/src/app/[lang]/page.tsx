@@ -18,7 +18,7 @@ import {
 } from '@/lib/queries';
 import { FLASH_ENTRY, AI_ENTRY } from '@/lib/constants';
 import ArticleCard from '@/components/ArticleCard';
-import SiteLiveSubscriber from '@/components/SiteLiveSubscriber';
+const SiteLiveSubscriber = dynamic(() => import('@/components/SiteLiveSubscriber'), { ssr: false });
 import CtaBanner from '@/components/CtaBanner';
 import HomeHeroEditorial from '@/components/editorial/HomeHeroEditorial';
 import BreakingStreamBlock from '@/components/editorial/BreakingStreamBlock';
@@ -58,11 +58,20 @@ export const revalidate = 0;
 
 export default async function HomePage({ params: { lang } }: { params: { lang: string } }) {
   const dict = await getDictionary(lang as any);
-  const articles = await getPublishedArticles(lang, 26);
-  const flashStream = await getFlashNews(lang, 12);
-  const topics = await getTopics(6);
-  const categories = await getCategoriesOrdered();
-  const popularTags = await getPopularTags(14);
+
+  // ── Parallelize all independent DB queries (P0: eliminates serial TTFB) ──
+  const [articles, flashStream, topics, categories, popularTags, totalArticles, flashMaxId, articleMaxId] =
+    await Promise.all([
+      getPublishedArticles(lang, 26),
+      getFlashNews(lang, 12),
+      getTopics(6),
+      getCategoriesOrdered(),
+      getPopularTags(14),
+      getArticleCount(),
+      getFlashMaxId(lang),
+      getPublishedArticleMaxId(lang),
+    ]);
+
   const hasAi = categories.some(c => c.slug === 'ai');
   const insertAiAt = categories.findIndex(c => c.slug === 'other');
   const pos = insertAiAt === -1 ? categories.length : insertAiAt;
@@ -82,15 +91,12 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
     href: e.href,
   }));
 
-  const totalArticles = await getArticleCount();
   const lead = articles[0];
   const secondaries = articles.slice(1, 5);
   const listArticles = articles.slice(5, 13);
   const spotlightArticles = articles.slice(13, 16);
   const watchArticles = articles.slice(16, 22);
   const moreArticles = articles.slice(22, 26);
-  const flashMaxId = await getFlashMaxId(lang);
-  const articleMaxId = await getPublishedArticleMaxId(lang);
   const leadTopic = topics[0];
 
   return (
