@@ -7,29 +7,6 @@ import Analytics from '@/components/Analytics';
 import '../globals.css';
 import { getDictionary } from '@/lib/dictionaries';
 import dynamic from 'next/dynamic';
-import { Inter, Public_Sans, Newsreader } from 'next/font/google';
-
-// ── Self-hosted fonts via next/font (eliminates render-blocking CSS) ─────
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-  variable: '--font-inter',
-});
-
-const publicSans = Public_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-  variable: '--font-public-sans',
-});
-
-const newsreader = Newsreader({
-  subsets: ['latin'],
-  weight: ['400', '600', '700'],
-  display: 'swap',
-  variable: '--font-newsreader',
-});
 
 // ── Lazy-loaded: don't participate in first paint ────────────────────────
 const Toaster = dynamic(
@@ -60,8 +37,16 @@ export default async function RootLayout({
 }) {
   const dict = await getDictionary(params.lang as any);
   return (
-    <html lang={params.lang} className={`${inter.variable} ${publicSans.variable} ${newsreader.variable}`}>
+    <html lang={params.lang}>
       <head>
+        {/* Preconnect to font CDNs for faster DNS + TLS handshake */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Google Fonts — display=swap prevents FOIT */}
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:wght@400;600;700&family=Public+Sans:wght@400;500;600;700&display=swap"
+        />
         {/* Preconnect to external data APIs used by LiveTicker */}
         <link rel="dns-prefetch" href="https://api.coingecko.com" />
         <link rel="dns-prefetch" href="https://assets.coingecko.com" />
