@@ -148,7 +148,7 @@ export default async function CategoryPage({
                           <span>{lead.article_type === 'deep' ? dict.news.deepDive : dict.news.briefing}</span>
                         </div>
                         <LocalizedLink href={`/article/${lead.slug}`} className="group block">
-                          <h2 className="mt-2 font-display text-[2.4rem] font-semibold leading-[1.05] tracking-[-0.03em] text-[#111713] group-hover:text-[#1d5c4f] sm:text-[3rem]">
+                          <h2 className="yn-title-xl mt-2 text-[#111713] group-hover:text-[#1d5c4f]">
                             {lead.title}
                           </h2>
                           {lead.summary && (
@@ -171,7 +171,7 @@ export default async function CategoryPage({
                           </div>
                           <div>
                             <p className="yn-meta text-[#1d5c4f]">{item.category_name}</p>
-                            <h3 className="mt-1 font-display text-[1.25rem] font-semibold leading-tight tracking-[-0.02em] text-[#14261f] group-hover:text-[#1d5c4f]">
+                            <h3 className="yn-card-title mt-1 text-[#14261f] group-hover:text-[#1d5c4f]">
                               {item.title}
                             </h3>
                           </div>
@@ -190,7 +190,7 @@ export default async function CategoryPage({
                       return (
                         <LocalizedLink key={item.id} href={`/article/${item.slug}`} className="group flex flex-col gap-3 relative sm:border-r border-[#ece4d9] sm:pr-6 last:border-r-0 last:pr-0">
                           <div className="min-w-0">
-                            <h3 className="mt-1 font-display text-[1.15rem] font-medium leading-[1.3] text-[#14261f] group-hover:text-[#1d5c4f] line-clamp-4">
+                            <h3 className="yn-card-title mt-1 text-[#14261f] group-hover:text-[#1d5c4f] line-clamp-4">
                               {item.title}
                             </h3>
                             <p className="yn-meta text-[#667067] mt-2">{item.published_at?.slice(5, 16)}</p>

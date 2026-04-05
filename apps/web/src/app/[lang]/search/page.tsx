@@ -39,7 +39,7 @@ export default async function SearchPage({ searchParams, params }: { searchParam
   return (
     <div className="container-main py-6 sm:py-8">
       <header className="mb-6 border-b border-slate-800 pb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">{dict.search.heading}</h1>
+        <h1 className="yn-page-title text-white">{dict.search.heading}</h1>
         <p className="mt-2 text-sm text-slate-400">{dict.search.subtitle}</p>
       </header>
 

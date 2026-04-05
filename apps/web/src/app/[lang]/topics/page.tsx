@@ -20,7 +20,7 @@ export default async function TopicsPage() {
   return (
     <div className="container-main py-6 sm:py-8">
       <header className="mb-8 border-b border-[#ddd5ca] pb-6">
-        <h1 className="text-2xl font-black tracking-tight text-black md:text-3xl">热门专题</h1>
+        <h1 className="yn-page-title">热门专题</h1>
         <p className="mt-2 max-w-2xl text-sm text-[#667067]">持续追踪市场重大事件，沉淀深度知识图谱。</p>
       </header>
 
@@ -47,7 +47,7 @@ export default async function TopicsPage() {
                     />
                   </div>
                 ) : null}
-                <h2 className="text-lg font-bold tracking-tight text-[#101713] group-hover:text-[#1d5c4f]">
+                <h2 className="yn-card-title group-hover:text-[#1d5c4f]">
                   {topic.name_zh || topic.title || topic.slug}
                 </h2>
                 {(topic.description_zh || topic.description) ? (

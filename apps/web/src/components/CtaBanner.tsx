@@ -10,7 +10,7 @@ export default function CtaBanner({ dict = {} }: { dict?: any }) {
       </div>
       <div className="relative">
         <p className="mb-1 font-label text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1d5c4f]">{cta.tag || '交易入口'}</p>
-        <h3 className="font-display text-xl font-semibold tracking-tight text-[#14261f]">{cta.title || 'BiyaPay 全球资产'}</h3>
+        <h3 className="yn-heading-sm">{cta.title || 'BiyaPay 全球资产'}</h3>
         <p className="mt-2 font-body text-sm leading-7 text-slate-600">{cta.desc || '安全便捷的多市场通道；与正文阅读区视觉分离。'}</p>
         <a
           href={siteConfig.tradingSite}

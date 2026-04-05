@@ -40,7 +40,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        display: ['var(--font-newsreader)', 'serif'],
+        display: ['var(--font-inter-tight)', '"Noto Sans SC"', 'system-ui', 'sans-serif'],
         body: ['var(--font-public-sans)', 'system-ui', 'sans-serif'],
         label: ['var(--font-inter)', 'system-ui', 'sans-serif'],
         sans: ['var(--font-public-sans)', 'system-ui', 'sans-serif'],

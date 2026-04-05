@@ -149,7 +149,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
                 <div className="mt-5 grid gap-6 md:grid-cols-3">
                   {spotlightArticles.slice(0, 3).map(item => (
                     <LocalizedLink key={item.id} href={`/article/${item.slug}`} className="group block border-t border-[#e9e2d6] pt-4 md:border-t-0 md:pt-0">
-                      <h3 className="font-display text-[1.85rem] font-semibold leading-[1.03] tracking-[-0.04em] text-[#13211b] group-hover:text-[#1d5c4f]">
+                      <h3 className="yn-card-title-lg group-hover:text-[#1d5c4f]">
                         {item.title}
                       </h3>
                       {item.summary ? <p className="mt-3 text-sm leading-7 text-slate-600 line-clamp-4">{stripHtml(item.summary)}</p> : null}
@@ -183,7 +183,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
                         />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-display text-[1.25rem] font-bold leading-[1.2] tracking-[-0.02em] text-[#111713] group-hover:text-[#1d5c4f]">
+                        <h3 className="yn-card-title group-hover:text-[#1d5c4f]">
                           {item.title}
                         </h3>
                         {item.summary ? (
@@ -210,15 +210,15 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
           <aside className="space-y-4 md:space-y-5 lg:col-span-4 lg:space-y-6">
             <div className="border border-[#ddd5ca] bg-[#f1eeea] px-4 py-5 sm:px-5">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="font-display text-[1.75rem] font-semibold leading-none tracking-[-0.04em] text-[#1a1c1c] sm:text-[2rem]">{dict.home?.hotStream || 'Hot Stream'}</h2>
+                <h2 className="yn-heading">{dict.home?.hotStream || 'Hot Stream'}</h2>
                 <span className="text-[#1d5c4f]">⚡</span>
               </div>
               <ol className="space-y-4">
                 {secondaries.slice(0, 4).map((item, idx) => (
                   <li key={item.id} className="grid grid-cols-[1.8rem,1fr] gap-3 border-t border-[#dfd8ce] pt-4 first:border-t-0 first:pt-0">
-                    <span className="font-display text-[1.8rem] italic leading-none text-[#a09890] sm:text-[2rem]">{String(idx + 1).padStart(2, '0')}</span>
+                    <span className="font-display text-[1.6rem] font-bold leading-none text-[#a09890] tabular-nums sm:text-[1.8rem]">{String(idx + 1).padStart(2, '0')}</span>
                     <LocalizedLink href={`/article/${item.slug}`} className="group block">
-                      <h3 className="font-display text-[1.08rem] font-semibold leading-[1.15] tracking-[-0.03em] text-[#1b201d] group-hover:text-[#1d5c4f] sm:text-[1.2rem]">
+                      <h3 className="yn-card-title text-[#1b201d] group-hover:text-[#1d5c4f]">
                         {item.title}
                       </h3>
                       <div className="mt-2 flex flex-wrap gap-x-2 text-[11px] uppercase tracking-[0.16em] text-[#555a55]">
@@ -234,8 +234,8 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
             <div className="overflow-hidden border border-[#0e4739] bg-[#034433] text-white shadow-[0_16px_40px_rgba(3,68,51,0.18)]">
               <div className="flex items-start justify-between gap-4 p-5 pb-3">
                 <div>
-                  <h3 className="font-display text-[1.75rem] font-semibold leading-[1.02] tracking-[-0.04em] sm:text-[1.9rem]">{dict.home?.mascotCorner || 'Mascot Corner:'}</h3>
-                  <p className="font-display text-[1.75rem] font-semibold leading-[1.02] tracking-[-0.04em] sm:text-[1.9rem]">{dict.home?.dailyCurations || 'Daily Curations'}</p>
+                  <h3 className="yn-heading">{dict.home?.mascotCorner || 'Mascot Corner:'}</h3>
+                  <p className="yn-heading">{dict.home?.dailyCurations || 'Daily Curations'}</p>
                 </div>
                 <div className="flex-shrink-0 rounded-full border-2 border-[#8fcb79] bg-[#91f78e]/50 overflow-hidden w-12 h-12 flex items-center justify-center">
                   <Image src="/brand/logo-square.svg" alt="Yaya Financial News" width={48} height={48} className="object-cover" />
@@ -262,7 +262,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
                             {item.category_name}
                           </span>
                         ) : null}
-                        <span className="line-clamp-2 font-display text-lg font-semibold leading-snug tracking-tight text-[#14261f] group-hover:text-[#1d5c4f]">
+                        <span className="yn-card-title line-clamp-2 group-hover:text-[#1d5c4f]">
                           {item.title}
                         </span>
                         <span className="mt-2 block text-xs text-slate-500">{item.published_at?.slice(0, 16)}</span>
@@ -300,7 +300,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
                         href={`/topics/${t.slug}`}
                         className="flex items-center justify-between gap-2 py-3 text-slate-700 hover:text-[#1d5c4f]"
                       >
-                        <span className="line-clamp-2 font-display text-lg font-semibold leading-snug tracking-tight">{t.title}</span>
+                        <span className="yn-card-title line-clamp-2">{t.title}</span>
                         {t.article_count !== undefined ? (
                           <span className="shrink-0 text-xs text-slate-500 tabular-nums">{t.article_count}</span>
                         ) : null}

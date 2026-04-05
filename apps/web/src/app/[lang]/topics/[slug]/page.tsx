@@ -149,7 +149,7 @@ export default async function TopicDetailPage({ params, searchParams }: Props) {
                 <span>{isZh ? '专题报道' : 'Topic Coverage'}</span>
                 {topic.market && <span className="font-semibold">| {topic.market}</span>}
               </p>
-              <h1 className="text-2xl font-black leading-tight tracking-tight text-black sm:text-3xl lg:text-4xl">
+              <h1 className="yn-page-title text-black">
                 {name}
               </h1>
               

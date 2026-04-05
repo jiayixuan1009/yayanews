@@ -33,7 +33,7 @@ function SecondaryFeature({ article, dict }: { article: Article; dict?: any }) {
       </div>
       <div>
         {article.category_name ? <span className="yn-meta text-[#1d5c4f]">{dict?.nav?.[article.category_slug || ''] || article.category_name}</span> : null}
-        <h3 className="mt-2 font-display text-[1.65rem] font-semibold leading-[1.05] tracking-[-0.03em] text-[#101a15] group-hover:text-[#1d5c4f] sm:text-[1.9rem]">
+        <h3 className="yn-card-title-lg mt-2 text-[#101a15] group-hover:text-[#1d5c4f]">
           {article.title}
         </h3>
         {article.summary ? <p className="mt-3 max-w-[32ch] font-body text-[15px] leading-7 text-slate-600 line-clamp-3">{stripHtml(article.summary)}</p> : null}
@@ -77,7 +77,7 @@ export default function HomeHeroEditorial({ lead, secondaries, dict = {}, rightR
                     {lead.article_type === 'deep' ? (dict.home?.investigativeFeature || 'Investigative feature') : (dict.home?.featuredReport || 'Featured report')}
                   </div>
                   <LocalizedLink href={`/article/${lead.slug}`} className="group block mb-2">
-                    <h1 className="font-display text-[2rem] md:text-[2.5rem] lg:text-[3rem] font-bold leading-[1.05] tracking-[-0.03em] text-[#111713] group-hover:text-[#1d5c4f]">
+                    <h1 className="yn-title-xl text-[#111713] group-hover:text-[#1d5c4f]">
                       {lead.title}
                     </h1>
                   </LocalizedLink>

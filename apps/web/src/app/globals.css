@@ -46,23 +46,51 @@
     @apply border-b border-[#ddd5ca] pb-2;
   }
 
+  /* ── Title Token System: Inter Tight + Noto Sans SC ──────────────── */
+
   .yn-display {
-    @apply font-display text-[2.35rem] font-semibold leading-[0.98] tracking-[-0.05em] text-[#14261f] sm:text-[3rem] md:text-[3.8rem] lg:text-[4.5rem];
+    @apply font-display text-[1.85rem] font-bold leading-[1.08] tracking-[-0.025em] text-[#14261f] sm:text-[2.4rem] md:text-[2.8rem] lg:text-[3.2rem];
     text-wrap: balance;
+    word-break: keep-all;
   }
 
   .yn-title-xl {
-    @apply font-display text-[2rem] font-semibold leading-[1.01] tracking-[-0.048em] text-[#14261f] sm:text-[2.4rem] lg:text-[2.7rem];
+    @apply font-display text-[1.6rem] font-bold leading-[1.1] tracking-[-0.02em] text-[#14261f] sm:text-[1.9rem] lg:text-[2.4rem];
     text-wrap: balance;
+    word-break: keep-all;
   }
 
   .yn-heading {
-    @apply font-display text-[1.4rem] font-semibold leading-[1.03] tracking-[-0.04em] text-[#14261f] sm:text-[1.55rem];
+    @apply font-display text-[1.2rem] font-semibold leading-[1.15] tracking-[-0.015em] text-[#14261f] sm:text-[1.35rem];
+    word-break: keep-all;
   }
 
   .yn-heading-sm {
-    @apply font-display text-[1.1rem] font-semibold leading-[1.08] tracking-[-0.035em] text-[#14261f] sm:text-[1.16rem];
+    @apply font-display text-[1.02rem] font-semibold leading-[1.18] tracking-[-0.01em] text-[#14261f] sm:text-[1.1rem];
   }
+
+  .yn-card-title-lg {
+    @apply font-display text-[1.35rem] font-semibold leading-[1.12] tracking-[-0.02em] text-[#14261f] sm:text-[1.55rem] lg:text-[1.85rem];
+    text-wrap: balance;
+    word-break: keep-all;
+  }
+
+  .yn-card-title {
+    @apply font-display text-[1.05rem] font-semibold leading-[1.2] tracking-[-0.01em] text-[#14261f] sm:text-[1.15rem] lg:text-[1.25rem];
+    word-break: keep-all;
+  }
+
+  .yn-page-title {
+    @apply font-display text-[1.5rem] font-bold leading-[1.12] tracking-[-0.02em] text-[#14261f] sm:text-[1.75rem] md:text-[2rem];
+    text-wrap: balance;
+    word-break: keep-all;
+  }
+
+  .yn-ticker-title {
+    @apply font-display text-[11px] font-semibold uppercase leading-[1.2] tracking-[0.06em];
+  }
+
+  /* ── Unchanged utility tokens ────────────────────────────────────── */
 
   .yn-meta {
     @apply font-label text-[11px] uppercase tracking-[0.16em] text-[#667067];
@@ -111,9 +139,10 @@
   .prose-article > p:first-of-type::first-letter {
     float: left;
     margin-right: 0.12em;
-    font-family: var(--font-newsreader), serif;
-    font-size: 4rem;
-    line-height: 0.92;
+    font-family: var(--font-inter-tight), 'Noto Sans SC', sans-serif;
+    font-weight: 700;
+    font-size: 3.5rem;
+    line-height: 0.88;
     color: #143d33;
   }
 

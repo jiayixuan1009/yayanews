@@ -58,7 +58,7 @@ export default function ArticleCard({ article, featured = false, priority = fals
                 {!hasRealCover && <span className="badge border-amber-200 bg-amber-50 text-amber-700">{dict.article?.noImage || '待配图'}</span>}
               </div>
               <p className="mt-5 font-label text-[11px] font-semibold uppercase tracking-[0.2em] text-[#667067]">Lead report</p>
-              <h2 className="mt-3 max-w-[10ch] font-display text-[2rem] font-semibold leading-[0.94] tracking-[-0.055em] text-[#101713] group-hover:text-[#1d5c4f] sm:text-[2.4rem] lg:text-[4.15rem]">
+              <h2 className="yn-title-xl mt-3 max-w-[10ch] text-[#101713] group-hover:text-[#1d5c4f]">
                 {article.title}
               </h2>
               {article.summary && <p className="mt-4 max-w-[33ch] font-body text-[15px] leading-7 text-slate-700 sm:text-[1rem] sm:leading-8 line-clamp-4">{article.summary}</p>}
@@ -85,7 +85,7 @@ export default function ArticleCard({ article, featured = false, priority = fals
           <DepthBadge type={article.article_type} dict={dict} />
           {!hasRealCover && <span className="badge border-amber-200 bg-amber-50 text-amber-700">{dict.article?.noImage || '待配图'}</span>}
         </div>
-        <h3 className="mt-3 max-w-[28ch] font-display text-[1.6rem] font-semibold leading-[1.02] tracking-[-0.045em] text-[#13211b] group-hover:text-[#1d5c4f] line-clamp-3 sm:text-[1.82rem]">
+        <h3 className="yn-card-title-lg mt-3 max-w-[28ch] text-[#13211b] group-hover:text-[#1d5c4f] line-clamp-3">
           {article.title}
         </h3>
         {article.summary && <p className="mt-3 max-w-[56ch] font-body text-[15px] leading-7 text-slate-600 line-clamp-3">{article.summary}</p>}

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <div className="container-main py-10 max-w-3xl">
-      <h1 className="text-2xl font-bold text-white">隐私政策</h1>
+      <h1 className="yn-page-title text-white">隐私政策</h1>
       <p className="mt-2 text-xs text-slate-500">最近更新：2026 年 3 月</p>
 
       <div className="mt-8 space-y-6 text-sm text-gray-300 leading-relaxed">

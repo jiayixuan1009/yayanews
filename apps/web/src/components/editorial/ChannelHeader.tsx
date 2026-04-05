@@ -56,9 +56,9 @@ export default function ChannelHeader({
               <span className="border border-[#7fe193] bg-[#d5ff8d]/90 px-2 py-1 font-label text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0e2a1f]">
                 {label} • {title}
               </span>
-              {quote && <p className="hidden font-display text-base italic tracking-tight text-white/75 md:block">“{quote}”</p>}
+              {quote && <p className="hidden font-display text-base tracking-tight text-white/75 md:block">“{quote}”</p>}
             </div>
-            <h1 className="mt-5 max-w-[8ch] font-display text-[3.5rem] font-semibold leading-[0.9] tracking-[-0.07em] text-white sm:text-[4.5rem] lg:text-[5.6rem]">
+            <h1 className="yn-display mt-5 max-w-[8ch] text-white">
               {title}
             </h1>
             <p className="mt-5 max-w-[36ch] font-body text-[1rem] leading-8 text-white/78 md:text-[1.05rem]">{description}</p>
@@ -83,7 +83,7 @@ export default function ChannelHeader({
             {featured ? (
               <div className="absolute bottom-5 left-5 max-w-[320px] rotate-[-2deg] border border-[#d6cec2] bg-[#f8f4ee] p-4 text-[#14261f] shadow-[0_10px_30px_rgba(0,0,0,0.16)]">
                 <p className="yn-meta text-[#1d5c4f]">{dict?.home?.editorsPicks || "Editor's pick"}</p>
-                <p className="mt-2 font-display text-lg leading-tight line-clamp-3">{featured.title}</p>
+                <p className="yn-card-title mt-2 line-clamp-3">{featured.title}</p>
                 <LocalizedLink href={`/article/${featured.slug}`} className="mt-3 inline-block text-[11px] uppercase tracking-[0.16em] text-[#1d5c4f] hover:text-[#143d33]">
                   {lang === 'zh' ? '展开档案 →' : 'Open dossier →'}
                 </LocalizedLink>
