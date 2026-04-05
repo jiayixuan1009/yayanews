@@ -9,7 +9,6 @@ dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  transpilePackages: ['@yayanews/database', '@yayanews/seo', '@yayanews/types'],
   compress: true,
   poweredByHeader: false,
   // Admin runs at /admin path via Nginx proxy
