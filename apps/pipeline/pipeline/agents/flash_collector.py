@@ -19,7 +19,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
 from pipeline.config.settings import (
-    CATEGORIES, RSS_FEEDS, CN_FLASH_RSS_FEEDS,
+    CATEGORIES, RSS_FEEDS, CN_FLASH_RSS_FEEDS, SCMP_HKEX_FEEDS,
     FLASH_CHANNELS, FLASH_CONCURRENCY, FLASH_TRANSLATE_BATCH, FLASH_WS_DRAIN_MAX,
 )
 from pipeline.utils.ws_flash_buffer import drain_ws_buffer
@@ -405,6 +405,143 @@ def _fetch_cn_rss() -> list[dict]:
 
 
 # ══════════════════════════════════════════════
+# 通道 5c: SCMP + HKEX 港股专业源（最高权重）
+# ══════════════════════════════════════════════
+
+# URL 去重缓存：防止同一篇 SCMP/HKEX 文章在多轮采集中重复入库
+_scmp_hkex_seen_urls: set[str] = set()
+_SCMP_HKEX_URL_CACHE_MAX = 500
+
+def _fetch_scmp_hkex() -> list[dict]:
+    """专用通道：拉取 SCMP 南华早报 + HKEX 港交所官方 RSS。
+    
+    特性：
+    - 权重 7（全局最高），确保港股新闻优先入库
+    - 自带 URL 级去重缓存，避免跨轮次重复
+    - HKEX 公告自动标记 importance=high
+    """
+    global _scmp_hkex_seen_urls
+    ch = FLASH_CHANNELS.get("scmp_hkex", {})
+    if not ch.get("enabled"):
+        return []
+
+    feeds = SCMP_HKEX_FEEDS or []
+    per = max(1, ch.get("max_items", 20) // max(len(feeds), 1))
+    items = []
+
+    for feed_cfg in feeds:
+        try:
+            d = feedparser.parse(feed_cfg["url"])
+            tag = feed_cfg.get("tag", "SCMP")
+            lang = feed_cfg.get("lang", "en")
+            is_hkex = tag.startswith("HKEX")
+            entries = getattr(d, "entries", None) or []
+
+            for entry in entries[:per]:
+                title = (entry.get("title") or "").strip()
+                link = (entry.get("link") or "").strip()
+                summary = (entry.get("summary") or entry.get("description") or "").strip()[:300]
+
+                if not title:
+                    continue
+
+                # URL 级去重：跳过已见过的文章
+                if link and link in _scmp_hkex_seen_urls:
+                    continue
+                if link:
+                    _scmp_hkex_seen_urls.add(link)
+
+                items.append({
+                    "title": title,
+                    "content": summary or title[:200],
+                    "raw_text": f"{title} {summary} hk-stock Hong Kong 港股",
+                    "source": tag,
+                    "source_url": link,
+                    "lang": lang,
+                    "channel": "scmp_hkex",
+                    "importance": "high" if is_hkex else "normal",
+                    "category_override": "hk-stock",
+                })
+        except Exception as e:
+            log.warning(f"scmp_hkex ({feed_cfg.get('tag', '?')}): {e}")
+
+    # 控制缓存大小，防止内存泄漏
+    if len(_scmp_hkex_seen_urls) > _SCMP_HKEX_URL_CACHE_MAX:
+        excess = len(_scmp_hkex_seen_urls) - _SCMP_HKEX_URL_CACHE_MAX // 2
+        for _ in range(excess):
+            _scmp_hkex_seen_urls.pop()
+
+    return items
+
+
+# ══════════════════════════════════════════════
+# 通道 5d: 方程式新闻 BWEnews（加密快讯 Alpha）
+# ══════════════════════════════════════════════
+
+def _fetch_bwenews() -> list[dict]:
+    """专用通道：拉取方程式新闻 (BWEnews) RSS。
+    
+    特性：
+    - 权重 6，加密快讯最快源之一
+    - 标题为中英双语格式，自动拆分提取中文部分
+    - 自带币安/交易所上新公告等 Alpha 信息
+    """
+    ch = FLASH_CHANNELS.get("bwenews", {})
+    if not ch.get("enabled"):
+        return []
+
+    rss_url = ch.get("rss_url", "https://rss-public.bwe-ws.com")
+    items = []
+    try:
+        d = feedparser.parse(rss_url)
+        entries = getattr(d, "entries", None) or []
+
+        for entry in entries[:ch.get("max_items", 10)]:
+            raw_title = (entry.get("title") or "").strip()
+            link = (entry.get("link") or "").strip()
+
+            if not raw_title:
+                continue
+
+            # BWEnews 标题格式: "EN text<br/>CN text<br/><br/>————————\ndate"
+            # 提取中文部分作为主标题
+            parts = re.split(r'<br\s*/?>', raw_title)
+            cn_title = ""
+            en_title = ""
+            for part in parts:
+                part = part.strip()
+                if not part or part.startswith("\u2014") or re.match(r'^\d{4}-', part):
+                    continue
+                if _is_chinese(part):
+                    cn_title = cn_title or part
+                else:
+                    en_title = en_title or part
+
+            title = cn_title or en_title or raw_title[:100]
+            # 去除尾部时间戳和分隔线
+            title = re.sub(r'[\u2014\u2500]{2,}.*$', '', title).strip()
+            title = re.sub(r'\s*source:.*$', '', title, flags=re.IGNORECASE).strip()
+
+            content = en_title if cn_title else cn_title
+            if not content:
+                content = title[:200]
+
+            items.append({
+                "title": title[:120],
+                "content": content[:300],
+                "raw_text": f"{raw_title} crypto 加密货币 比特币",
+                "source": "方程式新闻/BWEnews",
+                "source_url": link,
+                "lang": "zh" if cn_title else "en",
+                "channel": "bwenews",
+            })
+    except Exception as e:
+        log.warning(f"bwenews: {e}")
+
+    return items
+
+
+# ══════════════════════════════════════════════
 # 通道 5: RSS
 # ══════════════════════════════════════════════
 
@@ -592,6 +729,8 @@ def _generate_fallback(need: int) -> list[dict]:
 # ══════════════════════════════════════════════
 
 CHANNEL_REGISTRY = {
+    "scmp_hkex": _fetch_scmp_hkex,
+    "bwenews": _fetch_bwenews,
     "finnhub": _fetch_finnhub,
     "marketaux": _fetch_marketaux,
     "cryptocompare": _fetch_cryptocompare,

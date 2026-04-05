@@ -51,6 +51,7 @@ RSS_FEEDS = [
     {"url": "https://feeds.feedburner.com/CoinDesk", "category": "crypto", "lang": "en"},
     {"url": "https://cointelegraph.com/rss", "category": "crypto", "lang": "en"},
     {"url": "https://seekingalpha.com/market_currents.xml", "category": "us-stock", "lang": "en"},
+    {"url": "https://rss-public.bwe-ws.com", "category": "crypto", "lang": "zh"},
 ]
 
 # ── 中文快讯 RSS（无需英译中，降低延迟与 LLM 消耗）──
@@ -62,6 +63,18 @@ CN_FLASH_RSS_FEEDS = [
     {"url": "http://www.aastocks.com/sc/resources/news-rss.php", "category": "hk-stock"},
     {"url": "https://www1.hkexnews.hk/api/v1/rss?lang=zh", "category": "hk-stock"},
     {"url": "http://rss.sina.com.cn/roll/finance/hk/hot_roll.xml", "category": "hk-stock"},
+]
+
+# ── SCMP + HKEX 港股专业源 ──
+SCMP_HKEX_FEEDS = [
+    # SCMP 南华早报 — 英文港股金融新闻（速度最快、质量最高）
+    {"url": "https://www.scmp.com/rss/92/feed",  "category": "hk-stock", "lang": "en", "tag": "SCMP/Business"},
+    {"url": "https://www.scmp.com/rss/10/feed",  "category": "hk-stock", "lang": "en", "tag": "SCMP/Companies"},
+    {"url": "https://www.scmp.com/rss/318210/feed", "category": "hk-stock", "lang": "en", "tag": "SCMP/HK-Economy"},
+    # HKEX 港交所官方公告
+    {"url": "https://www.hkex.com.hk/Services/RSS-Feeds/News-Releases?sc_lang=en", "category": "hk-stock", "lang": "en", "tag": "HKEX/News"},
+    {"url": "https://www.hkex.com.hk/Services/RSS-Feeds/regulatory-announcements?sc_lang=en", "category": "hk-stock", "lang": "en", "tag": "HKEX/Regulatory"},
+    {"url": "https://www.hkex.com.hk/Services/RSS-Feeds/market-communications?sc_lang=en", "category": "hk-stock", "lang": "en", "tag": "HKEX/MarketComm"},
 ]
 
 # ══════════════════════════════════════════════════════════════
@@ -140,6 +153,19 @@ FLASH_CHANNELS = {
         "weight": 1,
         "max_items": 15,
         "timeout": 15,
+    },
+    "scmp_hkex": {
+        "enabled": True,
+        "weight": 7,          # 最高优先级：港股专业源
+        "max_items": 20,
+        "timeout": 15,
+    },
+    "bwenews": {
+        "enabled": True,
+        "weight": 6,          # 方程式新闻：加密快讯 Alpha 源
+        "max_items": 10,
+        "timeout": 12,
+        "rss_url": "https://rss-public.bwe-ws.com",
     },
     "cn_sina": {
         "enabled": True,
