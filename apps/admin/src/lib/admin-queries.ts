@@ -1,4 +1,4 @@
-import { queryAll, queryGet, queryRun } from '@yayanews/database';
+import * as db from '@yayanews/database';
 import type { Article, FlashNews, Category } from '@yayanews/types';
 
 /* ── Dashboard 统计 ── */
@@ -56,26 +56,26 @@ export async function getDashboardStats(lang?: string, startDate?: string, endDa
   const andCatA = catCondsA.length > 0 ? `AND ${catCondsA.join(' AND ')}` : '';
   const andCatF = catCondsF.length > 0 ? `AND ${catCondsF.join(' AND ')}` : '';
 
-  const [{ c: totalArticles }] = await queryAll<{ c: number }>(`SELECT COUNT(*)::int as c FROM articles a ${whereA}`);
-  const [{ c: totalFlash }] = await queryAll<{ c: number }>(`SELECT COUNT(*)::int as c FROM flash_news f ${whereF}`);
-  const [{ c: totalViews }] = await queryAll<{ c: number }>(`SELECT COALESCE(SUM(a.view_count),0)::int as c FROM articles a ${whereA}`);
+  const [{ c: totalArticles }] = await db.queryAll<{ c: number }>(`SELECT COUNT(*)::int as c FROM articles a ${whereA}`);
+  const [{ c: totalFlash }] = await db.queryAll<{ c: number }>(`SELECT COUNT(*)::int as c FROM flash_news f ${whereF}`);
+  const [{ c: totalViews }] = await db.queryAll<{ c: number }>(`SELECT COALESCE(SUM(a.view_count),0)::int as c FROM articles a ${whereA}`);
 
-  const [{ c: todayArticles }] = await queryAll<{ c: number }>(
+  const [{ c: todayArticles }] = await db.queryAll<{ c: number }>(
     `SELECT COUNT(*)::int as c FROM articles a WHERE date(a.created_at) = CURRENT_DATE ${lang && lang !== 'all' ? `AND a.lang = '${lang}'` : ''}`
   );
 
-  const [{ c: todayFlash }] = await queryAll<{ c: number }>(
+  const [{ c: todayFlash }] = await db.queryAll<{ c: number }>(
     `SELECT COUNT(*)::int as c FROM flash_news f WHERE date(f.published_at) = CURRENT_DATE ${lang && lang !== 'all' ? `AND f.lang = '${lang}'` : ''}`
   );
 
-  const categoryStats = await queryAll<DashboardStats['categoryStats'][0]>(`
+  const categoryStats = await db.queryAll<DashboardStats['categoryStats'][0]>(`
     SELECT c.slug, c.name,
       (SELECT COUNT(*)::int FROM articles a WHERE a.category_id=c.id ${andA}) as articles,
       (SELECT COUNT(*)::int FROM flash_news f WHERE f.category_id=c.id ${andF}) as flash
     FROM categories c ORDER BY c.sort_order
   `);
 
-  const recentArticles = await queryAll<Article & { category_name: string; category_slug: string }>(`
+  const recentArticles = await db.queryAll<Article & { category_name: string; category_slug: string }>(`
     SELECT a.*, c.name as category_name, c.slug as category_slug
     FROM articles a LEFT JOIN categories c ON a.category_id=c.id
     ${whereA}
@@ -85,7 +85,7 @@ export async function getDashboardStats(lang?: string, startDate?: string, endDa
   const trendStart = sd ? `'${sd}'::date` : `CURRENT_DATE - INTERVAL '6 days'`;
   const trendEnd = ed ? `'${ed}'::date` : `CURRENT_DATE`;
 
-  const dailyTrend = await queryAll<DashboardStats['dailyTrend'][0]>(`
+  const dailyTrend = await db.queryAll<DashboardStats['dailyTrend'][0]>(`
     SELECT d.date::text,
       COALESCE(ac.cnt, 0)::int as articles,
       COALESCE(fc.cnt, 0)::int as flash
@@ -97,7 +97,7 @@ export async function getDashboardStats(lang?: string, startDate?: string, endDa
     ORDER BY d.date
   `);
 
-  const processingStats = await queryGet<ProcessingStats>(`
+  const processingStats = await db.queryGet<ProcessingStats>(`
     SELECT
       (SELECT AVG(EXTRACT(EPOCH FROM (a.published_at - a.collected_at)))::int
        FROM articles a WHERE a.collected_at IS NOT NULL AND a.published_at IS NOT NULL ${andA}) as "avgArticleSeconds",
@@ -166,11 +166,11 @@ export async function getAdminArticles(params: AdminArticleListParams = {}): Pro
     binds.push(params.lang);
   }
 
-  const [{ c: total }] = await queryAll<{ c: number }>(`
+  const [{ c: total }] = await db.queryAll<{ c: number }>(`
     SELECT COUNT(*)::int as c FROM articles a LEFT JOIN categories c ON a.category_id=c.id WHERE ${where}
   `, binds);
 
-  const articles = await queryAll<Article>(`
+  const articles = await db.queryAll<Article>(`
     SELECT a.*, c.name as category_name, c.slug as category_slug,
       CASE WHEN a.collected_at IS NOT NULL AND a.published_at IS NOT NULL
         THEN EXTRACT(EPOCH FROM (a.published_at - a.collected_at))::int
@@ -184,7 +184,7 @@ export async function getAdminArticles(params: AdminArticleListParams = {}): Pro
 }
 
 export async function getAdminArticleById(id: number): Promise<Article | undefined> {
-  const article = await queryGet<Article>(`
+  const article = await db.queryGet<Article>(`
     SELECT a.*, c.name as category_name, c.slug as category_slug,
       CASE WHEN a.collected_at IS NOT NULL AND a.published_at IS NOT NULL
         THEN EXTRACT(EPOCH FROM (a.published_at - a.collected_at))::int
@@ -193,7 +193,7 @@ export async function getAdminArticleById(id: number): Promise<Article | undefin
   `, [id]);
   
   if (article) {
-    const tags = await queryAll<{ id: number; name: string; slug: string }>(`
+    const tags = await db.queryAll<{ id: number; name: string; slug: string }>(`
       SELECT t.* FROM tags t JOIN article_tags at ON t.id=at.tag_id WHERE at.article_id=$1
     `, [article.id]);
     article.tags = tags;
@@ -246,11 +246,11 @@ export async function getAdminFlash(params: AdminFlashListParams = {}): Promise<
     binds.push(params.lang);
   }
 
-  const [{ c: total }] = await queryAll<{ c: number }>(`
+  const [{ c: total }] = await db.queryAll<{ c: number }>(`
     SELECT COUNT(*)::int as c FROM flash_news f LEFT JOIN categories c ON f.category_id=c.id WHERE ${where}
   `, binds);
 
-  const items = await queryAll<FlashNews>(`
+  const items = await db.queryAll<FlashNews>(`
     SELECT f.*, c.name as category_name,
       CASE WHEN f.collected_at IS NOT NULL AND f.published_at IS NOT NULL
         THEN EXTRACT(EPOCH FROM (f.published_at - f.collected_at))::int
@@ -353,48 +353,48 @@ function percentile(arr: number[], p: number): number | null {
 }
 
 export async function getSpeedStats(): Promise<SpeedStats> {
-  const allArticleRuns = await queryAll<{ total_seconds: number }>(
+  const allArticleRuns = await db.queryAll<{ total_seconds: number }>(
     "SELECT total_seconds::int FROM pipeline_runs WHERE run_type='article' AND started_at >= NOW() - INTERVAL '24 hours' ORDER BY total_seconds"
   );
-  const allFlashRuns = await queryAll<{ total_seconds: number }>(
+  const allFlashRuns = await db.queryAll<{ total_seconds: number }>(
     "SELECT total_seconds::int FROM pipeline_runs WHERE run_type='flash' AND started_at >= NOW() - INTERVAL '24 hours' ORDER BY total_seconds"
   );
 
   const artTimes = allArticleRuns.map(r => r.total_seconds);
   const flashTimes = allFlashRuns.map(r => r.total_seconds);
 
-  const [{ c: totalRuns }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM pipeline_runs WHERE started_at >= NOW() - INTERVAL '24 hours'");
-  const [{ c: todayRuns }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM pipeline_runs WHERE date(started_at)=CURRENT_DATE");
+  const [{ c: totalRuns }] = await db.queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM pipeline_runs WHERE started_at >= NOW() - INTERVAL '24 hours'");
+  const [{ c: todayRuns }] = await db.queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM pipeline_runs WHERE date(started_at)=CURRENT_DATE");
 
-  const [{ v: todayAvgArticle }] = await queryAll<{ v: number | null }>(
+  const [{ v: todayAvgArticle }] = await db.queryAll<{ v: number | null }>(
     "SELECT AVG(total_seconds)::int as v FROM pipeline_runs WHERE run_type='article' AND date(started_at)=CURRENT_DATE"
   );
-  const [{ v: todayAvgFlash }] = await queryAll<{ v: number | null }>(
+  const [{ v: todayAvgFlash }] = await db.queryAll<{ v: number | null }>(
     "SELECT AVG(total_seconds)::int as v FROM pipeline_runs WHERE run_type='flash' AND date(started_at)=CURRENT_DATE"
   );
 
-  const [{ v: yesterdayAvgArticle }] = await queryAll<{ v: number | null }>(
+  const [{ v: yesterdayAvgArticle }] = await db.queryAll<{ v: number | null }>(
     "SELECT AVG(total_seconds)::int as v FROM pipeline_runs WHERE run_type='article' AND date(started_at)=CURRENT_DATE - INTERVAL '1 day'"
   );
-  const [{ v: yesterdayAvgFlash }] = await queryAll<{ v: number | null }>(
+  const [{ v: yesterdayAvgFlash }] = await db.queryAll<{ v: number | null }>(
     "SELECT AVG(total_seconds)::int as v FROM pipeline_runs WHERE run_type='flash' AND date(started_at)=CURRENT_DATE - INTERVAL '1 day'"
   );
 
-  const [{ v: perItemArticle }] = await queryAll<{ v: number | null }>(
+  const [{ v: perItemArticle }] = await db.queryAll<{ v: number | null }>(
     "SELECT AVG(total_seconds * 1.0 / NULLIF(items_produced,0)) as v FROM pipeline_runs WHERE run_type='article' AND started_at >= NOW() - INTERVAL '24 hours' AND items_produced>0"
   );
-  const [{ v: perItemFlash }] = await queryAll<{ v: number | null }>(
+  const [{ v: perItemFlash }] = await db.queryAll<{ v: number | null }>(
     "SELECT AVG(total_seconds * 1.0 / NULLIF(items_produced,0)) as v FROM pipeline_runs WHERE run_type='flash' AND started_at >= NOW() - INTERVAL '24 hours' AND items_produced>0"
   );
 
-  const artProcessingTimes = await queryAll<{ secs: number }>(
+  const artProcessingTimes = await db.queryAll<{ secs: number }>(
     `SELECT EXTRACT(EPOCH FROM (published_at - collected_at))::int as secs
      FROM articles WHERE collected_at IS NOT NULL AND published_at >= NOW() - INTERVAL '24 hours'
      ORDER BY secs`
   );
   const artProcArr = artProcessingTimes.map(r => r.secs).filter(s => s >= 0);
 
-  const flashProcessingTimes = await queryAll<{ secs: number }>(
+  const flashProcessingTimes = await db.queryAll<{ secs: number }>(
     `SELECT EXTRACT(EPOCH FROM (published_at - collected_at))::int as secs
      FROM flash_news WHERE collected_at IS NOT NULL AND published_at >= NOW() - INTERVAL '24 hours'
      ORDER BY secs`
@@ -417,7 +417,7 @@ export async function getSpeedStats(): Promise<SpeedStats> {
     flash_count: flashProcArr.filter(s => s >= b.min && s < b.max).length,
   }));
 
-  const trend = await queryAll<SpeedTrendPoint>(`
+  const trend = await db.queryAll<SpeedTrendPoint>(`
     SELECT d.date::text,
       (SELECT AVG(EXTRACT(EPOCH FROM (published_at - collected_at)))::int
        FROM articles WHERE collected_at IS NOT NULL AND published_at IS NOT NULL AND date(published_at)=d.date) as avg_article,
@@ -430,7 +430,7 @@ export async function getSpeedStats(): Promise<SpeedStats> {
     ) d ORDER BY d.date
   `);
 
-  const recentRuns = await queryAll<PipelineRun>(
+  const recentRuns = await db.queryAll<PipelineRun>(
     "SELECT * FROM pipeline_runs ORDER BY started_at DESC LIMIT 50"
   );
 
@@ -478,13 +478,13 @@ export async function getSpeedStats(): Promise<SpeedStats> {
 }
 
 export async function deleteArticle(id: number): Promise<boolean> {
-  await queryRun('DELETE FROM article_tags WHERE article_id=$1', [id]);
-  const changes = await queryRun('DELETE FROM articles WHERE id=$1', [id]);
+  await db.queryRun('DELETE FROM article_tags WHERE article_id=$1', [id]);
+  const changes = await db.queryRun('DELETE FROM articles WHERE id=$1', [id]);
   return changes > 0;
 }
 
 export async function deleteFlash(id: number): Promise<boolean> {
-  const changes = await queryRun('DELETE FROM flash_news WHERE id=$1', [id]);
+  const changes = await db.queryRun('DELETE FROM flash_news WHERE id=$1', [id]);
   return changes > 0;
 }
 
@@ -539,19 +539,19 @@ export async function getPipelineQueues(): Promise<{
   published: PipelineQueueItem[];
   sources: PipelineSourceActivity[];
 }> {
-  const pending = await queryAll<PipelineQueueItem>(
+  const pending = await db.queryAll<PipelineQueueItem>(
     `SELECT id, title, status, updated_at FROM articles
      WHERE status IN ('draft','review') ORDER BY updated_at DESC LIMIT 40`
   );
 
   // 已投递 = 已发布文章列表
-  const published = await queryAll<PipelineQueueItem>(
+  const published = await db.queryAll<PipelineQueueItem>(
     `SELECT id, title, slug, published_at FROM articles
      WHERE status = 'published' ORDER BY published_at DESC LIMIT 40`
   );
   
   // Aggregate source activity from Flash News
-  const sources = await queryAll<PipelineSourceActivity>(`
+  const sources = await db.queryAll<PipelineSourceActivity>(`
     SELECT 
       SPLIT_PART(source, '/', 1) as source,
       MAX(published_at) as last_seen,
@@ -565,7 +565,7 @@ export async function getPipelineQueues(): Promise<{
 
   // 快讯排队数：查询 flash_news 中过去 10 分钟内接收但尚在缓冲的条目数
   // flash 直接入库，所以用「10 分钟内新增且接收时间 ≈ 当前」来估算 RQ 快讯队列负载
-  const [{ c: pendingFlashCount }] = await queryAll<{ c: number }>(
+  const [{ c: pendingFlashCount }] = await db.queryAll<{ c: number }>(
     `SELECT COUNT(*)::int as c FROM flash_news
      WHERE published_at >= NOW() - INTERVAL '10 minutes'`
   );
@@ -574,15 +574,15 @@ export async function getPipelineQueues(): Promise<{
 }
 
 export async function getBenchmarks(limit = 50, offset = 0): Promise<BenchmarkSummary> {
-  const [{ c: total }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM speed_benchmarks");
-  const [{ c: done }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM speed_benchmarks WHERE status='done'");
-  const [{ c: faster }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM speed_benchmarks WHERE status='done' AND diff_seconds < 0");
-  const [{ c: slower }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM speed_benchmarks WHERE status='done' AND diff_seconds >= 0");
-  const [{ c: noResult }] = await queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM speed_benchmarks WHERE status='no_result'");
+  const [{ c: total }] = await db.queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM speed_benchmarks");
+  const [{ c: done }] = await db.queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM speed_benchmarks WHERE status='done'");
+  const [{ c: faster }] = await db.queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM speed_benchmarks WHERE status='done' AND diff_seconds < 0");
+  const [{ c: slower }] = await db.queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM speed_benchmarks WHERE status='done' AND diff_seconds >= 0");
+  const [{ c: noResult }] = await db.queryAll<{ c: number }>("SELECT COUNT(*)::int as c FROM speed_benchmarks WHERE status='no_result'");
 
-  const avgRow = await queryGet<{ avg: number | null }>("SELECT AVG(diff_seconds) as avg FROM speed_benchmarks WHERE status='done' AND diff_seconds IS NOT NULL");
+  const avgRow = await db.queryGet<{ avg: number | null }>("SELECT AVG(diff_seconds) as avg FROM speed_benchmarks WHERE status='done' AND diff_seconds IS NOT NULL");
 
-  const diffs = await queryAll<{ diff_seconds: number }>("SELECT diff_seconds FROM speed_benchmarks WHERE status='done' AND diff_seconds IS NOT NULL ORDER BY diff_seconds");
+  const diffs = await db.queryAll<{ diff_seconds: number }>("SELECT diff_seconds FROM speed_benchmarks WHERE status='done' AND diff_seconds IS NOT NULL ORDER BY diff_seconds");
   let medianDiffSeconds: number | null = null;
   if (diffs.length > 0) {
     const mid = Math.floor(diffs.length / 2);
@@ -591,7 +591,7 @@ export async function getBenchmarks(limit = 50, offset = 0): Promise<BenchmarkSu
       : diffs[mid].diff_seconds;
   }
 
-  const records = await queryAll<BenchmarkRecord>(`
+  const records = await db.queryAll<BenchmarkRecord>(`
     SELECT * FROM speed_benchmarks
     ORDER BY created_at DESC LIMIT $1 OFFSET $2
   `, [limit, offset]);

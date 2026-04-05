@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { queryAll, queryGet, queryRun } from '@yayanews/database';
+import * as db from '@yayanews/database';
 import { requireAuth } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
@@ -22,7 +22,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     // 确认文章都属于该专题或已发布
     if (articleIds.length > 0) {
-      const valid = await queryAll<{ id: number }>(
+      const valid = await db.queryAll<{ id: number }>(
         `SELECT id FROM articles WHERE id = ANY($1::int[]) AND status = 'published'`,
         [articleIds]
       );
@@ -32,9 +32,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
     // 替换式写入
-    await queryRun('DELETE FROM topic_featured_articles WHERE topic_id = $1', [topicId]);
+    await db.queryRun('DELETE FROM topic_featured_articles WHERE topic_id = $1', [topicId]);
     for (let i = 0; i < articleIds.length; i++) {
-      await queryRun(
+      await db.queryRun(
         'INSERT INTO topic_featured_articles (topic_id, article_id, sort_order) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
         [topicId, articleIds[i], (i + 1) * 10]
       );

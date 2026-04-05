@@ -1,4 +1,4 @@
-import { queryAll } from '@yayanews/database';
+import * as db from '@yayanews/database';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -36,7 +36,7 @@ async function run() {
   `;
 
   try {
-    const records = await queryAll<{
+    const records = await db.queryAll<{
       tag_name: string;
       article_count: number;
       first_date: Date;

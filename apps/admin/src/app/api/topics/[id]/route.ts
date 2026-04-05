@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { queryAll, queryGet, queryRun } from '@yayanews/database';
+import * as db from '@yayanews/database';
 import { requireAuth } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
@@ -24,7 +24,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: '激活专题前请填写中文定义文本（至少 50 字）' }, { status: 400 });
     }
 
-    await queryRun(
+    await db.queryRun(
       `UPDATE topics SET
         name_zh = COALESCE($1, name_zh),
         name_en = COALESCE($2, name_en),
@@ -74,7 +74,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (isNaN(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
 
   try {
-    const topic = await queryGet(
+    const topic = await db.queryGet(
       `SELECT *, COALESCE(name_zh, title) as name_zh, COALESCE(name_en, title) as name_en
        FROM topics WHERE id = $1`,
       [id]
@@ -84,7 +84,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // 精选文章
     let featured: unknown[] = [];
     try {
-      featured = await queryAll(
+      featured = await db.queryAll(
         `SELECT a.id, a.title, a.slug, a.published_at, tfa.sort_order
          FROM topic_featured_articles tfa
          JOIN articles a ON a.id = tfa.article_id

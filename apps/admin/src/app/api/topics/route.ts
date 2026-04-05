@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { queryAll, queryGet, queryRun } from '@yayanews/database';
+import * as db from '@yayanews/database';
 import { requireAuth } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   if (denied) return denied;
 
   try {
-    const topics = await queryAll(`
+    const topics = await db.queryAll(`
       SELECT t.*,
         COALESCE(t.name_zh, t.title) as name_zh,
         COALESCE(t.name_en, t.title) as name_en,
@@ -47,12 +47,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Slug 只能包含小写字母、数字和连字符，长度 2-120' }, { status: 400 });
     }
 
-    const existing = await queryGet('SELECT id FROM topics WHERE slug = $1', [slug]);
+    const existing = await db.queryGet('SELECT id FROM topics WHERE slug = $1', [slug]);
     if (existing) {
       return NextResponse.json({ error: `Slug "${slug}" 已被使用` }, { status: 409 });
     }
 
-    const rows = await queryAll<{ id: number }>(
+    const rows = await db.queryAll<{ id: number }>(
       `INSERT INTO topics (
         slug, name_zh, name_en, title, description_zh, description_en, description, status, category_id, cover_image, sort_order,
         topic_type, market, keywords, related_tickers, hero_summary_zh, hero_summary_en, faq_items, meta_title, meta_description,
