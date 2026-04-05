@@ -240,11 +240,11 @@ def search_pixabay_photo_url(query: str, timeout: float = 15.0) -> str | None:
 
 
 def fetch_pollinations_ai_url(query: str) -> str:
-    """零配置免费免鉴权兜底方案 (基于开源生图路由)"""
-    from urllib.parse import quote
-    # 补充 financial news 等风格词汇
-    prompt_str = f"abstract financial news cover art about {query[:60]}"
-    return f"https://image.pollinations.ai/prompt/{quote(prompt_str)}?width=1200&height=630&nologo=true"
+    """零配置免费免鉴权兜底方案 (改用 LoremFlickr 随机金融/加密高质量配图，替换原来的 pollintions AI 生图)"""
+    import random
+    seed = random.randint(1, 100000)
+    # LoremFlickr 会根据关键字和 lock 参数返回稳定不变的真实配图，避免 AI 拼写错误和怪异画面
+    return f"https://loremflickr.com/1200/630/finance,crypto,business/all?lock={seed}"
 
 
 def resolve_cover_for_article(
