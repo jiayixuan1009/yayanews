@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { queryAll, queryGet } from '@yayanews/database';
+import * as db from '@yayanews/database';
 import { requireAuth } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
     `;
 
     logs.push("🔍 执行 30 天高潜标签全网筛查...");
-    const records = await queryAll<{ tag_name: string, article_count: number }>(sql);
+    const records = await db.queryAll<{ tag_name: string, article_count: number }>(sql);
     const candidates = records.filter(r => 
       r.tag_name && r.tag_name.length > 1 && 
       !GLOBAL_BLACKLIST.has(r.tag_name) && !GLOBAL_BLACKLIST.has(r.tag_name.toLowerCase())
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
     for (const candidate of candidates) {
       logs.push(`\n🔬 剖析候选 Tag: [${candidate.tag_name}] (近30天关联 ${candidate.article_count} 篇文章)`);
 
-      const arts = await queryAll<{ id: number, title: string, summary: string }>(`
+      const arts = await db.queryAll<{ id: number, title: string, summary: string }>(`
         SELECT a.id, a.title, a.summary 
         FROM articles a
         JOIN article_tags at ON a.id = at.article_id
@@ -155,20 +155,20 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      const exists = await queryGet<{id: number}>(`SELECT id FROM topics WHERE slug = $1`, [llmResult.slug]);
+      const exists = await db.queryGet<{id: number}>(`SELECT id FROM topics WHERE slug = $1`, [llmResult.slug]);
       if (exists) {
         logs.push(`⚠️ 模型产出的 Slug [${llmResult.slug}] 实则已存在此案 (ID: ${exists.id})，跳过生成。`);
         continue;
       }
 
-      const cat = await queryGet<{id: number}>(`SELECT id FROM categories WHERE slug = $1`, [llmResult.category_slug]);
+      const cat = await db.queryGet<{id: number}>(`SELECT id FROM categories WHERE slug = $1`, [llmResult.category_slug]);
       
       const insertSql = `
         INSERT INTO topics (slug, title, name_zh, name_en, description, description_zh, description_en, status, category_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7, 'draft', $8)
         RETURNING id
       `;
-      const res = await queryAll<{id: number}>(insertSql, [
+      const res = await db.queryAll<{id: number}>(insertSql, [
         llmResult.slug,
         llmResult.topic_name_zh, 
         llmResult.topic_name_zh, 
@@ -184,7 +184,7 @@ export async function POST(req: NextRequest) {
 
       // ⭐ CRITICAL STEP 2: Automatic Article Association
       logs.push(`🔄 正在自动回源追踪并划编历史文章资源...`);
-      const updateRes = await queryAll<{updated: number}>(
+      const updateRes = await db.queryAll<{updated: number}>(
         `WITH target_articles AS (
            SELECT a.id FROM articles a
            JOIN article_tags at ON a.id = at.article_id

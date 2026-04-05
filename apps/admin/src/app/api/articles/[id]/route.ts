@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminArticleById, deleteArticle } from '@/lib/admin-queries';
 import { requireAuth } from '@/lib/admin-auth';
-import { queryRun } from '@yayanews/database';
+import * as db from '@yayanews/database';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,7 +59,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     fields.push(`updated_at = NOW()`);
     values.push(id);
-    await queryRun(`UPDATE articles SET ${fields.join(', ')} WHERE id = $${idx}`, values);
+    await db.queryRun(`UPDATE articles SET ${fields.join(', ')} WHERE id = $${idx}`, values);
 
     return NextResponse.json({ success: true });
   } catch (e: unknown) {
