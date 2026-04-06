@@ -15,7 +15,7 @@ function getCategoryBadgeCls(name?: string) {
   return 'bg-slate-800/50 text-gray-400 border-slate-700/50';
 }
 
-export default function FlashList({ items: initialItems, compact = false }: { items: FlashNews[]; compact?: boolean }) {
+export default function FlashList({ items: initialItems, compact = false, emptyText }: { items: FlashNews[]; compact?: boolean; emptyText?: string }) {
   const [items, setItems] = useState<FlashNews[]>(initialItems);
 
   useEffect(() => {
@@ -55,7 +55,7 @@ export default function FlashList({ items: initialItems, compact = false }: { it
   }, []);
 
   if (items.length === 0) {
-    return <p className="text-sm text-gray-500 py-4">暂无快讯</p>;
+    return <p className="text-sm text-gray-500 py-4">{emptyText || 'No flash news'}</p>;
   }
 
   return (

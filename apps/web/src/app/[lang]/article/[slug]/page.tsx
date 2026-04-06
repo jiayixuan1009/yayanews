@@ -186,7 +186,7 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
               <section className="yn-panel mt-6 p-5 sm:p-6">
                 <div className="yn-section-rule mb-4 flex items-center justify-between">
                   <h2 className="yn-heading-sm">{dict.article.keyTakeaways}</h2>
-                  <span className="yn-meta">Key takeaways</span>
+                  <span className="yn-meta">{params.lang === 'en' ? 'Key takeaways' : '核心提炼'}</span>
                 </div>
                 <ul className="space-y-3">
                   {article.key_points
@@ -254,12 +254,12 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
                     )}
                   </div>
                   <div className="shrink-0">
-                    <ShareButtons title={article.title} url={articleUrl} />
+                    <ShareButtons title={article.title} url={articleUrl} lang={params.lang} />
                   </div>
                 </div>
               </div>
 
-              {articleTopic ? <TopicBridge topicTitle={articleTopic.name_zh || articleTopic.title || ''} href={`/topics/${articleTopic.slug}`} /> : null}
+              {articleTopic ? <TopicBridge topicTitle={params.lang === 'en' ? (articleTopic.name_en || articleTopic.title || '') : (articleTopic.name_zh || articleTopic.title || '')} href={`/topics/${articleTopic.slug}`} lang={params.lang} /> : null}
 
               <TopicMoreArticles topic={articleTopic} currentArticleId={article.id} lang={params.lang} />
 
@@ -267,7 +267,7 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
                 <section>
                   <div className="yn-section-rule mb-3 flex items-center justify-between">
                     <h2 className="yn-heading-sm">{dict.article.tagsTitle}</h2>
-                    <span className="yn-meta">Topics & symbols</span>
+                    <span className="yn-meta">{params.lang === 'en' ? 'Topics & symbols' : '标签与标的'}</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {article.tags.map(tag => (
@@ -287,7 +287,7 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
                 <section>
                   <div className="yn-section-rule mb-4 flex items-center justify-between">
                     <h2 className="yn-heading-sm">{dict.article.continueReading}</h2>
-                    <span className="yn-meta">Previous & next</span>
+                    <span className="yn-meta">{params.lang === 'en' ? 'Previous & next' : '前篇后篇'}</span>
                   </div>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {prev ? (

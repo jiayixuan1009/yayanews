@@ -331,9 +331,11 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
           __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'WebSite',
-            name: siteConfig.siteName,
+            name: lang === 'en' ? 'Yaya Financial News' : siteConfig.siteName,
             url: siteConfig.siteUrl,
-            description: siteConfig.description,
+            description: lang === 'en'
+              ? 'YayaNews — The Fastest Financial News. 24/7 coverage of US stocks, HK markets, crypto and derivatives.'
+              : siteConfig.description,
             potentialAction: {
               '@type': 'SearchAction',
               target: `${siteConfig.siteUrl}/search?q={search_term_string}`,

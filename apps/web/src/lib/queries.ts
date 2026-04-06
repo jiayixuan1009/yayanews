@@ -234,6 +234,11 @@ export async function getTopics(limit = 20): Promise<Topic[]> {
       ) as latest_article_time
     FROM topics t
     WHERE t.status = 'active'
+      AND (
+        SELECT COUNT(*)
+        FROM articles a
+        WHERE a.topic_id = t.id AND a.status = 'published'
+      ) > 0
     ORDER BY t.sort_order ASC, latest_article_time DESC NULLS LAST, t.created_at DESC
     LIMIT $1::int
   `, [limit]);

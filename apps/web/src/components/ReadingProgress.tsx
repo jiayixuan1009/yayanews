@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 export default function ReadingProgress() {
   const [progress, setProgress] = useState(0);
   const ticking = useRef(false);
+  const pathname = usePathname();
+  const isEn = pathname?.startsWith('/en');
 
   useEffect(() => {
     function update() {
@@ -33,7 +36,7 @@ export default function ReadingProgress() {
       aria-valuenow={Math.round(progress)}
       aria-valuemin={0}
       aria-valuemax={100}
-      aria-label="阅读进度"
+      aria-label={isEn ? 'Reading progress' : '阅读进度'}
     >
       <div
         className="h-full bg-gradient-to-r from-primary-500 to-accent-500"
@@ -42,3 +45,4 @@ export default function ReadingProgress() {
     </div>
   );
 }
+

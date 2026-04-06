@@ -10,7 +10,13 @@ function Toast({ message }: { message: string }) {
   );
 }
 
-export default function ShareButtons({ title, url }: { title: string; url: string }) {
+const i18n = {
+  zh: { share: '分享', copyLink: '复制链接', copied: '链接已复制', copiedWechat: '链接已复制，可粘贴到微信分享' },
+  en: { share: 'Share', copyLink: 'Copy link', copied: 'Link copied', copiedWechat: 'Link copied — paste to share on WeChat' },
+};
+
+export default function ShareButtons({ title, url, lang = 'zh' }: { title: string; url: string; lang?: string }) {
+  const t = lang === 'en' ? i18n.en : i18n.zh;
   const [toast, setToast] = useState('');
   const encodedUrl = encodeURIComponent(url);
   const encodedTitle = encodeURIComponent(title);
@@ -49,7 +55,7 @@ export default function ShareButtons({ title, url }: { title: string; url: strin
     {
       name: 'WeChat',
       href: '#',
-      onClick: () => copyAndToast('链接已复制，可粘贴到微信分享'),
+      onClick: () => copyAndToast(t.copiedWechat),
       icon: (
         <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
           <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.047c.134 0 .24-.11.24-.245 0-.06-.024-.12-.04-.178l-.327-1.233a.582.582 0 0 1-.023-.156.49.49 0 0 1 .201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-2.931-5.837-7.062-6.122zm-2.18 2.96c.533 0 .966.44.966.982a.975.975 0 0 1-.966.981.975.975 0 0 1-.966-.981c0-.542.433-.982.966-.982zm4.329 0c.533 0 .966.44.966.982a.975.975 0 0 1-.966.981.975.975 0 0 1-.966-.981c0-.542.433-.982.966-.982z" />
@@ -57,9 +63,9 @@ export default function ShareButtons({ title, url }: { title: string; url: strin
       ),
     },
     {
-      name: '复制链接',
+      name: t.copyLink,
       href: '#',
-      onClick: () => copyAndToast('链接已复制'),
+      onClick: () => copyAndToast(t.copied),
       icon: (
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -71,7 +77,7 @@ export default function ShareButtons({ title, url }: { title: string; url: strin
   return (
     <>
       <div className="flex items-center gap-2">
-        <span className="yn-meta mr-1">分享</span>
+        <span className="yn-meta mr-1">{t.share}</span>
         {links.map(l => (
           <a
             key={l.name}

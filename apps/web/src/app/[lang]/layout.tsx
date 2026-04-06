@@ -33,13 +33,22 @@ export const viewport: Viewport = {
   themeColor: '#f6f3ee',
 };
 
-export const metadata = createMetadata({
-  title: `${siteConfig.siteName} - 专业金融新闻资讯平台`,
-  description: siteConfig.description,
-  type: 'website',
-  url: '/',
-});
-metadata.verification = getSiteVerificationMeta();
+export function generateMetadata({ params }: { params: { lang: string } }) {
+  const isEn = params.lang === 'en';
+  const meta = createMetadata({
+    title: isEn
+      ? `${siteConfig.siteName} - Professional Financial News Platform`
+      : `${siteConfig.siteName} - 专业金融新闻资讯平台`,
+    description: isEn
+      ? 'YayaNews — The Fastest Financial News. 24/7 coverage of US stocks, HK markets, crypto and derivatives.'
+      : siteConfig.description,
+    type: 'website',
+    url: '/',
+    lang: params.lang as 'zh' | 'en',
+  });
+  (meta as any).verification = getSiteVerificationMeta();
+  return meta;
+}
 
 export default async function RootLayout({
   children,
