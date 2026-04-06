@@ -148,8 +148,8 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
                 <SectionHeader title={dict.home.spotlightTitle || "The Political Compass"} emphasis="strong" />
                 <div className="mt-5 grid gap-6 md:grid-cols-3">
                   {spotlightArticles.slice(0, 3).map(item => (
-                    <LocalizedLink key={item.id} href={`/article/${item.slug}`} className="group block border-t border-[#e9e2d6] pt-4 md:border-t-0 md:pt-0">
-                      <h3 className="yn-card-title-lg group-hover:text-[#1d5c4f]">
+                    <LocalizedLink key={item.id} href={`/article/${item.slug}`} className="group block border-t border-[#e9e2d6] pt-4 md:border-t-0 md:pt-0 min-w-0">
+                      <h3 className="yn-card-title-lg group-hover:text-[#1d5c4f] line-clamp-3 overflow-hidden">
                         {item.title}
                       </h3>
                       {item.summary ? <p className="mt-3 text-sm leading-7 text-slate-600 line-clamp-4">{stripHtml(item.summary)}</p> : null}
@@ -168,7 +168,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
                 <SectionHeader title={dict.home.editorsPicks} emphasis="default" />
                 <div className="grid gap-3 sm:grid-cols-2">
                   {moreArticles.map(item => (
-                    <LocalizedLink key={item.id} href={`/article/${item.slug}`} className="group flex flex-col gap-3">
+                    <LocalizedLink key={item.id} href={`/article/${item.slug}`} className="group flex flex-col gap-3 min-w-0">
                       <div className="text-[11px] uppercase tracking-[0.16em] text-[#1d5c4f] font-semibold">
                         {item.category_name ? ((dict.nav as any)?.[item.category_slug || ''] || item.category_name) : 'Yaya Financial News'}
                       </div>
@@ -182,8 +182,8 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
                           unoptimized={getArticleCoverSrc(item.cover_image, undefined, item.source).endsWith('.svg') || !isRemoteImageOptimizable(getArticleCoverSrc(item.cover_image, undefined, item.source))}
                         />
                       </div>
-                      <div className="flex-1">
-                        <h3 className="yn-card-title group-hover:text-[#1d5c4f]">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="yn-card-title group-hover:text-[#1d5c4f] line-clamp-3 overflow-hidden">
                           {item.title}
                         </h3>
                         {item.summary ? (
@@ -217,8 +217,8 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
                 {secondaries.slice(0, 4).map((item, idx) => (
                   <li key={item.id} className="grid grid-cols-[1.8rem,1fr] gap-3 border-t border-[#dfd8ce] pt-4 first:border-t-0 first:pt-0">
                     <span className="font-display text-[1.6rem] font-bold leading-none text-[#a09890] tabular-nums sm:text-[1.8rem]">{String(idx + 1).padStart(2, '0')}</span>
-                    <LocalizedLink href={`/article/${item.slug}`} className="group block">
-                      <h3 className="yn-card-title text-[#1b201d] group-hover:text-[#1d5c4f]">
+                    <LocalizedLink href={`/article/${item.slug}`} className="group block min-w-0">
+                      <h3 className="yn-card-title text-[#1b201d] group-hover:text-[#1d5c4f] line-clamp-3 overflow-hidden">
                         {item.title}
                       </h3>
                       <div className="mt-2 flex flex-wrap gap-x-2 text-[11px] uppercase tracking-[0.16em] text-[#555a55]">
@@ -256,13 +256,13 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
                 <ul className="divide-y divide-[#ece4d8]">
                   {watchArticles.map(item => (
                     <li key={item.id} className="py-3 first:pt-0">
-                      <LocalizedLink href={`/article/${item.slug}`} className="group block">
+                      <LocalizedLink href={`/article/${item.slug}`} className="group block min-w-0">
                         {item.category_name ? (
                           <span className="mb-1 block text-[11px] uppercase tracking-[0.16em] text-[#1d5c4f]">
                             {item.category_name}
                           </span>
                         ) : null}
-                        <span className="yn-card-title line-clamp-2 group-hover:text-[#1d5c4f]">
+                        <span className="yn-card-title line-clamp-3 group-hover:text-[#1d5c4f] overflow-hidden break-words block">
                           {item.title}
                         </span>
                         <span className="mt-2 block text-xs text-slate-500">{item.published_at?.slice(0, 16)}</span>
