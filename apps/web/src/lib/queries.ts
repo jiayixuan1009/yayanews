@@ -226,10 +226,15 @@ export async function getTopics(limit = 20): Promise<Topic[]> {
         SELECT COUNT(*)::int
         FROM articles a
         WHERE a.topic_id = t.id AND a.status = 'published'
-      ) as article_count
+      ) as article_count,
+      (
+        SELECT MAX(a.published_at)
+        FROM articles a
+        WHERE a.topic_id = t.id AND a.status = 'published'
+      ) as latest_article_time
     FROM topics t
     WHERE t.status = 'active'
-    ORDER BY t.sort_order, t.created_at DESC
+    ORDER BY t.sort_order ASC, latest_article_time DESC NULLS LAST, t.created_at DESC
     LIMIT $1::int
   `, [limit]);
   return rows as Topic[];
