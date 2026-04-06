@@ -85,7 +85,7 @@ const remotePatterns = [
     hostname,
     pathname: '/**',
   })),
-];
+].slice(0, 50);
 
 const nextConfig = {
   output: 'standalone',
