@@ -13,7 +13,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const topic = await getTopicBySlug(params.slug, 1, 20);
-  if (!topic) return createMetadata({ title: '专题未找到' });
+  if (!topic) return createMetadata({ title: params.lang === 'en' ? 'Topic Not Found' : '专题未找到', lang: params.lang as 'zh' | 'en' });
 
   const isZh = params.lang !== 'en';
   const name = isZh ? topic.name_zh : topic.name_en;
@@ -21,29 +21,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const metaTitle = topic.meta_title || `${name} ${isZh ? '专题报道' : 'Topic Coverage'} | YayaNews`;
   const metaDesc = topic.meta_description || (desc || '').slice(0, isZh ? 120 : 160);
 
-  return {
+  const baseMeta = createMetadata({
     title: metaTitle,
     description: metaDesc,
-    // draft 状态前台 404，不会走到这里；archive 状态 noindex
-    robots: topic.status === 'archive' ? 'noindex, follow' : 'index, follow',
-    alternates: {
-      canonical: `/${params.lang}/topics/${params.slug}`,
-      languages: {
-        'zh-CN': `/zh/topics/${params.slug}`,
-        'en-US': `/en/topics/${params.slug}`,
-        'x-default': `/zh/topics/${params.slug}`,
-      },
-    },
-    openGraph: {
-      title: metaTitle,
-      description: metaDesc,
-      url: `${siteConfig.siteUrl}/${params.lang}/topics/${params.slug}`,
-      type: 'website',
-      images: topic.cover_image
-        ? [{ url: topic.cover_image, width: 1200, height: 630 }]
-        : [{ url: `${siteConfig.siteUrl}/brand/logo-square.svg`, width: 512, height: 512 }],
-    },
-  };
+    url: `/topics/${params.slug}`,
+    image: topic.cover_image || undefined,
+    lang: params.lang as 'zh' | 'en',
+    noIndex: topic.status === 'archive',
+  });
+
+  return baseMeta;
 }
 
 export const dynamic = 'force-dynamic';

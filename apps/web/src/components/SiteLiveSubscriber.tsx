@@ -1,13 +1,21 @@
 'use client';
-import { useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { toast } from 'sonner';
+
+const i18n = {
+  zh: { newArticle: '📰 最新深度文章', readNow: '立即阅读', flash: '⚡ 突发快讯' },
+  en: { newArticle: '📰 New In-Depth Article', readNow: 'Read now', flash: '⚡ Breaking Flash' },
+};
 
 export default function SiteLiveSubscriber() {
   const router = useRouter();
+  const pathname = usePathname();
+  const isEn = pathname?.startsWith('/en');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    const t = isEn ? i18n.en : i18n.zh;
     let ws: WebSocket;
     let cancelled = false;
     const connect = () => {
@@ -21,11 +29,11 @@ export default function SiteLiveSubscriber() {
           if (data.channel && data.channel.startsWith('article:new')) {
             router.refresh();
             if (data.payload?.title) {
-              toast('📰 最新深度文章', {
+              toast(t.newArticle, {
                 description: data.payload.title,
                 duration: 6000,
                 action: data.payload.slug ? {
-                  label: '立即阅读',
+                  label: t.readNow,
                   onClick: () => window.open(`/article/${data.payload.slug}`, '_blank'),
                 } : undefined,
               });
@@ -33,7 +41,7 @@ export default function SiteLiveSubscriber() {
           } else if (data.channel && data.channel.startsWith('flash:new')) {
             router.refresh();
             if (data.payload?.title || data.payload?.content) {
-              toast('⚡ 突发快讯', {
+              toast(t.flash, {
                 description: data.payload.title || data.payload.content,
                 duration: 5000,
               });
@@ -50,7 +58,7 @@ export default function SiteLiveSubscriber() {
       cancelled = true;
       ws?.close();
     };
-  }, [router]);
+  }, [router, isEn]);
 
   return null;
 }
