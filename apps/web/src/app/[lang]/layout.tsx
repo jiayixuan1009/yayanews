@@ -8,10 +8,18 @@ import '../globals.css';
 import { getDictionary } from '@/lib/dictionaries';
 import dynamic from 'next/dynamic';
 
-// ── Local self-hosted variable fonts ─────────────────────────────────────
-import '@fontsource-variable/inter';
-import '@fontsource-variable/public-sans';
-import '@fontsource-variable/inter-tight';
+import { Inter, Public_Sans, Inter_Tight, Noto_Sans_SC } from 'next/font/google';
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
+const publicSans = Public_Sans({ subsets: ['latin'], variable: '--font-public-sans', display: 'swap' });
+const interTight = Inter_Tight({ subsets: ['latin'], variable: '--font-inter-tight', display: 'swap' });
+const notoSansSC = Noto_Sans_SC({ 
+  weight: ['400', '600', '700'], 
+  subsets: ['latin'], 
+  preload: false, 
+  variable: '--font-noto-sans-sc',
+  display: 'swap' 
+});
 
 // ── Lazy-loaded: don't participate in first paint ────────────────────────
 const Toaster = dynamic(
@@ -42,19 +50,8 @@ export default async function RootLayout({
 }) {
   const dict = await getDictionary(params.lang as any);
   return (
-    <html lang={params.lang} style={{
-      '--font-inter': '"Inter Variable", sans-serif',
-      '--font-public-sans': '"Public Sans Variable", sans-serif',
-      '--font-inter-tight': '"Inter Tight Variable", sans-serif',
-    } as React.CSSProperties}>
+    <html lang={params.lang} className={`${inter.variable} ${publicSans.variable} ${interTight.variable} ${notoSansSC.variable}`}>
       <head>
-        {/* Noto Sans SC — CJK title font via Google Fonts (unicode-range subsetting) */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;600;700&display=swap"
-        />
         {/* Preconnect to external data APIs used by LiveTicker */}
         <link rel="dns-prefetch" href="https://api.coingecko.com" />
         <link rel="dns-prefetch" href="https://assets.coingecko.com" />

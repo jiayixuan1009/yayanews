@@ -87,7 +87,7 @@ export default function HomeHeroEditorial({ lead, secondaries, dict = {}, rightR
                 <div className="grid gap-4 sm:gap-6 md:grid-cols-[1.5fr_1fr] md:items-start border-t border-[#dfd8ce] pt-4 md:pt-5">
                   <LocalizedLink href={`/article/${lead.slug}`} className="group block">
                     <div className="relative aspect-[16/9] md:aspect-[3/2] overflow-hidden border border-[#1b241f] bg-[#0d1411] shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
-                      {leadCover ? <Image src={leadCover} alt={lead.title} fill priority sizes="(max-width: 1280px) 70vw, 50vw" className="object-cover transition duration-500 group-hover:scale-[1.02]" unoptimized={leadCover.endsWith('.svg') || !leadCoverOptimizable} /> : null}
+                      {leadCover ? <Image src={leadCover} alt={lead.title} fill priority sizes="(max-width: 768px) 100vw, (max-width: 1280px) 70vw, 50vw" className="object-cover transition duration-500 group-hover:scale-[1.02]" unoptimized={leadCover.endsWith('.svg') || !leadCoverOptimizable} /> : null}
                       <div className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-[2px] border border-[#c6d2ca] bg-[#f6f3ee]/90 shadow-sm overflow-hidden">
                         <Image src="/brand/logo-square.svg" alt="YayaNews" width={32} height={32} />
                       </div>

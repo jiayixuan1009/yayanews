@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 
 interface TickerItem {
   id: string;
@@ -14,7 +15,7 @@ const APAC_TICKERS = '^HSI,0700.HK,9988.HK,3690.HK,1810.HK,2318.HK';
 const COIN_IDS = 'bitcoin,ethereum,solana,ripple,dogecoin,avalanche-2,cardano';
 const REFRESH_INTERVAL = 60_000;
 
-function MarqueeRow({ items, title, reverse = false }: { items: TickerItem[], title: string, reverse?: boolean }) {
+function MarqueeRow({ items, title, reverse = false, paused = false }: { items: TickerItem[], title: string, reverse?: boolean; paused?: boolean }) {
   if (items.length === 0) return null;
   // Duplicate for seamless loop effect
   const displayItems = [...items, ...items, ...items];
@@ -24,7 +25,7 @@ function MarqueeRow({ items, title, reverse = false }: { items: TickerItem[], ti
       <div className="flex-shrink-0 font-bold text-[#1d5c4f] uppercase tracking-widest text-[11px] w-[75px] sm:w-[85px] z-20 bg-white shadow-[8px_0_12px_#ffffff] h-full flex items-center">
         {title}
       </div>
-      <div className={`flex w-max shrink-0 items-center gap-6 ${reverse ? 'animate-[marquee_60s_linear_infinite_reverse]' : 'animate-[marquee_60s_linear_infinite]'} hover:[animation-play-state:paused]`}>
+      <div className={`flex w-max shrink-0 items-center gap-6 ${reverse ? 'animate-[marquee_60s_linear_infinite_reverse]' : 'animate-[marquee_60s_linear_infinite]'} hover:[animation-play-state:paused]`} style={{ animationPlayState: paused ? 'paused' : undefined }}>
         {displayItems.map((t, i) => {
           const isUp = t.change >= 0;
           const bgClass = isUp ? 'bg-[#e0f1e5] text-[#0d5930]' : 'bg-[#fce5e6] text-[#c72626]';
@@ -49,6 +50,9 @@ export default function LiveTicker({ title = 'Live Ticker', tickerUs = 'US Marke
   const [apac, setApac] = useState<TickerItem[]>([]);
   const [crypto, setCrypto] = useState<TickerItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [containerRef, isIntersecting] = useIntersectionObserver();
+  const isIntersectingRef = useRef(isIntersecting);
+  isIntersectingRef.current = isIntersecting;
 
   useEffect(() => {
     let mounted = true;
@@ -108,7 +112,9 @@ export default function LiveTicker({ title = 'Live Ticker', tickerUs = 'US Marke
     }
 
     fetchAll();
-    const timer = setInterval(fetchAll, REFRESH_INTERVAL);
+    const timer = setInterval(() => {
+      if (isIntersectingRef.current) fetchAll();
+    }, REFRESH_INTERVAL);
     return () => { mounted = false; clearInterval(timer); };
   }, []);
 
@@ -126,11 +132,11 @@ export default function LiveTicker({ title = 'Live Ticker', tickerUs = 'US Marke
   }
 
   return (
-    <div className="flex flex-col gap-[2px] text-[12px] relative w-full overflow-hidden mb-1 mt-1">
+    <div ref={containerRef as React.RefObject<HTMLDivElement>} className="flex flex-col gap-[2px] text-[12px] relative w-full overflow-hidden mb-1 mt-1">
       <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
-      <MarqueeRow items={us} title={tickerUs} />
-      <MarqueeRow items={apac} title={tickerApac} />
-      <MarqueeRow items={crypto} title={tickerCrypto} />
+      <MarqueeRow items={us} title={tickerUs} paused={!isIntersecting} />
+      <MarqueeRow items={apac} title={tickerApac} paused={!isIntersecting} />
+      <MarqueeRow items={crypto} title={tickerCrypto} paused={!isIntersecting} />
     </div>
   );
 }
