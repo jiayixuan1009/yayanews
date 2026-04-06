@@ -20,7 +20,7 @@ export default function BrandLogo({ variant = 'header', className = '', lang = '
         className="object-contain"
         priority={!isFooter}
       />
-      <span className={`yn-brand leading-none ${isFooter ? 'text-[1.5rem] sm:text-[2rem] lg:text-[2.2rem] text-[#dfffe0]' : 'text-[1.5rem] sm:text-[2rem] lg:text-[2.8rem] text-[#0d3b30]'}`}>
+      <span className={`yn-brand leading-none whitespace-nowrap ${isFooter ? 'text-[1.5rem] sm:text-[2rem] lg:text-[2.2rem] text-[#dfffe0]' : 'text-[1.25rem] sm:text-[2rem] lg:text-[2.8rem] text-[#0d3b30]'}`}>
         Yaya Financial News
       </span>
     </LocalizedLink>

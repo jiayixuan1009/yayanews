@@ -36,7 +36,7 @@ export default function ArticleCard({ article, featured = false, priority = fals
     return (
       <LocalizedLink href={`/article/${article.slug}`} className="group block overflow-hidden border border-[#d9d2c8] bg-[#fbf9f5] transition-colors hover:border-[#b7ab99]">
         <div className="grid gap-0 lg:grid-cols-[1.08fr,0.92fr]">
-          <div className="relative min-h-[300px] bg-[#ebe3d6] lg:order-2 lg:min-h-[540px]">
+          <div className="relative aspect-[16/9] lg:aspect-auto bg-[#ebe3d6] lg:order-2 lg:min-h-[540px]">
             <Image
               src={coverSrc}
               alt={article.title}
