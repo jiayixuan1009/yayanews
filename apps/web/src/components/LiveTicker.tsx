@@ -32,7 +32,7 @@ function MarqueeRow({ items, title, reverse = false, paused = false }: { items: 
           const arrow = isUp ? '+' : '';
           return (
             <span key={`${t.label}-${i}`} className="flex-shrink-0 flex items-center gap-1.5 min-w-max cursor-default truncate">
-              <span className="font-semibold text-[#89908a] transition-colors hover:text-[#1d5c4f]">{t.label}</span>
+              <span className="font-semibold text-[#68746c] transition-colors hover:text-[#1d5c4f]">{t.label}</span>
               <span className="font-medium text-[#4b5563] ml-1">{t.price}</span>
               <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${bgClass}`}>
                 {arrow}{(t.change || 0).toFixed(1)}%

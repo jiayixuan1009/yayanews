@@ -38,6 +38,7 @@ export default function SectionHeader({
         <LocalizedLink
           href={actionHref}
           className="shrink-0 font-label text-xs font-semibold uppercase tracking-[0.14em] text-[#1d5c4f] hover:text-[#143d33] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1d5c4f]"
+          aria-label={`${actionLabel} ${title}`}
         >
           {actionLabel}
         </LocalizedLink>

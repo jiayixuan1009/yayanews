@@ -30,7 +30,7 @@ export default function Analytics() {
       ) : null}
 
       {BING_UET ? (
-        <Script id="bing-uet" strategy="afterInteractive">
+        <Script id="bing-uet" strategy="lazyOnload">
           {`
 (function(w,d,t,r,u){
   var f,n,i;w[u]=w[u]||[];
@@ -46,7 +46,7 @@ export default function Analytics() {
       ) : null}
 
       {CLARITY_ID ? (
-        <Script id="ms-clarity" strategy="afterInteractive">
+        <Script id="ms-clarity" strategy="lazyOnload">
           {`
 (function(c,l,a,r,i,t,y){
   c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
