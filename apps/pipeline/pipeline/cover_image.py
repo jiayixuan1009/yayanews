@@ -269,10 +269,13 @@ def resolve_cover_for_article(
         return CoverResult(existing_cover.strip(), "existing", "已有封面")
 
     if source_url and source_url.strip():
-        if not is_original or try_source_page_for_original:
-            res = fetch_cover_from_source_url(source_url.strip())
-            if res.url:
-                return res
+        # 如果是方程式新闻 (BWEnews)，其 source_url 是 t.me 链接或 bwe-ws，抓到的均是无意义的频道 Logo
+        # 根据用户要求，拦截此类自带图片，强制走下方的高质量图库搜索/兜底
+        if "t.me/BWEnews" not in source_url and "bwe-ws.com" not in source_url:
+            if not is_original or try_source_page_for_original:
+                res = fetch_cover_from_source_url(source_url.strip())
+                if res.url:
+                    return res
 
     q = keyword_query_from_text(title, summary)
     for finder, src in (

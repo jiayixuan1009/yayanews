@@ -47,6 +47,9 @@
     "spotlightTitle": "The Political Compass",
     "moreArticlesBtn": "View More News",
     "liveTicker": "Live Ticker",
+    "tickerUs": "US Markets",
+    "tickerApac": "APAC",
+    "tickerCrypto": "Crypto",
     "mascotDesc": "We curate high-frequency market noise into a readable order of judgment: context, evidence, and finally action signals.",
     "noLead": "Headline article in preparation",
     "readDigest": "Read digest",
@@ -74,7 +77,14 @@
   },
   "flash": {
     "metaSuffix": "24H Flash",
-    "viewSource": "View original source"
+    "viewSource": "View original source",
+    "pageTitle": "7×24 Live Wire",
+    "pageSubtitle": "Global financial markets — real-time updates around the clock",
+    "sseLive": "Live feed connected · ",
+    "countdownSuffix": "s fallback refresh",
+    "lastUpdate": "Last update: ",
+    "allCategories": "All",
+    "noFlash": "No flash news available"
   },
   "categoryMeta": {
     "us-stock": {
@@ -148,6 +158,14 @@
     "moreRelated": "More Related Articles",
     "tagTitle": "Tag",
     "totalCount": "Total {count} related articles"
+  },
+  "topics": {
+    "pageTitle": "Trending Topics",
+    "pageDesc": "Deep tracking of major financial market events, building a knowledge graph of significance.",
+    "allTopics": "All Topics",
+    "articleCount": "{count} articles",
+    "readTopic": "Read topic →",
+    "noTopics": "No topics available"
   },
   "footer": {
     "desc": "YayaNews is a leading professional financial news platform, delivering global financial updates, crypto dynamics, and in-depth analysis.",

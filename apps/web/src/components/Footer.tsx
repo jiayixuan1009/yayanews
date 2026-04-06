@@ -29,9 +29,9 @@ export default function Footer({ lang = 'zh', dict }: { lang?: string, dict: Rec
         <div className="border-b border-[#255e50] pb-8 sm:pb-10">
           <div className="grid gap-6 lg:grid-cols-[1.2fr,0.8fr] lg:items-end">
             <div>
-              <p className="font-label text-[11px] uppercase tracking-[0.2em] text-[#91f78e] mb-3">{dict.slogan1 || 'The daily edition'}</p>
+              <p className="yn-meta text-[#91f78e] mb-3">{dict.slogan1 || 'The daily edition'}</p>
               <BrandLogo variant="footer" lang={lang} />
-              <p className="mt-4 max-w-[38ch] text-sm leading-7 text-emerald-50/82">
+              <p className="mt-4 max-w-[38ch] yn-footer-body text-emerald-50/82">
                 {dict.slogan2 || 'Financial news editorial desk.'}
               </p>
             </div>
@@ -39,9 +39,9 @@ export default function Footer({ lang = 'zh', dict }: { lang?: string, dict: Rec
               <input
                 type="email"
                 placeholder={dict.emailLabel || 'Email Address'}
-                className="min-w-0 border border-[#2d6d5c] bg-[#0d4436] px-4 py-3 text-sm text-white placeholder:text-emerald-50/55 focus:outline-none"
+                className="min-w-0 border border-[#2d6d5c] bg-[#0d4436] px-4 py-3 yn-footer-body text-white placeholder:text-emerald-50/55 focus:outline-none"
               />
-              <button type="button" className="inline-flex items-center justify-center bg-[#91f78e] px-5 py-3 text-sm font-semibold text-[#063428] hover:bg-[#79ea77]">
+              <button type="button" className="inline-flex items-center justify-center bg-[#91f78e] px-5 py-3 yn-action text-[#063428] hover:bg-[#79ea77]">
                 {dict.joinBtn || 'Join the Brief'}
               </button>
             </form>
@@ -50,10 +50,10 @@ export default function Footer({ lang = 'zh', dict }: { lang?: string, dict: Rec
 
         <div className="grid gap-10 pt-8 sm:pt-10 lg:grid-cols-[1.1fr,0.8fr,0.8fr,0.8fr]">
           <div>
-            <p className="text-sm leading-7 text-emerald-50/72">
+            <p className="yn-legal text-emerald-50/72">
               &copy; {new Date().getFullYear()} yayanews Media Foundation. {dict.copyrightSlogan || 'The editorial archive...'}
             </p>
-            <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-emerald-50/82">
+            <div className="mt-6 flex flex-wrap items-center gap-4 yn-footer-body text-emerald-50/82">
               <a href={siteConfig.parentSite} target="_blank" rel="noopener noreferrer" className="hover:text-white">{dict.officialSite || 'Official Website'}</a>
               <a href={siteConfig.tradingSite} target="_blank" rel="noopener noreferrer" className="hover:text-white">{dict.tradingSite || 'Trading'}</a>
               <LocalizedLink href="/topics" className="hover:text-white">{dict.topicsLink || 'Topics'}</LocalizedLink>
@@ -70,11 +70,11 @@ export default function Footer({ lang = 'zh', dict }: { lang?: string, dict: Rec
 
           {Object.entries(footerColumns).map(([title, links]) => (
             <div key={title}>
-              <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#91f78e]">{title}</h3>
+              <h3 className="yn-footer-title text-[#91f78e]">{title}</h3>
               <ul className="mt-5 space-y-3">
                 {links.map(link => (
                   <li key={link.href}>
-                    <LocalizedLink href={link.href} className="text-sm text-emerald-50/82 hover:text-white">
+                    <LocalizedLink href={link.href} className="yn-footer-body text-emerald-50/82 hover:text-white">
                       {link.label}
                     </LocalizedLink>
                   </li>

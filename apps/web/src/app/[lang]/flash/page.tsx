@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { createMetadata } from '@yayanews/seo';
+import { getDictionary } from '@/lib/dictionaries';
 import FlashPageClient from './FlashPageClient';
 
 export const revalidate = 30;
@@ -16,6 +17,7 @@ export function generateMetadata({ params: { lang } }: { params: { lang: 'zh' | 
   });
 }
 
-export default function FlashPage({ params, searchParams }: { params: { lang: 'zh' | 'en' }, searchParams: { cat?: string } }) {
-  return <FlashPageClient initialCat={searchParams.cat || ''} lang={params.lang} />;
+export default async function FlashPage({ params, searchParams }: { params: { lang: 'zh' | 'en' }, searchParams: { cat?: string } }) {
+  const dict = await getDictionary(params.lang);
+  return <FlashPageClient initialCat={searchParams.cat || ''} lang={params.lang} flashDict={(dict as any).flash} />;
 }

@@ -1,4 +1,4 @@
-# 生产镜像：Next.js standalone + better-sqlite3（Linux x64）
+# 生产镜像：Next.js standalone（Linux x64）
 # 需与 next.config.mjs 中 output: 'standalone' 一致
 # 构建示例：
 #   docker build -t yayanews:latest \
@@ -9,10 +9,6 @@
 
 FROM node:20-bookworm-slim AS builder
 WORKDIR /app
-
-# better-sqlite3 需在 Linux 下本地编译
-RUN apt-get update && apt-get install -y python3 make g++ \
-  && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -44,5 +40,5 @@ COPY --from=builder /app/public ./public
 RUN mkdir -p /app/data
 
 EXPOSE 3000
-# 挂载 ./data 时多为 root 属主，需写 SQLite 时不使用非 root 用户
+# 运行 Next.js standalone 进程
 CMD ["node", "server.js"]

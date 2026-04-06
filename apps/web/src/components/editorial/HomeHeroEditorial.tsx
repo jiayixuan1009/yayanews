@@ -24,7 +24,7 @@ function HeroMeta({ article, dict }: { article: Article; dict?: any }) {
 }
 
 function SecondaryFeature({ article, dict }: { article: Article; dict?: any }) {
-  const cover = getArticleCoverSrc(article.cover_image);
+  const cover = getArticleCoverSrc(article.cover_image, undefined, article.source);
   const optimizable = isRemoteImageOptimizable(cover);
   return (
     <LocalizedLink href={`/article/${article.slug}`} className="group flex flex-col gap-3">
@@ -43,7 +43,7 @@ function SecondaryFeature({ article, dict }: { article: Article; dict?: any }) {
 }
 
 export default function HomeHeroEditorial({ lead, secondaries, dict = {}, rightRail }: Props) {
-  const leadCover = lead ? getArticleCoverSrc(lead.cover_image) : null;
+  const leadCover = lead ? getArticleCoverSrc(lead.cover_image, undefined, lead.source) : null;
   const leadCoverOptimizable = leadCover ? isRemoteImageOptimizable(leadCover) : false;
   const hotItems = secondaries.slice(0, 4);
   const lowerFeatures = secondaries.slice(0, 2);
@@ -73,7 +73,7 @@ export default function HomeHeroEditorial({ lead, secondaries, dict = {}, rightR
                 
                 {/* Full-width Title Block */}
                 <div className="pt-2">
-                  <div className="mb-3 inline-flex rounded-[2px] bg-[#91f78e]/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1d5c4f]">
+                  <div className="mb-3 inline-flex rounded-[2px] bg-[#91f78e]/60 px-3 py-1 yn-action text-[#1d5c4f]">
                     {lead.article_type === 'deep' ? (dict.home?.investigativeFeature || 'Investigative feature') : (dict.home?.featuredReport || 'Featured report')}
                   </div>
                   <LocalizedLink href={`/article/${lead.slug}`} className="group block mb-2">

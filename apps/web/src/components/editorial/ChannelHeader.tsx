@@ -23,7 +23,7 @@ export default function ChannelHeader({
   quote,
   featured,
 }: Props) {
-  const coverSrc = featured ? getArticleCoverSrc(featured.cover_image) : null;
+  const coverSrc = featured ? getArticleCoverSrc(featured.cover_image, undefined, featured.source) : null;
   const coverOpt = coverSrc ? isRemoteImageOptimizable(coverSrc) : false;
 
   return (
@@ -32,18 +32,18 @@ export default function ChannelHeader({
         <div className="space-y-6 p-5">
           <div className="border border-[#d6cec2] bg-white p-3">
             <p className="yn-meta text-[#1d5c4f]">{lang === 'zh' ? '动态档案' : 'The Living Archive'}</p>
-            <p className="mt-2 text-[11px] leading-5 text-[#667067]">
+            <p className="mt-2 text-xs yn-body text-[#667067]">
               {lang === 'zh' ? '为追踪结构性变化读者提供的每日精选情报。' : 'Curated daily intelligence for readers tracking structural shifts.'}
             </p>
           </div>
-          <nav className="space-y-2 text-[11px] uppercase tracking-[0.18em] text-[#667067]">
+          <nav className="space-y-2 yn-action text-[#667067]">
             <LocalizedLink href="/" className="block border-l-2 border-[#1d5c4f] pl-3 text-[#14261f]">{dict?.nav?.home || 'Home'}</LocalizedLink>
             <LocalizedLink href="/flash" className="block pl-3">{dict?.nav?.flash || 'Breaking'}</LocalizedLink>
             <LocalizedLink href="/news" className="block pl-3">{dict?.home?.newsOverview || 'Trending'}</LocalizedLink>
           </nav>
         </div>
         <div className="space-y-4 p-5">
-          <button className="w-full border border-[#7ae88a] bg-[#9cff8f] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0e2a1f]">
+          <button className="w-full border border-[#7ae88a] bg-[#9cff8f] px-3 py-2 yn-action text-[#0e2a1f]">
             {lang === 'zh' ? '订阅简报' : 'Newsletter signup'}
           </button>
         </div>
@@ -53,7 +53,7 @@ export default function ChannelHeader({
         <div className="grid gap-8 p-6 md:p-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)] lg:items-stretch lg:gap-10 lg:p-10">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-4 border-b border-white/15 pb-4">
-              <span className="border border-[#7fe193] bg-[#d5ff8d]/90 px-2 py-1 font-label text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0e2a1f]">
+              <span className="border border-[#7fe193] bg-[#d5ff8d]/90 px-2 py-1 yn-action text-[#0e2a1f]">
                 {label} • {title}
               </span>
               {quote && <p className="hidden font-display text-base tracking-tight text-white/75 md:block">“{quote}”</p>}
@@ -84,7 +84,7 @@ export default function ChannelHeader({
               <div className="absolute bottom-5 left-5 max-w-[320px] rotate-[-2deg] border border-[#d6cec2] bg-[#f8f4ee] p-4 text-[#14261f] shadow-[0_10px_30px_rgba(0,0,0,0.16)]">
                 <p className="yn-meta text-[#1d5c4f]">{dict?.home?.editorsPicks || "Editor's pick"}</p>
                 <p className="yn-card-title mt-2 line-clamp-3">{featured.title}</p>
-                <LocalizedLink href={`/article/${featured.slug}`} className="mt-3 inline-block text-[11px] uppercase tracking-[0.16em] text-[#1d5c4f] hover:text-[#143d33]">
+                <LocalizedLink href={`/article/${featured.slug}`} className="mt-3 inline-block yn-action text-[#1d5c4f] hover:text-[#143d33]">
                   {lang === 'zh' ? '展开档案 →' : 'Open dossier →'}
                 </LocalizedLink>
               </div>
