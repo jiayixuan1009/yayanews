@@ -23,7 +23,8 @@ export const revalidate = 0;
 
 export default async function TopicsPage({ params: { lang } }: { params: { lang: string } }) {
   const dict = await getDictionary(lang as any);
-  const topics = await getTopics(50);
+  const rawTopics = await getTopics(50);
+  const topics = rawTopics.filter(t => (t.article_count || 0) > 0 && !(t.slug || '').toLowerCase().includes('sora'));
   const isZh = lang !== 'en';
   const t = (dict as any).topics;
 

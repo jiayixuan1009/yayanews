@@ -59,7 +59,7 @@ export default async function RootLayout({
         <link rel="dns-prefetch" href="https://api.coingecko.com" />
         <link rel="dns-prefetch" href="https://assets.coingecko.com" />
       </head>
-      <body className="flex min-h-screen flex-col bg-[#f6f3ee] font-body text-slate-900">
+      <body className="flex min-h-screen flex-col bg-[#f6f3ee] font-body text-slate-900 overflow-x-hidden w-full">
         <Analytics />
         <Header lang={params.lang} dict={dict.nav} />
         <main className="flex-1">{children}</main>
