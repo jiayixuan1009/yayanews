@@ -16,8 +16,9 @@ import ChannelHeader from '@/components/editorial/ChannelHeader';
 import RightRailPanel from '@/components/editorial/RightRailPanel';
 import SectionHeader from '@/components/editorial/SectionHeader';
 
-export function generateMetadata({ params }: { params: { lang: string } }): Metadata {
+export function generateMetadata({ params, searchParams }: { params: { lang: string }; searchParams: { page?: string } }): Metadata {
   const isZh = params.lang !== 'en';
+  const page = parseInt(searchParams.page || '1', 10);
   return createMetadata({
     title: isZh ? '金融新闻深度分析 | 美股·港股·加密货币·衍生品' : 'Financial News & In-Depth Analysis | US Stocks, Crypto, HK Markets',
     description: isZh
@@ -25,6 +26,7 @@ export function generateMetadata({ params }: { params: { lang: string } }): Meta
       : 'Browse YayaNews in-depth financial analysis and breaking news across US equities, HK stocks, Bitcoin, crypto, gold and oil. Expert-curated and AI-powered market coverage for professional investors.',
     url: '/news',
     lang: params.lang as 'zh' | 'en',
+    noIndex: page > 1, // P2 SEO: pagination pages excluded from index to prevent duplicate content
   });
 }
 

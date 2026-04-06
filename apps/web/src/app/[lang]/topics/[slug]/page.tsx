@@ -11,7 +11,7 @@ interface Props {
   searchParams: { page?: string };
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const topic = await getTopicBySlug(params.slug, 1, 20);
   if (!topic) return createMetadata({ title: params.lang === 'en' ? 'Topic Not Found' : '专题未找到', lang: params.lang as 'zh' | 'en' });
 
@@ -20,6 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const desc = isZh ? topic.description_zh : topic.description_en;
   const metaTitle = topic.meta_title || `${name} ${isZh ? '专题报道' : 'Topic Coverage'} | YayaNews`;
   const metaDesc = topic.meta_description || (desc || '').slice(0, isZh ? 120 : 160);
+  const page = parseInt(searchParams.page || '1', 10);
 
   const baseMeta = createMetadata({
     title: metaTitle,
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     url: `/topics/${params.slug}`,
     image: topic.cover_image || undefined,
     lang: params.lang as 'zh' | 'en',
-    noIndex: topic.status === 'archive',
+    noIndex: topic.status === 'archive' || page > 1, // P2 SEO: archive + pagination noindex
   });
 
   return baseMeta;
