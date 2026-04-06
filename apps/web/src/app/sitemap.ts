@@ -1,7 +1,6 @@
 import { MetadataRoute } from 'next';
-import { getRecentArticlesForSitemap, getTopicsForSitemap, getCategories, getTagsForSitemap, getRecentFlashForSitemap } from '@/lib/queries';
+import { getRecentArticlesForSitemap, getTopicsForSitemap, getCategories, getTagsForSitemap } from '@/lib/queries';
 import { siteConfig } from '@yayanews/types';
-import { encodeFlashSlug } from '@/lib/ui-utils';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600; // Cache for 1 hour to prevent timeout on large datasets
@@ -42,19 +41,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...localize('/news', new Date(), 'hourly', 0.9),
     ...localize('/flash', new Date(), 'always', 0.8),
     ...localize('/markets', new Date(), 'hourly', 0.7),
-    ...localize('/search', new Date(), 'daily', 0.5),
+    // /search is noindex — excluded from sitemap
     ...localize('/topics', new Date(), 'daily', 0.7),
     ...localize('/about', new Date(), 'monthly', 0.4),
     ...localize('/contact', new Date(), 'monthly', 0.4),
     ...localize('/privacy', new Date(), 'monthly', 0.4),
   ];
 
-  const [categories, articles, topics, tagRows, flashes] = await Promise.all([
+  const [categories, articles, topics, tagRows] = await Promise.all([
     getCategories().catch(() => []),
     getRecentArticlesForSitemap().catch(() => []),
     getTopicsForSitemap().catch(() => []),
     getTagsForSitemap().catch(() => []),
-    getRecentFlashForSitemap(2000).catch(() => []),
   ]);
 
   const categoryPages: MetadataRoute.Sitemap = categories.flatMap(c => 
@@ -95,9 +93,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       localize(`/tag/${t.slug}`, safeDate(t.updated_at), 'daily', 0.55)
     );
 
-  const flashPages: MetadataRoute.Sitemap = flashes.flatMap(f => 
-    localize(`/flash/${encodeFlashSlug(f as any)}`, safeDate(f.updated_at), 'weekly', 0.5)
-  );
+  // Flash detail pages excluded from sitemap (noindex thin content)
 
-  return [...staticPages, ...categoryPages, ...articlePages, ...topicPages, ...tagPages, ...flashPages];
+  return [...staticPages, ...categoryPages, ...articlePages, ...topicPages, ...tagPages];
 }

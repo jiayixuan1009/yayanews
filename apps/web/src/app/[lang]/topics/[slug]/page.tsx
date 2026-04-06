@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import LocalizedLink from '@/components/LocalizedLink';
 import ArticleCard from '@/components/ArticleCard';
 import { getTopicBySlug, getTopics } from '@/lib/queries';
-import { createMetadata } from '@yayanews/seo';
+import { createMetadata, buildBreadcrumbJsonLd } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 
 interface Props {
@@ -99,6 +99,16 @@ export default async function TopicDetailPage({ params, searchParams }: Props) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
         />
       )}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(buildBreadcrumbJsonLd([
+            { name: isZh ? '首页' : 'Home', url: `/${params.lang}` },
+            { name: isZh ? '专题' : 'Topics', url: `/${params.lang}/topics` },
+            { name, url: `/${params.lang}/topics/${params.slug}` },
+          ])),
+        }}
+      />
 
       <div className="container-main py-6 sm:py-8 lg:py-10">
         {/* 归档状态横幅 */}

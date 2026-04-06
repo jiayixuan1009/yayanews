@@ -204,17 +204,6 @@ export async function getFlashNewsById(id: number | string): Promise<FlashNews |
   return flash ? formatArticleDates(flash) : undefined;
 }
 
-export async function getRecentFlashForSitemap(limit = 1000): Promise<{ id: number; title: string; updated_at: string }[]> {
-  const list = await db.queryAll<{ id: number; title: string; published_at: Date | string; updated_at?: Date | string }>(`
-    SELECT id, title, published_at, updated_at FROM flash_news
-    ORDER BY published_at DESC LIMIT $1
-  `, [limit]);
-  return list.map(f => ({
-    id: f.id,
-    title: f.title,
-    updated_at: safeDateStr(f.updated_at || f.published_at)
-  }));
-}
 
 /** \u83b7\u53d6\u6240\u6709 active \u4e13\u9898\u5217\u8868\uff0c\u9644\u5e26\u6587\u7ae0\u8ba1\u6570 */
 export async function getTopics(limit = 20): Promise<Topic[]> {
@@ -460,7 +449,7 @@ export async function getArticleCountByTagSlug(tagSlug: string): Promise<number>
   return row?.count || 0;
 }
 
-/** 有已发布稿件关联的标签，用于 sitemap */
+/** 有已发布稿件关联的标签，用于 sitemap（仅含 ≥3 篇文章的标签） */
 export async function getTagsForSitemap(): Promise<{ slug: string; updated_at: string }[]> {
   const tags = await db.queryAll<{ slug: string; updated_at: Date | string }>(
       `
@@ -470,6 +459,7 @@ export async function getTagsForSitemap(): Promise<{ slug: string; updated_at: s
     JOIN articles a ON a.id = at.article_id
     WHERE a.status = 'published'
     GROUP BY t.id
+    HAVING COUNT(at.article_id) >= 3
   `
   );
   return tags.map(t => ({

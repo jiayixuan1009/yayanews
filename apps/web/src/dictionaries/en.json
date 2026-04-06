@@ -150,7 +150,8 @@
     "viewCount": "View Count",
     "relatedTickers": "Related Tickers",
     "infoSource": "Source",
-    "relatedRecommendations": "Related Recommendations"
+    "relatedRecommendations": "Related Recommendations",
+    "updatedAt": "Updated"
   },
   "tag": {
     "noArticles": "No articles found for this tag.",

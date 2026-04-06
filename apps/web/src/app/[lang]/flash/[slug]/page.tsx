@@ -20,6 +20,7 @@ export async function generateMetadata({ params }: { params: { slug: string; lan
     modifiedTime: flash.published_at || undefined,
     section: flash.category_name || undefined,
     lang: params.lang as 'zh' | 'en',
+    noIndex: true, // P0 SEO: flash details are thin content — keep out of index pool
   });
 }
 

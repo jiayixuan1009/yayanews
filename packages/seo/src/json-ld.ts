@@ -1,25 +1,42 @@
 import { siteConfig, type Article } from '@yayanews/types';
 
 export function buildNewsArticleJsonLd(article: Article, topic?: any): Record<string, any> {
+  // Deep analysis articles use AnalysisNewsArticle for richer SERP treatment
+  const articleType = (article as any).article_type === 'deep' ? 'AnalysisNewsArticle' : 'NewsArticle';
+
   const jsonLd: Record<string, any> = {
     '@context': 'https://schema.org',
-    '@type': 'NewsArticle',
+    '@type': articleType,
     headline: article.title,
     description: article.summary || article.title,
     image: article.cover_image || undefined,
     datePublished: article.published_at ? new Date(article.published_at).toISOString() : undefined,
     dateModified: article.updated_at ? new Date(article.updated_at).toISOString() : undefined,
-    author: { '@type': 'Person', name: article.author || 'YayaNews' },
+    author: {
+      '@type': 'Person',
+      name: article.author || 'YayaNews',
+      url: `${siteConfig.siteUrl}/about`,
+    },
     publisher: {
-      '@type': 'Organization',
+      '@type': 'NewsMediaOrganization',
       name: siteConfig.siteName,
+      description: '鸭鸭财经新闻 — 比市场快一步，7×24小时实时追踪全球财经脉动',
       logo: {
         '@type': 'ImageObject',
         url: `${siteConfig.siteUrl}/brand/logo-square.png`,
+        width: 512,
+        height: 512,
       },
       url: siteConfig.siteUrl,
+      sameAs: [
+        'https://twitter.com/YayaNewsAsia',
+      ],
     },
-    mainEntityOfPage: `${siteConfig.siteUrl}/article/${article.slug}`,
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `${siteConfig.siteUrl}/article/${article.slug}`,
+    },
+    isAccessibleForFree: true,
     articleSection: article.category_name ? [article.category_name] : undefined,
   };
 
@@ -51,3 +68,4 @@ export function buildBreadcrumbJsonLd(items: { name: string; url: string }[]): R
     })),
   };
 }
+

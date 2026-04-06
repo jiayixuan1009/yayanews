@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getNewsArticlesLast48h, getFlashNews } from '@/lib/queries';
+import { getNewsArticlesLast48h } from '@/lib/queries';
 import { siteConfig } from '@yayanews/types';
-import { encodeFlashSlug } from '@/lib/ui-utils';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -46,13 +45,6 @@ function isErrorArticle(title: string): boolean {
 
 export async function GET() {
   const articles = await getNewsArticlesLast48h();
-  const flashes = await getFlashNews('zh', 100);
-  
-  const now = new Date();
-  const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
-
-  // Strictly filter flashes published in the last 48 hours
-  const recentFlashes = flashes.filter(f => new Date(f.published_at) >= fortyEightHoursAgo);
 
   // Filter out error articles and clean titles
   const validArticles = articles.filter(a => !isErrorArticle(a.title));
@@ -75,28 +67,12 @@ export async function GET() {
   </url>`;
   }).join('');
 
-  const flashUrls = recentFlashes.map(f => {
-    const lang = detectLang(f.title, f.lang);
-    const langPrefix = lang === 'en' ? 'en' : 'zh';
-    return `
-  <url>
-    <loc>${escapeXml(`${siteConfig.siteUrl}/${langPrefix}/flash/${encodeFlashSlug(f as any)}`)}</loc>
-    <news:news>
-      <news:publication>
-        <news:name>${escapeXml(siteConfig.siteName)}</news:name>
-        <news:language>${lang}</news:language>
-      </news:publication>
-      <news:publication_date>${toW3CDate(f.published_at)}</news:publication_date>
-      <news:title>${escapeXml(f.title)}</news:title>
-    </news:news>
-  </url>`;
-  }).join('');
+  // P0 SEO: Flash news excluded from News Sitemap (thin content, no editorial depth)
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
 ${articleUrls}
-${flashUrls}
 </urlset>`;
 
   return new NextResponse(xml, {
