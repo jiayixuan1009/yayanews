@@ -58,7 +58,7 @@ export default function ArticleCard({ article, featured = false, priority = fals
                 {!hasRealCover && <span className="yn-tag bg-amber-50 text-amber-700">{dict.article?.noImage || '待配图'}</span>}
               </div>
               <p className="mt-5 yn-action text-[#667067]">Lead report</p>
-              <h2 className="yn-title-xl mt-3 max-w-[20ch] sm:max-w-[10ch] text-[#101713] group-hover:text-[#1d5c4f]">
+              <h2 className="yn-title-xl mt-3 max-w-[20ch] sm:max-w-[10ch] text-[#101713] group-hover:text-[#1d5c4f] line-clamp-3 overflow-hidden">
                 {article.title}
               </h2>
               {article.summary && <p className="mt-4 max-w-[33ch] yn-body sm:text-[1rem] sm:leading-8 line-clamp-4">{article.summary}</p>}
