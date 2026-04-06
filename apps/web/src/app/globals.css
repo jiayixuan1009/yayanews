@@ -54,12 +54,14 @@
   }
 
   .yn-title-xl {
-    @apply font-display text-[1.35rem] font-bold leading-[1.1] tracking-[-0.02em] text-[#14261f] sm:text-[1.9rem] lg:text-[2.4rem];
+    @apply font-display text-[1.35rem] font-bold leading-[1.1] tracking-[-0.02em] text-[#14261f] sm:text-[1.9rem] lg:text-[2.4rem] break-words;
     text-wrap: balance;
+    overflow-wrap: anywhere;
   }
 
   .yn-heading {
-    @apply font-display text-[1.2rem] font-semibold leading-[1.15] tracking-[-0.015em] text-[#14261f] sm:text-[1.35rem];
+    @apply font-display text-[1.2rem] font-semibold leading-[1.15] tracking-[-0.015em] text-[#14261f] sm:text-[1.35rem] break-words;
+    overflow-wrap: anywhere;
   }
 
   .yn-heading-sm {
@@ -67,17 +69,20 @@
   }
 
   .yn-card-title-lg {
-    @apply font-display text-[1.35rem] font-semibold leading-[1.12] tracking-[-0.02em] text-[#14261f] sm:text-[1.55rem] lg:text-[1.85rem];
+    @apply font-display text-[1.35rem] font-semibold leading-[1.12] tracking-[-0.02em] text-[#14261f] sm:text-[1.55rem] lg:text-[1.85rem] break-words;
     text-wrap: balance;
+    overflow-wrap: anywhere;
   }
 
   .yn-card-title {
-    @apply font-display text-[1.05rem] font-semibold leading-[1.2] tracking-[-0.01em] text-[#14261f] sm:text-[1.15rem] lg:text-[1.25rem];
+    @apply font-display text-[1.05rem] font-semibold leading-[1.2] tracking-[-0.01em] text-[#14261f] sm:text-[1.15rem] lg:text-[1.25rem] break-words;
+    overflow-wrap: anywhere;
   }
 
   .yn-page-title {
-    @apply font-display text-[1.5rem] font-bold leading-[1.12] tracking-[-0.02em] text-[#14261f] sm:text-[1.75rem] md:text-[2rem];
+    @apply font-display text-[1.5rem] font-bold leading-[1.12] tracking-[-0.02em] text-[#14261f] sm:text-[1.75rem] md:text-[2rem] break-words;
     text-wrap: balance;
+    overflow-wrap: anywhere;
   }
 
   .yn-ticker-title {

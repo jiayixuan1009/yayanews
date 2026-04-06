@@ -33,7 +33,7 @@ function SecondaryFeature({ article, dict }: { article: Article; dict?: any }) {
       </div>
       <div>
         {article.category_name ? <span className="yn-meta text-[#1d5c4f]">{dict?.nav?.[article.category_slug || ''] || article.category_name}</span> : null}
-        <h3 className="yn-card-title-lg mt-2 text-[#101a15] group-hover:text-[#1d5c4f]">
+        <h3 className="yn-card-title-lg mt-2 text-[#101a15] group-hover:text-[#1d5c4f] line-clamp-3 overflow-hidden">
           {article.title}
         </h3>
         {article.summary ? <p className="mt-3 max-w-[32ch] font-body text-[15px] leading-7 text-slate-600 line-clamp-3">{stripHtml(article.summary)}</p> : null}
