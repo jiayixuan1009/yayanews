@@ -1,8 +1,13 @@
 import { siteConfig, type Article } from '@yayanews/types';
 
-export function buildNewsArticleJsonLd(article: Article, topic?: any): Record<string, any> {
+export function buildNewsArticleJsonLd(article: Article, topic?: any, lang?: string): Record<string, any> {
   // Deep analysis articles use AnalysisNewsArticle for richer SERP treatment
   const articleType = (article as any).article_type === 'deep' ? 'AnalysisNewsArticle' : 'NewsArticle';
+  const isEn = lang === 'en';
+
+  const publisherDesc = isEn
+    ? 'YayaNews — Asia\'s fastest financial news. 24/7 coverage of US stocks, HK markets, crypto and derivatives.'
+    : '鸭鸭财经新闻 — 比市场快一步，7×24小时实时追踪全球财经脉动';
 
   const jsonLd: Record<string, any> = {
     '@context': 'https://schema.org',
@@ -20,7 +25,7 @@ export function buildNewsArticleJsonLd(article: Article, topic?: any): Record<st
     publisher: {
       '@type': 'NewsMediaOrganization',
       name: siteConfig.siteName,
-      description: '鸭鸭财经新闻 — 比市场快一步，7×24小时实时追踪全球财经脉动',
+      description: publisherDesc,
       logo: {
         '@type': 'ImageObject',
         url: `${siteConfig.siteUrl}/brand/logo-square.png`,
@@ -41,15 +46,16 @@ export function buildNewsArticleJsonLd(article: Article, topic?: any): Record<st
   };
 
   if (topic) {
+    const topicName = (isEn ? topic.name_en : topic.name_zh) || topic.title || topic.slug;
     jsonLd.about = {
       '@type': 'Thing',
-      name: topic.name_zh || topic.title || topic.slug,
+      name: topicName,
       url: `${siteConfig.siteUrl}/topics/${topic.slug}`
     };
     if (jsonLd.articleSection) {
-      jsonLd.articleSection.push(topic.name_zh || topic.title || topic.slug);
+      jsonLd.articleSection.push(topicName);
     } else {
-      jsonLd.articleSection = [topic.name_zh || topic.title || topic.slug];
+      jsonLd.articleSection = [topicName];
     }
   }
 

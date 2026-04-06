@@ -123,10 +123,10 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
     },
     robots: {
       index: !noIndex,
-      follow: !noIndex,
+      follow: true, // Always follow links — even noindex pages should pass link equity
       googleBot: {
         index: !noIndex,
-        follow: !noIndex,
+        follow: true,
         'max-snippet': -1,
         'max-image-preview': 'large',
         'max-video-preview': -1,
