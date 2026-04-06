@@ -71,7 +71,7 @@ export default async function TopicsPage({ params: { lang } }: { params: { lang:
                   {desc ? (
                     <p className="mt-2 text-sm text-[#4a5250] line-clamp-2">{desc}</p>
                   ) : null}
-                  <div className="mt-auto flex items-center justify-between border-t border-[#f2ede9] pt-3 text-xs font-semibold text-[#8a948e]">
+                  <div className="mt-auto flex items-center justify-between border-t border-[#f2ede9] pt-3 text-xs font-semibold text-[#68746c]">
                     <span>{t.articleCount.replace('{count}', String(topic.article_count || 0))}</span>
                     <span className="text-[#1d5c4f] opacity-80 group-hover:opacity-100">{t.readTopic}</span>
                   </div>
