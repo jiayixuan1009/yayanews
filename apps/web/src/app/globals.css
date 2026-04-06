@@ -51,18 +51,15 @@
   .yn-display {
     @apply font-display text-[1.55rem] font-bold leading-[1.08] tracking-[-0.025em] text-[#14261f] sm:text-[2.4rem] md:text-[2.8rem] lg:text-[3.2rem];
     text-wrap: balance;
-    word-break: keep-all;
   }
 
   .yn-title-xl {
     @apply font-display text-[1.35rem] font-bold leading-[1.1] tracking-[-0.02em] text-[#14261f] sm:text-[1.9rem] lg:text-[2.4rem];
     text-wrap: balance;
-    word-break: keep-all;
   }
 
   .yn-heading {
     @apply font-display text-[1.2rem] font-semibold leading-[1.15] tracking-[-0.015em] text-[#14261f] sm:text-[1.35rem];
-    word-break: keep-all;
   }
 
   .yn-heading-sm {
@@ -72,18 +69,15 @@
   .yn-card-title-lg {
     @apply font-display text-[1.35rem] font-semibold leading-[1.12] tracking-[-0.02em] text-[#14261f] sm:text-[1.55rem] lg:text-[1.85rem];
     text-wrap: balance;
-    word-break: keep-all;
   }
 
   .yn-card-title {
     @apply font-display text-[1.05rem] font-semibold leading-[1.2] tracking-[-0.01em] text-[#14261f] sm:text-[1.15rem] lg:text-[1.25rem];
-    word-break: keep-all;
   }
 
   .yn-page-title {
     @apply font-display text-[1.5rem] font-bold leading-[1.12] tracking-[-0.02em] text-[#14261f] sm:text-[1.75rem] md:text-[2rem];
     text-wrap: balance;
-    word-break: keep-all;
   }
 
   .yn-ticker-title {
