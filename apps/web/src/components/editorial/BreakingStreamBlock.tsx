@@ -54,12 +54,16 @@ function translateCategoryName(name: string, lang: string) {
 
 export default function BreakingStreamBlock({
   items: initialItems = [],
-  title = '7×24 快讯',
-  emptyText = '暂无快讯',
-  actionLabel = '全部快讯',
+  title,
+  emptyText,
+  actionLabel,
   lang = 'zh',
   className = '',
 }: Props) {
+  // Defensive i18n defaults when callers omit translated strings
+  const _title = title ?? (lang === 'en' ? '7×24 Flash' : '7×24 快讯');
+  const _emptyText = emptyText ?? (lang === 'en' ? 'No flash news' : '暂无快讯');
+  const _actionLabel = actionLabel ?? (lang === 'en' ? 'All' : '全部快讯');
   const [allItems, setAllItems] = useState<FlashNews[]>(initialItems);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [countdown, setCountdown] = useState(60);
@@ -163,7 +167,7 @@ export default function BreakingStreamBlock({
       <div className="mb-3 flex items-center justify-between gap-2 border-b border-[#ece4d8] pb-3">
         <div className="flex items-center gap-2">
           <span className="inline-block h-4 w-0.5 shrink-0 rounded-sm bg-[#1d5c4f]" aria-hidden />
-          <h2 className="yn-heading leading-none">{title}</h2>
+          <h2 className="yn-heading leading-none">{_title}</h2>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <div className="flex items-center gap-1.5 text-[11px] text-[#89908a]">
@@ -212,7 +216,7 @@ export default function BreakingStreamBlock({
 
       {/* ── 列表：新条目滑入动画 ──────────────────────────────── */}
       {visibleItems.length === 0 ? (
-        <p className="py-6 flex-1 text-center text-sm text-slate-500">{emptyText}</p>
+        <p className="py-6 flex-1 text-center text-sm text-slate-500">{_emptyText}</p>
       ) : (
         <div className="flex-1 overflow-y-auto pr-1 sm:pr-2 custom-scrollbar -mr-1 sm:-mr-2">
           <ul className="divide-y divide-[#ece4d8]">
