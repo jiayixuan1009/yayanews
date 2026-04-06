@@ -19,14 +19,26 @@ function groupByDate(items: FlashNews[]): Record<string, FlashNews[]> {
   }, {});
 }
 
+interface FlashDict {
+  pageTitle: string;
+  pageSubtitle: string;
+  sseLive: string;
+  countdownSuffix: string;
+  lastUpdate: string;
+  allCategories: string;
+  noFlash: string;
+}
+
 function CountdownButton({
   onRefresh,
   intervalSec,
   sseLive,
+  dict,
 }: {
   onRefresh: () => void;
   intervalSec: number;
   sseLive: boolean;
+  dict: FlashDict;
 }) {
   const [cd, setCd] = useState(intervalSec);
   const cdRef = useRef(intervalSec);
@@ -71,14 +83,14 @@ function CountdownButton({
         </span>
       </div>
       <span className="text-slate-500 group-hover:text-slate-700">
-        {sseLive ? '实时推送已连接 · ' : ''}
-        {cd}s 后兜底刷新
+        {sseLive ? dict.sseLive : ''}
+        {cd}{dict.countdownSuffix}
       </span>
     </button>
   );
 }
 
-export default function FlashPageClient({ initialCat, lang = 'zh' }: { initialCat: string, lang?: string }) {
+export default function FlashPageClient({ initialCat, lang = 'zh', flashDict }: { initialCat: string, lang?: string, flashDict: FlashDict }) {
   const [items, setItems] = useState<FlashNews[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [activeCat, setActiveCat] = useState(initialCat);
@@ -172,19 +184,20 @@ export default function FlashPageClient({ initialCat, lang = 'zh' }: { initialCa
       {/* 快讯页：流内无鸭；时间轴 + 细边框卡片 */}
       <div className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">7&times;24 快讯</h1>
-          <p className="mt-2 text-sm text-slate-500">全球金融市场 7×24 小时实时资讯，持续更新</p>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl md:text-3xl">{flashDict.pageTitle}</h1>
+          <p className="mt-2 text-sm text-slate-500">{flashDict.pageSubtitle}</p>
         </div>
 
-        <div className="flex flex-col items-end gap-1 shrink-0">
+        <div className="flex flex-col items-start sm:items-end gap-1 shrink-0">
           <CountdownButton
             onRefresh={fetchData}
             intervalSec={sseLive ? REFRESH_INTERVAL_SSE : REFRESH_INTERVAL_POLL}
             sseLive={sseLive}
+            dict={flashDict}
           />
           {lastUpdate && (
-            <span className="text-[11px] text-slate-600">
-              上次更新: {lastUpdate}
+            <span className="yn-meta text-slate-600">
+              {flashDict.lastUpdate}{lastUpdate}
             </span>
           )}
         </div>
@@ -195,18 +208,18 @@ export default function FlashPageClient({ initialCat, lang = 'zh' }: { initialCa
         <button
           type="button"
           onClick={() => setActiveCat('')}
-          className={`badge cursor-pointer border px-3 py-1 text-sm transition-colors ${
+          className={`yn-tag cursor-pointer border px-3 py-1 text-sm transition-colors ${
             !activeCat ? 'border-primary-600 bg-primary-50 text-primary-700' : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900'
           }`}
         >
-          全部
+          {flashDict.allCategories}
         </button>
         {categories.map(c => (
           <button
             type="button"
             key={c.slug}
             onClick={() => setActiveCat(c.slug)}
-            className={`badge cursor-pointer border px-3 py-1 text-sm transition-colors ${
+            className={`yn-tag cursor-pointer border px-3 py-1 text-sm transition-colors ${
               activeCat === c.slug
                 ? 'border-primary-600 bg-primary-50 text-primary-700'
                 : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900'
@@ -239,8 +252,8 @@ export default function FlashPageClient({ initialCat, lang = 'zh' }: { initialCa
           ) : Object.keys(grouped).length > 0 ? (
             Object.entries(grouped).map(([date, dateItems]) => (
               <div key={date} className="mb-6">
-                <div className="sticky top-16 z-10 mb-2 bg-white/90 backdrop-blur-sm py-2">
-                  <span className="badge bg-slate-100 text-slate-700 border border-slate-200">{date}</span>
+                <div className="sticky top-[72px] sm:top-[108px] z-10 mb-2 bg-white/90 backdrop-blur-sm py-2">
+                  <span className="yn-tag bg-slate-100 text-slate-700 border border-slate-200">{date}</span>
                 </div>
                 <div className="card rounded-yn-md border border-slate-200 p-4 bg-white shadow-sm">
                   <div className="space-y-0">
@@ -258,10 +271,10 @@ export default function FlashPageClient({ initialCat, lang = 'zh' }: { initialCa
                             <div className="mt-1 h-full w-px bg-slate-200" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 text-xs text-slate-500">
-                              <time>{item.published_at.slice(11, 16)}</time>
+                            <div className="flex items-center gap-2 yn-meta text-slate-500">
+                              <time className="yn-tabular-nums">{item.published_at.slice(11, 16)}</time>
                               {item.category_name && <span className="text-slate-600 font-medium">{item.category_name}</span>}
-                              {isNew && <span className="rounded bg-primary-100 px-1 py-0.5 text-[10px] text-primary-700 font-semibold">NEW</span>}
+                              {isNew && <span className="yn-tag bg-primary-100 px-1 py-0.5 text-primary-700 text-[10px]">NEW</span>}
                             </div>
                             <LocalizedLink href={`/flash/${encodeFlashSlug(item)}`} className="block mt-1">
                               <p className="text-[1.05rem] font-medium leading-relaxed text-slate-900 group-hover:text-primary-700 transition-colors">{item.title}</p>
@@ -278,7 +291,7 @@ export default function FlashPageClient({ initialCat, lang = 'zh' }: { initialCa
               </div>
             ))
           ) : (
-            <p className="text-center text-slate-500 py-16">暂无快讯</p>
+            <p className="text-center text-slate-500 py-16">{flashDict.noFlash}</p>
           )}
         </div>
 

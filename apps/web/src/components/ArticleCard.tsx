@@ -6,12 +6,12 @@ import { isRemoteImageOptimizable } from '@/lib/remote-image';
 
 function getCategoryBadgeClass(slug?: string): string {
   switch (slug) {
-    case 'us-stock': return 'badge border-blue-200 bg-blue-50 text-blue-700';
-    case 'hk-stock': return 'badge border-rose-200 bg-rose-50 text-rose-700';
-    case 'crypto': return 'badge-crypto';
-    case 'derivatives': return 'badge border-emerald-200 bg-emerald-50 text-emerald-700';
-    case 'ai': return 'badge border-violet-200 bg-violet-50 text-violet-700';
-    default: return 'badge border-[#d8d1c5] bg-[#f3efe8] text-[#5b635f]';
+    case 'us-stock': return 'yn-tag bg-blue-50 text-blue-700 hover:bg-blue-100';
+    case 'hk-stock': return 'yn-tag bg-rose-50 text-rose-700 hover:bg-rose-100';
+    case 'crypto': return 'yn-tag bg-[#f5efe6] text-[#b08735] hover:bg-[#ebdcc0]';
+    case 'derivatives': return 'yn-tag bg-emerald-50 text-emerald-700 hover:bg-emerald-100';
+    case 'ai': return 'yn-tag bg-violet-50 text-violet-700 hover:bg-violet-100';
+    default: return 'yn-tag';
   }
 }
 
@@ -24,13 +24,13 @@ function getReadTime(type: string, dict: Record<string, any>): string {
 
 function DepthBadge({ type, dict }: { type: string, dict: Record<string, any> }) {
   if (type !== 'deep') return null;
-  return <span className="badge ml-1.5 border-violet-200 bg-violet-50 text-violet-700">{dict.article?.deepDive || '深度研报'}</span>;
+  return <span className="yn-tag ml-1.5 bg-violet-50 text-violet-700">{dict.article?.deepDive || '深度研报'}</span>;
 }
 
 export default function ArticleCard({ article, featured = false, priority = false, dict = {} }: { article: Article; featured?: boolean; priority?: boolean; dict?: any }) {
-  const coverSrc = getArticleCoverSrc(article.cover_image, article.lang);
+  const coverSrc = getArticleCoverSrc(article.cover_image, article.lang, article.source);
   const coverOpt = isRemoteImageOptimizable(coverSrc);
-  const hasRealCover = articleHasRealCover(article.cover_image);
+  const hasRealCover = articleHasRealCover(article.cover_image, article.source);
 
   if (featured) {
     return (
@@ -47,7 +47,7 @@ export default function ArticleCard({ article, featured = false, priority = fals
               unoptimized={!coverOpt}
             />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0f1714]/75 via-[#0f1714]/20 to-transparent px-5 pb-5 pt-16 lg:hidden">
-              <span className="font-label text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">Lead report</span>
+              <span className="yn-action text-white/80">Lead report</span>
             </div>
           </div>
           <div className="flex flex-col justify-between p-4 sm:p-6 lg:p-10">
@@ -55,15 +55,15 @@ export default function ArticleCard({ article, featured = false, priority = fals
               <div className="flex flex-wrap items-center gap-1.5">
                 {article.category_name && <span className={getCategoryBadgeClass(article.category_slug)}>{dict.nav?.[article.category_slug || ''] || article.category_name}</span>}
                 <DepthBadge type={article.article_type} dict={dict} />
-                {!hasRealCover && <span className="badge border-amber-200 bg-amber-50 text-amber-700">{dict.article?.noImage || '待配图'}</span>}
+                {!hasRealCover && <span className="yn-tag bg-amber-50 text-amber-700">{dict.article?.noImage || '待配图'}</span>}
               </div>
-              <p className="mt-5 font-label text-[11px] font-semibold uppercase tracking-[0.2em] text-[#667067]">Lead report</p>
-              <h2 className="yn-title-xl mt-3 max-w-[10ch] text-[#101713] group-hover:text-[#1d5c4f]">
+              <p className="mt-5 yn-action text-[#667067]">Lead report</p>
+              <h2 className="yn-title-xl mt-3 max-w-[20ch] sm:max-w-[10ch] text-[#101713] group-hover:text-[#1d5c4f]">
                 {article.title}
               </h2>
-              {article.summary && <p className="mt-4 max-w-[33ch] font-body text-[15px] leading-7 text-slate-700 sm:text-[1rem] sm:leading-8 line-clamp-4">{article.summary}</p>}
+              {article.summary && <p className="mt-4 max-w-[33ch] yn-body sm:text-[1rem] sm:leading-8 line-clamp-4">{article.summary}</p>}
             </div>
-            <div className="mt-5 sm:mt-7 border-t border-[#e3dbcf] pt-4 sm:pt-5 text-[11px] uppercase tracking-[0.16em] text-[#667067]">
+            <div className="mt-5 sm:mt-7 border-t border-[#e3dbcf] pt-4 sm:pt-5 yn-meta">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span className="font-semibold text-[#14261f]">{article.author}</span>
                 <span>{article.published_at?.slice(0, 16)}</span>
@@ -83,20 +83,20 @@ export default function ArticleCard({ article, featured = false, priority = fals
         <div className="flex flex-wrap items-center gap-1.5">
           {article.category_name && <span className={getCategoryBadgeClass(article.category_slug)}>{dict.nav?.[article.category_slug || ''] || article.category_name}</span>}
           <DepthBadge type={article.article_type} dict={dict} />
-          {!hasRealCover && <span className="badge border-amber-200 bg-amber-50 text-amber-700">{dict.article?.noImage || '待配图'}</span>}
+          {!hasRealCover && <span className="yn-tag bg-amber-50 text-amber-700">{dict.article?.noImage || '待配图'}</span>}
         </div>
         <h3 className="yn-card-title-lg mt-3 max-w-[28ch] text-[#13211b] group-hover:text-[#1d5c4f] line-clamp-3">
           {article.title}
         </h3>
-        {article.summary && <p className="mt-3 max-w-[56ch] font-body text-[15px] leading-7 text-slate-600 line-clamp-3">{article.summary}</p>}
-        <div className="mt-3 sm:mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[#ece4d8] pt-3 text-[11px] uppercase tracking-[0.16em] text-[#667067]">
+        {article.summary && <p className="mt-3 max-w-[56ch] yn-body text-slate-600 line-clamp-3">{article.summary}</p>}
+        <div className="mt-3 sm:mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[#ece4d8] pt-3 yn-meta">
           <span className="font-semibold text-[#14261f]">{article.author}</span>
           <span>{article.published_at?.slice(0, 16)}</span>
           <span>{getReadTime(article.article_type, dict)}</span>
           {article.source && article.source !== 'YayaNews' && <span>{dict.common?.source || '来源'}: {article.source}</span>}
         </div>
       </div>
-      <div className="relative order-first aspect-[4/3] overflow-hidden border border-[#d8d1c5] bg-[#ece6dc] sm:order-last sm:h-[138px] sm:w-[196px] sm:aspect-auto">
+      <div className="relative order-first aspect-[16/9] overflow-hidden border border-[#d8d1c5] bg-[#ece6dc] sm:order-last sm:h-[138px] sm:w-[196px] sm:aspect-auto">
         <Image
           src={coverSrc}
           alt={article.title}

@@ -49,13 +49,13 @@
   /* ── Title Token System: Inter Tight + Noto Sans SC ──────────────── */
 
   .yn-display {
-    @apply font-display text-[1.85rem] font-bold leading-[1.08] tracking-[-0.025em] text-[#14261f] sm:text-[2.4rem] md:text-[2.8rem] lg:text-[3.2rem];
+    @apply font-display text-[1.55rem] font-bold leading-[1.08] tracking-[-0.025em] text-[#14261f] sm:text-[2.4rem] md:text-[2.8rem] lg:text-[3.2rem];
     text-wrap: balance;
     word-break: keep-all;
   }
 
   .yn-title-xl {
-    @apply font-display text-[1.6rem] font-bold leading-[1.1] tracking-[-0.02em] text-[#14261f] sm:text-[1.9rem] lg:text-[2.4rem];
+    @apply font-display text-[1.35rem] font-bold leading-[1.1] tracking-[-0.02em] text-[#14261f] sm:text-[1.9rem] lg:text-[2.4rem];
     text-wrap: balance;
     word-break: keep-all;
   }
@@ -90,10 +90,50 @@
     @apply font-display text-[11px] font-semibold uppercase leading-[1.2] tracking-[0.06em];
   }
 
-  /* ── Unchanged utility tokens ────────────────────────────────────── */
+  /* ── Structural & Display Tokens ───────────────────────────────── */
+
+  .yn-brand {
+    @apply font-display font-black tracking-tighter text-[#14261f];
+  }
+
+  .yn-section-title {
+    @apply font-display text-[0.8rem] font-bold uppercase tracking-[0.16em] text-[#4b5952] sm:text-[0.85rem];
+  }
+
+  /* ── Layout & UI Tokens ────────────────────────────────────────── */
+
+  .yn-nav {
+    @apply font-display text-[14px] font-semibold tracking-tight text-[#14261f] hover:text-[#1d5c4f] sm:text-[15px];
+  }
+
+  .yn-footer-title {
+    @apply font-display text-[0.85rem] font-semibold tracking-widest text-[#14261f] uppercase;
+  }
+
+  .yn-footer-body {
+    @apply font-body text-[14px] leading-relaxed text-[#5a6b63];
+  }
+
+  .yn-legal {
+    @apply font-body text-[12px] text-[#8e9d96];
+  }
+
+  /* ── Utility & Meta Tokens ────────────────────────────────────── */
 
   .yn-meta {
-    @apply font-label text-[11px] uppercase tracking-[0.16em] text-[#667067];
+    @apply font-label text-[11px] uppercase tracking-[0.14em] text-[#667067] lining-nums;
+  }
+
+  .yn-tag {
+    @apply inline-flex items-center rounded-none bg-[#f1f1ef] px-2 py-0.5 font-label text-[10px] font-medium uppercase tracking-[0.1em] text-[#4b5952] tabular-nums hover:bg-[#e4e4e1];
+  }
+
+  .yn-tabular-nums {
+    @apply font-label text-[13px] tabular-nums tracking-tight;
+  }
+
+  .yn-action {
+    @apply font-label text-xs font-semibold uppercase tracking-[0.1em];
   }
 
   .yn-body {

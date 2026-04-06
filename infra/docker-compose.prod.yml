@@ -11,7 +11,7 @@ services:
         NEXT_PUBLIC_SITE_URL: https://yayanews.cryptooptiontool.com
         NEXT_PUBLIC_PARENT_SITE: https://www.biyapay.com
         NEXT_PUBLIC_TRADING_SITE: https://invest.biyapay.com
-        DATABASE_URL: postgresql://yayanews:Jia1009al@host.docker.internal:5432/yayanews
+        DATABASE_URL: postgresql://yayanews:yayanews_master@host.docker.internal:5432/yayanews
     image: yayanews:latest
     restart: unless-stopped
     ports:

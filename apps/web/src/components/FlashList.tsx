@@ -72,9 +72,9 @@ export default function FlashList({ items: initialItems, compact = false }: { it
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 text-xs text-gray-500 mb-0.5">
-              <time className="font-mono">{item.published_at.slice(11, 16)}</time>
+              <time className="yn-tabular-nums">{item.published_at.slice(11, 16)}</time>
               {item.category_name && (
-                <span className={`px-1.5 py-0.5 rounded border text-[10px] font-medium leading-none ${getCategoryBadgeCls(item.category_name)}`}>
+                <span className={`yn-tag ${getCategoryBadgeCls(item.category_name)}`}>
                   {item.category_name}
                 </span>
               )}

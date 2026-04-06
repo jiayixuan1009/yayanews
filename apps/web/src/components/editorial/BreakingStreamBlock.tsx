@@ -232,11 +232,11 @@ export default function BreakingStreamBlock({
                   >
                     {/* Row 1: 时间 + 类别 */}
                     <div className="flex items-center gap-2 mb-1">
-                      <time className="font-label text-[11px] uppercase tracking-[0.12em] text-[#89908a] leading-none tabular-nums">
+                      <time className="yn-tabular-nums uppercase tracking-[0.12em] text-[#89908a] leading-none">
                         {item.published_at?.slice(11, 16) ?? '—'}
                       </time>
                       {item.category_name && (
-                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium leading-none ${getCategoryBadgeLight(item.category_name)}`}>
+                        <span className={`yn-tag ${getCategoryBadgeLight(item.category_name)}`}>
                           {translateCategoryName(item.category_name, lang)}
                         </span>
                       )}

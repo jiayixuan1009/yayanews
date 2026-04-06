@@ -105,7 +105,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
 
       <section className="border-b border-[#ddd5ca] bg-white/90">
         <div className="container-main py-2 text-sm">
-          <LiveTicker title={dict.home.liveTicker} />
+          <LiveTicker title={dict.home.liveTicker} tickerUs={(dict.home as any).tickerUs} tickerApac={(dict.home as any).tickerApac} tickerCrypto={(dict.home as any).tickerCrypto} />
         </div>
       </section>
       <HomeHeroEditorial
@@ -119,7 +119,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
               emptyText={dict.news.noFlash || '暂无快讯'}
               actionLabel={dict.common.all || '全部'}
               lang={lang}
-              className="flex-none h-[1050px] w-full overflow-hidden"
+              className="flex-none h-[400px] sm:h-[600px] xl:h-[1050px] w-full overflow-hidden"
             />
         }
       />      <div className="container-main py-5 md:py-8 lg:py-10">
@@ -174,12 +174,12 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
                       </div>
                       <div className="relative aspect-[16/10] overflow-hidden bg-[#e9e3d8]">
                         <Image 
-                          src={getArticleCoverSrc(item.cover_image)} 
+                          src={getArticleCoverSrc(item.cover_image, undefined, item.source)} 
                           alt={item.title} 
                           fill 
                           sizes="(max-width: 768px) 100vw, 33vw"
                           className="object-cover transition duration-500 group-hover:scale-[1.05]" 
-                          unoptimized={getArticleCoverSrc(item.cover_image).endsWith('.svg') || !isRemoteImageOptimizable(getArticleCoverSrc(item.cover_image))}
+                          unoptimized={getArticleCoverSrc(item.cover_image, undefined, item.source).endsWith('.svg') || !isRemoteImageOptimizable(getArticleCoverSrc(item.cover_image, undefined, item.source))}
                         />
                       </div>
                       <div className="flex-1">

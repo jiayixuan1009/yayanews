@@ -22,6 +22,7 @@ import TopicMoreArticles from '@/components/TopicMoreArticles';
 import { siteConfig, type Article } from '@yayanews/types';
 import { sanitizeHtml } from '@/lib/sanitize';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
+import { articleHasRealCover, getArticleCoverSrc } from '@/lib/article-image';
 
 import { createMetadata, buildNewsArticleJsonLd } from '@yayanews/seo';
 
@@ -80,7 +81,9 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
   const related = await getRelatedArticles(article.id, article.category_id, 5);
   const { prev, next } = await getAdjacentArticles(article.id);
   const articleUrl = `${siteConfig.siteUrl}/article/${article.slug}`;
-  const coverOpt = article.cover_image ? isRemoteImageOptimizable(article.cover_image) : false;
+  const hasCover = articleHasRealCover(article.cover_image, article.source);
+  const coverSrc = getArticleCoverSrc(article.cover_image, params.lang, article.source);
+  const coverOpt = hasCover ? isRemoteImageOptimizable(coverSrc) : false;
   const sameCategory =
     article.category_slug != null
       ? (await getPublishedArticles(params.lang, 8, 0, article.category_slug)).filter((a: Article) => a.id !== article.id)
@@ -200,11 +203,11 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
               </section>
             ) : null}
 
-            {article.cover_image ? (
+            {hasCover ? (
               <figure className="mt-6 overflow-hidden rounded-yn-md border border-[#ddd5ca] bg-white">
                 <div className="relative aspect-[16/9]">
                   <Image
-                    src={article.cover_image}
+                    src={coverSrc}
                     alt={article.title}
                     fill
                     sizes="(max-width: 1024px) 100vw, 48rem"

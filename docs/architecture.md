@@ -52,33 +52,42 @@
 
 | 进程名 | 类型 | 入口 | 功能 |
 |--------|------|------|------|
-| `yayanews` | Node.js | `.next/standalone/server.js` | Web 前端 |
-| `yaya-pipeline-daemon` | Python | `pipeline.run_daemon` | 管线调度 |
-| `yaya-finnhub-ws` | Python | `pipeline.daemon.finnhub_ws_flash` | 实时数据 |
-| `yaya-ws-gateway` | Node.js | `src/ws-server.js` | WebSocket 广播 |
-| `yaya-pipeline-worker` | Python | `pipeline.worker` | RQ Worker |
+| `yayanews` | Node.js | `apps/web/.next/standalone/.../server.js` | Web 前端 (3002) |
+| `yaya-admin` | Node.js | `apps/admin/.next/standalone/.../server.js` | 管理后台 (3003) |
+| `yaya-pipeline-daemon` | Python | `pipeline/run_daemon.py` | 管线调度 |
+| `yaya-finnhub-ws` | Python | `pipeline/daemon/finnhub_ws_flash` | 实时数据 |
+| `yaya-ws-gateway` | Node.js | `apps/ws-server/dist/server.js` | WebSocket 广播 |
+| `yaya-worker-flash` | Python | `pipeline/worker.py` ×4 | RQ Flash Worker |
+| `yaya-worker-articles` | Python | `pipeline/worker.py` ×6 | RQ Articles Worker |
 
 ## 目录结构
 
 ```
 yayanews-production/
-├── src/                  # Next.js 前端源码
-│   ├── app/              #   App Router 页面
-│   │   ├── [lang]/       #     i18n 路由 (zh/en)
-│   │   ├── admin/        #     管理后台
-│   │   └── api/          #     API 路由
-│   ├── components/       #   React 组件
-│   ├── lib/              #   工具库 (db, queries, types)
-│   └── dictionaries/     #   i18n 翻译文件
-├── pipeline/             # Python 内容管线
-│   ├── agents/           #   6 个处理 Agent
-│   ├── config/           #   管线配置
-│   ├── daemon/           #   常驻守护进程
-│   ├── utils/            #   工具 (db, llm, logger)
-│   ├── tools/            #   辅助工具 (PSI, benchmark)
-│   └── migrations/       #   数据库迁移脚本（历史）
-├── deploy/               # 部署配置
-├── scripts/              # 工具脚本
-├── docs/                 # 项目文档
-└── public/               # 静态资源
+├── apps/
+│   ├── web/                # Next.js 前端 (ToC)
+│   │   └── src/
+│   │       ├── app/
+│   │       │   ├── [lang]/   # i18n 路由 (zh/en)
+│   │       │   └── api/      # API 路由
+│   │       ├── components/   # React 组件
+│   │       ├── lib/          # 工具库 (queries, utils)
+│   │       └── dictionaries/ # i18n 翻译文件
+│   ├── admin/              # Next.js 管理后台
+│   ├── pipeline/           # Python 内容管线
+│   │   └── pipeline/
+│   │       ├── agents/     #   处理 Agent
+│   │       ├── config/     #   配置
+│   │       ├── daemon/     #   常驻守护进程
+│   │       ├── tools/      #   辅助工具
+│   │       └── utils/      #   工具 (db, llm, logger)
+│   └── ws-server/          # WebSocket 实时推送网关
+├── packages/
+│   ├── database/           # PostgreSQL 抽象层
+│   ├── seo/                # SEO 元数据生成
+│   └── types/              # 共享类型定义
+├── infra/                  # Docker / 部署基础设施
+├── deploy/                 # 部署脚本
+├── scripts/                # 工具脚本
+└── docs/                   # 项目文档
 ```

@@ -44,7 +44,7 @@ function MarqueeRow({ items, title, reverse = false }: { items: TickerItem[], ti
   );
 }
 
-export default function LiveTicker({ title = '市场行情' }: { title?: string }) {
+export default function LiveTicker({ title = 'Live Ticker', tickerUs = 'US Markets', tickerApac = 'APAC', tickerCrypto = 'Crypto' }: { title?: string, tickerUs?: string, tickerApac?: string, tickerCrypto?: string }) {
   const [us, setUs] = useState<TickerItem[]>([]);
   const [apac, setApac] = useState<TickerItem[]>([]);
   const [crypto, setCrypto] = useState<TickerItem[]>([]);
@@ -128,9 +128,9 @@ export default function LiveTicker({ title = '市场行情' }: { title?: string 
   return (
     <div className="flex flex-col gap-[2px] text-[12px] relative w-full overflow-hidden mb-1 mt-1">
       <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
-      <MarqueeRow items={us} title="美股市场" />
-      <MarqueeRow items={apac} title="亚太股市" />
-      <MarqueeRow items={crypto} title="加密货币" />
+      <MarqueeRow items={us} title={tickerUs} />
+      <MarqueeRow items={apac} title={tickerApac} />
+      <MarqueeRow items={crypto} title={tickerCrypto} />
     </div>
   );
 }

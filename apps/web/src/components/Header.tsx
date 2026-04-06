@@ -41,7 +41,7 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
     <header className="sticky top-0 z-50 border-b border-[#ddd5ca] bg-[#f8f5f0]/96 shadow-[0_2px_12px_rgba(20,38,31,0.04)] backdrop-blur-md">
 
 
-      <div className="container-main grid min-h-[88px] grid-cols-[auto,1fr,auto] items-center gap-3 py-3 sm:min-h-[96px] sm:gap-4 sm:py-4">
+      <div className="container-main grid min-h-[64px] grid-cols-[auto,1fr,auto] items-center gap-3 py-2 sm:min-h-[96px] sm:gap-4 sm:py-4">
         <div className="hidden lg:flex items-center gap-3">
           <LocalizedLink href="/search" aria-label="搜索" className="inline-flex h-10 w-10 items-center justify-center border border-[#d8d1c5] text-[#101713] hover:border-[#bfb4a5] hover:text-[#1d5c4f]">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,7 +50,7 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
           </LocalizedLink>
           <a
             href={lang === 'en' ? pathname.replace(/^\/en/, '/zh') : pathname.replace(/^\/zh/, '/en')}
-            className="inline-flex h-10 px-3 items-center justify-center border border-[#d8d1c5] bg-white/50 text-[13px] font-medium text-[#101713] hover:border-[#bfb4a5] hover:text-[#1d5c4f] uppercase tracking-widest transition-colors"
+            className="inline-flex h-10 px-3 items-center justify-center border border-[#d8d1c5] bg-white/50 yn-action hover:border-[#bfb4a5] hover:text-[#1d5c4f] transition-colors"
           >
             {lang === 'en' ? '中' : 'EN'}
           </a>
@@ -59,7 +59,7 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
         <div className="min-w-0 text-center">
           <div className="inline-flex flex-col items-center">
             <BrandLogo variant="header" lang={lang} />
-            <span className="mt-1.5 font-label text-[10px] uppercase tracking-[0.22em] text-[#667067] whitespace-nowrap">{dict.marketIntelligence || 'Market intelligence edition'}</span>
+            <span className="mt-1.5 yn-meta tracking-[0.22em] whitespace-nowrap hidden sm:block">{dict.marketIntelligence || 'Market intelligence edition'}</span>
           </div>
         </div>
 
@@ -81,16 +81,16 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
       <div className="hidden border-t border-[#e7dfd2] lg:block">
         <div className="container-main flex min-h-[54px] items-center justify-between">
           <nav className="flex items-center justify-start gap-7 lg:gap-10">
-            <LocalizedLink href="/" className={`border-b pb-1 text-[15px] ${isActive('/') ? 'border-[#14261f] font-medium text-[#101713]' : 'border-transparent text-[#5d635f] hover:text-[#101713]'}`}>{dict.home}</LocalizedLink>
-            <LocalizedLink href="/flash" className={`border-b pb-1 text-[15px] ${isActive('/flash') ? 'border-[#14261f] font-medium text-[#101713]' : 'border-transparent text-[#5d635f] hover:text-[#101713]'}`}>{dict.flash || '快讯'}</LocalizedLink>
-            <LocalizedLink href="/markets" className={`border-b pb-1 text-[15px] ${isActive('/markets') ? 'border-[#14261f] font-medium text-[#101713]' : 'border-transparent text-[#5d635f] hover:text-[#101713]'}`}>{dict.markets || '行情'}</LocalizedLink>
+            <LocalizedLink href="/" className={`yn-nav pb-1 border-b ${isActive('/') ? 'border-[#1d5c4f] text-[#1d5c4f]' : 'border-transparent'}`}>{dict.home}</LocalizedLink>
+            <LocalizedLink href="/flash" className={`yn-nav pb-1 border-b ${isActive('/flash') ? 'border-[#1d5c4f] text-[#1d5c4f]' : 'border-transparent'}`}>{dict.flash || '快讯'}</LocalizedLink>
+            <LocalizedLink href="/markets" className={`yn-nav pb-1 border-b ${isActive('/markets') ? 'border-[#1d5c4f] text-[#1d5c4f]' : 'border-transparent'}`}>{dict.markets || '行情'}</LocalizedLink>
             {ORDERED_NAV_CATEGORIES.filter(item => item.href !== '/flash' && item.href !== '/markets').slice(0, 5).map(item => {
               const slug = item.href.replace(/^\/(?:news\/)?/, '');
               return (
                 <LocalizedLink
                   key={item.href}
                   href={item.href}
-                  className={`border-b pb-1 text-[15px] ${isActive(item.href) ? 'border-[#14261f] font-medium text-[#101713]' : 'border-transparent text-[#5d635f] hover:text-[#101713]'}`}
+                  className={`yn-nav pb-1 border-b ${isActive(item.href) ? 'border-[#1d5c4f] text-[#1d5c4f]' : 'border-transparent'}`}
                 >
                   {dict[slug] || item.label}
                 </LocalizedLink>
@@ -98,8 +98,8 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
             })}
 
           </nav>
-          <div className="flex items-center gap-6 text-[13px] text-[#5d635f]">
-            <a href="/admin" className="flex items-center gap-1.5 border-b border-transparent pb-1 text-[15px] text-[#5d635f] transition-colors hover:text-[#101713]" title="管理后台">
+          <div className="flex items-center gap-6">
+            <a href="/admin" className="flex items-center gap-1.5 yn-nav pb-1 border-b border-transparent" title="管理后台">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -113,12 +113,12 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
       {mobileOpen && (
         <div className="border-t border-[#ddd5ca] bg-[#f8f5f0] md:hidden">
           <nav className="container-main flex flex-col gap-1 py-4">
-            <LocalizedLink href="/search" onClick={() => setMobileOpen(false)} className="mb-2 border border-[#d8d1c5] px-3 py-2 text-xs uppercase tracking-[0.16em] text-[#14261f]">
+            <LocalizedLink href="/search" onClick={() => setMobileOpen(false)} className="mb-2 border border-[#d8d1c5] px-3 py-2 yn-action text-[#14261f]">
               {dict.searchArchive || 'Search archive'}
             </LocalizedLink>
-            <LocalizedLink href="/" onClick={() => setMobileOpen(false)} className={`border-b border-[#e8e0d5] px-1 py-2.5 text-sm ${isActive('/') ? 'text-[#101713]' : 'text-[#5d635f] hover:text-[#101713]'}`}>{dict.home}</LocalizedLink>
-            <LocalizedLink href="/flash" onClick={() => setMobileOpen(false)} className={`border-b border-[#e8e0d5] px-1 py-2.5 text-sm ${isActive('/flash') ? 'text-[#101713]' : 'text-[#5d635f] hover:text-[#101713]'}`}>{dict.flash || '快讯'}</LocalizedLink>
-            <LocalizedLink href="/markets" onClick={() => setMobileOpen(false)} className={`border-b border-[#e8e0d5] px-1 py-2.5 text-sm ${isActive('/markets') ? 'text-[#101713]' : 'text-[#5d635f] hover:text-[#101713]'}`}>{dict.markets || '行情'}</LocalizedLink>
+            <LocalizedLink href="/" onClick={() => setMobileOpen(false)} className={`yn-nav block border-b border-[#e8e0d5] px-1 py-2.5 ${isActive('/') ? 'text-[#1d5c4f]' : ''}`}>{dict.home}</LocalizedLink>
+            <LocalizedLink href="/flash" onClick={() => setMobileOpen(false)} className={`yn-nav block border-b border-[#e8e0d5] px-1 py-2.5 ${isActive('/flash') ? 'text-[#1d5c4f]' : ''}`}>{dict.flash || '快讯'}</LocalizedLink>
+            <LocalizedLink href="/markets" onClick={() => setMobileOpen(false)} className={`yn-nav block border-b border-[#e8e0d5] px-1 py-2.5 ${isActive('/markets') ? 'text-[#1d5c4f]' : ''}`}>{dict.markets || '行情'}</LocalizedLink>
             {ORDERED_NAV_CATEGORIES.filter(item => item.href !== '/flash' && item.href !== '/markets').slice(0, 6).map(item => {
               const slug = item.href.replace(/^\/(?:news\/)?/, '');
               return (
@@ -126,7 +126,7 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
-                  className={`border-b border-[#e8e0d5] px-1 py-2.5 text-sm ${isActive(item.href) ? 'text-[#101713]' : 'text-[#5d635f] hover:text-[#101713]'}`}
+                  className={`yn-nav block border-b border-[#e8e0d5] px-1 py-2.5 ${isActive(item.href) ? 'text-[#1d5c4f]' : ''}`}
                 >
                   {dict[slug] || item.label}
                 </LocalizedLink>
@@ -137,7 +137,7 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`border-b border-[#e8e0d5] px-1 py-2.5 text-sm ${isActive(item.href) ? 'text-[#101713]' : 'text-[#5d635f] hover:text-[#101713]'}`}
+                className={`yn-nav block border-b border-[#e8e0d5] px-1 py-2.5 ${isActive(item.href) ? 'text-[#1d5c4f]' : ''}`}
               >
                 {dict[item.key] || item.key}
               </LocalizedLink>
@@ -145,7 +145,7 @@ export default function Header({ lang = 'zh', dict }: { lang?: string, dict: Rec
             <div className="mt-3 flex items-center gap-3">
               <a
                 href={lang === 'en' ? pathname.replace(/^\/en/, '/zh') : pathname.replace(/^\/zh/, '/en')}
-                className="inline-flex items-center justify-center border border-[#d8d1c5] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#101713]"
+                className="inline-flex items-center justify-center border border-[#d8d1c5] px-4 py-2 yn-action text-[#101713]"
               >
                 {lang === 'en' ? '中文' : 'English'}
               </a>

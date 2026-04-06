@@ -68,7 +68,7 @@ export default async function CategoryPage({
   const flashMini = await getFlashNews(params.lang, 6);
 
   const lead = featured ?? null;
-  const featureCover = lead ? getArticleCoverSrc(lead.cover_image) : null;
+  const featureCover = lead ? getArticleCoverSrc(lead.cover_image, undefined, lead.source) : null;
   const featureCoverOpt = featureCover ? isRemoteImageOptimizable(featureCover) : false;
 
   return (
@@ -162,7 +162,7 @@ export default async function CategoryPage({
                   {/* Secondary (2 items stacked) */}
                   <div className="md:col-span-1 flex flex-col gap-6">
                     {secondary.map(item => {
-                      const cover = getArticleCoverSrc(item.cover_image);
+                      const cover = getArticleCoverSrc(item.cover_image, undefined, item.source);
                       const opt = isRemoteImageOptimizable(cover);
                       return (
                         <LocalizedLink key={item.id} href={`/article/${item.slug}`} className="group flex flex-col gap-3">
@@ -185,7 +185,7 @@ export default async function CategoryPage({
                 {tertiary.length > 0 && (
                   <section className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-8 border-b border-[#ddd5ca] pb-8">
                     {tertiary.map(item => {
-                      const cover = getArticleCoverSrc(item.cover_image);
+                      const cover = getArticleCoverSrc(item.cover_image, undefined, item.source);
                       const opt = isRemoteImageOptimizable(cover);
                       return (
                         <LocalizedLink key={item.id} href={`/article/${item.slug}`} className="group flex flex-col gap-3 relative sm:border-r border-[#ece4d9] sm:pr-6 last:border-r-0 last:pr-0">

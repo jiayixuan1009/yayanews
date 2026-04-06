@@ -45,6 +45,9 @@
     "spotlightTitle": "政治光谱",
     "moreArticlesBtn": "查看更多资讯",
     "liveTicker": "实时行情",
+    "tickerUs": "美股市场",
+    "tickerApac": "亚太股市",
+    "tickerCrypto": "加密货币",
     "mascotDesc": "我们把高频市场噪声整理成更适合阅读的判断顺序：先脉络，再证据，最后是动作信号。",
     "noLead": "头条稿件准备中",
     "readDigest": "阅读摘要",
@@ -74,7 +77,14 @@
   },
   "flash": {
     "metaSuffix": "7x24速递",
-    "viewSource": "查看原文来源"
+    "viewSource": "查看原文来源",
+    "pageTitle": "7×24 快讯",
+    "pageSubtitle": "全球金融市场 7×24 小时实时资讯，持续更新",
+    "sseLive": "实时推送已连接 · ",
+    "countdownSuffix": "s 后兜底刷新",
+    "lastUpdate": "上次更新: ",
+    "allCategories": "全部",
+    "noFlash": "暂无快讯"
   },
   "categoryMeta": {
     "us-stock": {
@@ -148,6 +158,14 @@
     "moreRelated": "更多相关",
     "tagTitle": "标签",
     "totalCount": "共 {count} 篇相关资讯"
+  },
+  "topics": {
+    "pageTitle": "热门专题",
+    "pageDesc": "持续追踪市场重大事件，沉淀深度知识图谱。",
+    "allTopics": "全部专题",
+    "articleCount": "{count} 篇报道",
+    "readTopic": "阅读专题 →",
+    "noTopics": "暂无专题"
   },
   "footer": {
     "desc": "YayaNews 是领先的专业金融新闻资讯平台，为您提供全球财经动态、加密货币快讯、深度市场分析及投资指南。",
