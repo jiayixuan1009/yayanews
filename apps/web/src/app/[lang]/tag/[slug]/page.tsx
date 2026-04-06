@@ -22,11 +22,13 @@ export async function generateMetadata({ params }: { params: { slug: string; lan
   const tag = await getTagBySlug(decodedSlug);
   if (!tag) return {};
   const isZh = params.lang !== 'en';
+  const articleCount = await getArticleCountByTagSlug(decodedSlug);
   return createMetadata({
     title: isZh ? `标签：${tag.name}` : `Tag: ${tag.name}`,
     description: isZh ? `浏览与「${tag.name}」相关的 YayaNews 资讯稿件` : `Browse YayaNews articles related to #${tag.name}`,
     url: `/tag/${decodedSlug}`,
     lang: params.lang as 'zh' | 'en',
+    noIndex: articleCount < 3, // P1 SEO: thin tag pages (< 3 articles) excluded from index pool
   });
 }
 

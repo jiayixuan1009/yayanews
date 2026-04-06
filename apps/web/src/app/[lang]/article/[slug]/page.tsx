@@ -24,7 +24,7 @@ import { sanitizeHtml } from '@/lib/sanitize';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
 import { articleHasRealCover, getArticleCoverSrc } from '@/lib/article-image';
 
-import { createMetadata, buildNewsArticleJsonLd } from '@yayanews/seo';
+import { createMetadata, buildNewsArticleJsonLd, buildBreadcrumbJsonLd } from '@yayanews/seo';
 
 export async function generateMetadata({ params }: { params: { slug: string; lang: string } }): Promise<Metadata> {
   const article = await getArticleBySlug(params.slug) as (Article & { sibling_slug?: string }) | undefined;
@@ -153,6 +153,16 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
                   ·
                 </span>
                 <time dateTime={article.published_at ?? undefined}>{formatDate(article.published_at)}</time>
+                {article.updated_at && article.updated_at !== article.published_at ? (
+                  <>
+                    <span className="text-slate-400" aria-hidden>
+                      ·
+                    </span>
+                    <span className="text-slate-500">
+                      {dict.article.updatedAt || '更新'}: <time dateTime={article.updated_at}>{formatDate(article.updated_at)}</time>
+                    </span>
+                  </>
+                ) : null}
                 <span className="text-slate-400" aria-hidden>
                   ·
                 </span>
@@ -403,6 +413,19 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(buildNewsArticleJsonLd(article, articleTopic)),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(buildBreadcrumbJsonLd([
+            { name: dict.nav.home, url: `/${params.lang}` },
+            { name: dict.nav.newsSection, url: `/${params.lang}/news` },
+            ...(article.category_name && article.category_slug
+              ? [{ name: article.category_name, url: `/${params.lang}/news/${article.category_slug}` }]
+              : []),
+            { name: article.title, url: `/${params.lang}/article/${article.slug}` },
+          ])),
         }}
       />
     </div>
