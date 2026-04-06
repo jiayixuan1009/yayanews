@@ -116,7 +116,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
             <BreakingStreamBlock
               items={flashStream}
               title={dict.home.flashTitle}
-              emptyText={dict.news.noFlash || '暂无快讯'}
+              emptyText={dict.news.noFlash}
               actionLabel={dict.common.all || '全部'}
               lang={lang}
               className="flex-none h-[400px] sm:h-[600px] xl:h-[1050px] w-full overflow-hidden"
