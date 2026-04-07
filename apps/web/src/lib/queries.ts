@@ -164,15 +164,6 @@ export async function getFlashNews(lang: string = 'zh', limit = 50, categorySlug
       WHERE c.slug = $1 AND f.lang = $2
       ORDER BY f.published_at DESC LIMIT $3::int
     `, [categorySlug, lang, limit]) as FlashNews[];
-    if (list.length === 0 && lang !== 'zh') {
-      list = await db.queryAll(`
-        SELECT f.*, c.name as category_name
-        FROM flash_news f
-        LEFT JOIN categories c ON f.category_id = c.id
-        WHERE c.slug = $1 AND f.lang = 'zh'
-        ORDER BY f.published_at DESC LIMIT $2::int
-      `, [categorySlug, limit]) as FlashNews[];
-    }
     return list.map(formatArticleDates);
   }
   let list2 = await db.queryAll(`
@@ -182,15 +173,6 @@ export async function getFlashNews(lang: string = 'zh', limit = 50, categorySlug
     WHERE f.lang = $1
     ORDER BY f.published_at DESC LIMIT $2::int
   `, [lang, limit]) as FlashNews[];
-  if (list2.length === 0 && lang !== 'zh') {
-    list2 = await db.queryAll(`
-      SELECT f.*, c.name as category_name
-      FROM flash_news f
-      LEFT JOIN categories c ON f.category_id = c.id
-      WHERE f.lang = 'zh'
-      ORDER BY f.published_at DESC LIMIT $1::int
-    `, [limit]) as FlashNews[];
-  }
   return list2.map(formatArticleDates);
 }
 
