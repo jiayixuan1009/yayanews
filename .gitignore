@@ -64,4 +64,8 @@ remote-nominate.js
 output.html
 temp_remote_env.txt
 .env.remote_bak
+fix_limits.js
+
+# ── 管道运行时 ──
+apps/pipeline/data/*.txt
 scripts/playground/
