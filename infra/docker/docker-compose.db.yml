@@ -11,7 +11,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-yayanews_super}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ChangeThisToUncrackablePassword123!}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Jia1009al$}
       POSTGRES_DB: ${POSTGRES_DB:-yayanews}
     command: >
       postgres 
