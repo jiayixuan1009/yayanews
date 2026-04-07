@@ -7,6 +7,13 @@ CREATE TABLE IF NOT EXISTS tags (
     id SERIAL PRIMARY KEY, name TEXT NOT NULL UNIQUE,
     slug TEXT NOT NULL UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS topics (
+    id SERIAL PRIMARY KEY, title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE,
+    description TEXT, cover_image TEXT,
+    status TEXT DEFAULT 'active',
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 CREATE TABLE IF NOT EXISTS articles (
     id SERIAL PRIMARY KEY, title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE,
     summary TEXT, content TEXT NOT NULL, cover_image TEXT,
@@ -32,13 +39,7 @@ CREATE TABLE IF NOT EXISTS flash_news (
     published_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     collected_at TIMESTAMP, lang TEXT DEFAULT 'zh' NOT NULL
 );
-CREATE TABLE IF NOT EXISTS topics (
-    id SERIAL PRIMARY KEY, title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE,
-    description TEXT, cover_image TEXT,
-    status TEXT DEFAULT 'active',
-    sort_order INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+
 CREATE TABLE IF NOT EXISTS topic_articles (
     topic_id INTEGER REFERENCES topics(id) ON DELETE CASCADE,
     article_id INTEGER REFERENCES articles(id) ON DELETE CASCADE,
@@ -99,8 +100,8 @@ INSERT INTO categories (name, slug, description, sort_order) VALUES
 ('港股', 'hk-stock', '港股市场资讯', 4)
 ON CONFLICT (slug) DO NOTHING;
 
--- enable pgvector
-CREATE EXTENSION IF NOT EXISTS vector;
+-- enable pgvector (Bypassed for native Windows PG without pgvector DLL)
+-- CREATE EXTENSION IF NOT EXISTS vector;
 
 -- add missing columns to articles
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS sentiment TEXT;
@@ -110,8 +111,15 @@ ALTER TABLE articles ADD COLUMN IF NOT EXISTS source TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_url TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS subcategory TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES articles(id) ON DELETE CASCADE;
-ALTER TABLE articles ADD COLUMN IF NOT EXISTS embedding vector(1536);
+-- ALTER TABLE articles ADD COLUMN IF NOT EXISTS embedding vector(1536);
 
 -- add missing columns to flash_news
 ALTER TABLE flash_news ADD COLUMN IF NOT EXISTS subcategory TEXT;
-ALTER TABLE flash_news ADD COLUMN IF NOT EXISTS embedding vector(1536);
+-- ALTER TABLE flash_news ADD COLUMN IF NOT EXISTS embedding vector(1536);
+
+-- add missing columns for Next.js queries (fixes 3515754433 Server-Side Error)
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS audit_status TEXT DEFAULT 'approved';
+ALTER TABLE topics ADD COLUMN IF NOT EXISTS name_zh TEXT;
+ALTER TABLE topics ADD COLUMN IF NOT EXISTS name_en TEXT;
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS name_zh TEXT;
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS name_en TEXT;
