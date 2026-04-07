@@ -11,6 +11,9 @@ npm ci
 echo "🐍 Installing Python dependencies..."
 pip install -r apps/pipeline/requirements.txt
 
+echo "🗄️ Updating Database Schema..."
+npm run db:init || echo "⚠️ Database init skipped or failed."
+
 echo "🔨 Building all workspaces..."
 npm run build
 
