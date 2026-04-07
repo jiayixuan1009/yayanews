@@ -66,7 +66,7 @@ export async function getPublishedArticles(lang: string = 'zh', limit = 20, offs
     params.push(articleType);
   }
 
-  sql += ` ORDER BY a.published_at DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}`;
+  sql += ` ORDER BY a.published_at DESC LIMIT $${paramIdx++}::int OFFSET $${paramIdx++}::int`;
   params.push(limit, offset);
 
   const articles = await db.queryAll<Article>(sql, params);
@@ -120,7 +120,7 @@ export async function getRelatedArticles(articleId: number, categoryId: number |
       FROM articles a
       LEFT JOIN categories c ON a.category_id = c.id
       WHERE a.id != $1 AND a.status = 'published' AND a.category_id = $2
-      ORDER BY a.published_at DESC LIMIT $3
+      ORDER BY a.published_at DESC LIMIT $3::int
     `, [articleId, categoryId, limit]) as Article[];
     return list.map(formatArticleDates);
   }
@@ -129,7 +129,7 @@ export async function getRelatedArticles(articleId: number, categoryId: number |
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
     WHERE a.id != $1 AND a.status = 'published'
-    ORDER BY a.published_at DESC LIMIT $2
+    ORDER BY a.published_at DESC LIMIT $2::int
   `, [articleId, limit]) as Article[];
   return list2.map(formatArticleDates);
 }
@@ -162,7 +162,7 @@ export async function getFlashNews(lang: string = 'zh', limit = 50, categorySlug
       FROM flash_news f
       LEFT JOIN categories c ON f.category_id = c.id
       WHERE c.slug = $1 AND f.lang = $2
-      ORDER BY f.published_at DESC LIMIT $3
+      ORDER BY f.published_at DESC LIMIT $3::int
     `, [categorySlug, lang, limit]) as FlashNews[];
     if (list.length === 0 && lang !== 'zh') {
       list = await db.queryAll(`
@@ -170,7 +170,7 @@ export async function getFlashNews(lang: string = 'zh', limit = 50, categorySlug
         FROM flash_news f
         LEFT JOIN categories c ON f.category_id = c.id
         WHERE c.slug = $1 AND f.lang = 'zh'
-        ORDER BY f.published_at DESC LIMIT $3
+        ORDER BY f.published_at DESC LIMIT $2::int
       `, [categorySlug, limit]) as FlashNews[];
     }
     return list.map(formatArticleDates);
@@ -180,7 +180,7 @@ export async function getFlashNews(lang: string = 'zh', limit = 50, categorySlug
     FROM flash_news f
     LEFT JOIN categories c ON f.category_id = c.id
     WHERE f.lang = $1
-    ORDER BY f.published_at DESC LIMIT $2
+    ORDER BY f.published_at DESC LIMIT $2::int
   `, [lang, limit]) as FlashNews[];
   if (list2.length === 0 && lang !== 'zh') {
     list2 = await db.queryAll(`
@@ -188,7 +188,7 @@ export async function getFlashNews(lang: string = 'zh', limit = 50, categorySlug
       FROM flash_news f
       LEFT JOIN categories c ON f.category_id = c.id
       WHERE f.lang = 'zh'
-      ORDER BY f.published_at DESC LIMIT $2
+      ORDER BY f.published_at DESC LIMIT $1::int
     `, [limit]) as FlashNews[];
   }
   return list2.map(formatArticleDates);
@@ -256,7 +256,7 @@ export async function getTopicBySlug(
     LEFT JOIN categories c ON a.category_id = c.id
     WHERE a.topic_id = $1 AND a.status = 'published' AND a.published_at <= NOW()
     ORDER BY a.published_at DESC
-    LIMIT $2 OFFSET $3
+    LIMIT $2::int OFFSET $3::int
   `, [topic.id, pageSize, offset]);
 
   // \u6587\u7ae0\u603b\u6570
@@ -385,7 +385,7 @@ export async function getPopularTags(limit = 15): Promise<Tag[]> {
     JOIN article_tags at ON t.id = at.tag_id
     GROUP BY t.id
     ORDER BY usage_count DESC
-    LIMIT $1
+    LIMIT $1::int
   `, [limit]) as Tag[];
 
   if (tags.length < limit) {
@@ -424,7 +424,7 @@ export async function getPublishedArticlesByTagSlug(tagSlug: string, limit = 48,
     LEFT JOIN categories c ON a.category_id = c.id
     WHERE t.slug = $1 AND a.status = 'published'
     ORDER BY a.published_at DESC
-    LIMIT $2 OFFSET $3
+    LIMIT $2::int OFFSET $3::int
   `,
     [tagSlug, limit, offset]
   );
@@ -471,7 +471,7 @@ export async function getTagsForSitemap(): Promise<{ slug: string; updated_at: s
 export async function getGuides(limit = 20): Promise<Guide[]> {
   try {
     return await db.queryAll<Guide>(
-      'SELECT * FROM guides ORDER BY sort_order, created_at DESC LIMIT $1', [limit]
+      'SELECT * FROM guides ORDER BY sort_order, created_at DESC LIMIT $1::int', [limit]
     );
   } catch {
     return [];
@@ -494,7 +494,7 @@ export async function searchArticles(query: string, limit = 20): Promise<Article
     LEFT JOIN categories c ON a.category_id = c.id
     WHERE a.status = 'published'
       AND (a.title ILIKE $1 OR a.summary ILIKE $2 OR a.content ILIKE $3)
-    ORDER BY a.published_at DESC LIMIT $4
+    ORDER BY a.published_at DESC LIMIT $4::int
   `, [q, q, q, limit]) as Article[];
   return articles.map(formatArticleDates);
 }
