@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>鸭鸭财经 · 系统维护中 | YayaNews · Under Maintenance</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Noto Sans SC', sans-serif;
+    background: #f8f5f0;
+    color: #1b201d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+  .card{
+    max-width: 520px;
+    width: 100%;
+    text-align: center;
+    background: white;
+    border: 1px solid #e9e2d6;
+    padding: 3rem 2.5rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,.06);
+  }
+  .logo-wrap{
+    width: 64px; height: 64px;
+    margin: 0 auto 1.5rem;
+    border-radius: 50%;
+    border: 2px solid #8fcb79;
+    background: rgba(145,247,142,.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse{
+    0%,100%{box-shadow: 0 0 0 0 rgba(145,247,142,.4)}
+    50%{box-shadow: 0 0 0 12px rgba(145,247,142,0)}
+  }
+  .logo-wrap svg{width:36px;height:36px;fill:#1d5c4f}
+  .code{
+    font-size: .75rem;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: #1d5c4f;
+    font-weight: 600;
+    margin-bottom: .5rem;
+  }
+  h1{
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: .5rem;
+  }
+  .sub{
+    font-size: .9375rem;
+    line-height: 1.7;
+    color: #667067;
+    margin-bottom: 2rem;
+  }
+  .divider{
+    border: none;
+    border-top: 1px solid #e9e2d6;
+    margin: 1.5rem 0;
+  }
+  .en{
+    color: #8a8f8b;
+    font-size: .85rem;
+    line-height: 1.65;
+  }
+  .status{
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .75rem;
+    font-weight: 500;
+    color: #1d5c4f;
+    background: #eef6f3;
+    border: 1px solid #cfe1d9;
+    padding: .35rem .8rem;
+    border-radius: 999px;
+    margin-top: 1.5rem;
+  }
+  .dot{width:6px;height:6px;border-radius:50%;background:#1d5c4f;animation:blink 1.4s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+  .footer{
+    margin-top: 2rem;
+    font-size: .7rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #aaa;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-wrap">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <path d="M50 10c-22 0-40 14-40 32 0 12 8 22 20 28l-4 18 16-10c3 1 5 1 8 1 22 0 40-14 40-32S72 10 50 10z"/>
+        <circle cx="38" cy="38" r="4" fill="white"/>
+        <circle cx="58" cy="38" r="4" fill="white"/>
+      </svg>
+    </div>
+    <p class="code">503 · Service Unavailable</p>
+    <h1>系统维护中</h1>
+    <p class="sub">
+      鸭鸭财经正在进行例行维护或版本升级，<br>
+      服务将尽快恢复，感谢您的耐心等待。
+    </p>
+    <hr class="divider">
+    <p class="en">
+      YayaNews is currently undergoing scheduled maintenance.<br>
+      We'll be back shortly — thank you for your patience.
+    </p>
+    <div class="status">
+      <span class="dot"></span>
+      Maintenance in progress
+    </div>
+    <p class="footer">yayanews.cryptooptiontool.com</p>
+  </div>
+</body>
+</html>

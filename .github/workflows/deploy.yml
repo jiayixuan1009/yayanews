@@ -1,0 +1,31 @@
+name: Deploy to Production
+
+on:
+  push:
+    tags:
+      - 'v*'    # 推送 v 开头的 tag 时触发
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd /var/www/yayanews
+
+            echo "🏷️ Deploying tag: ${{ github.ref_name }}"
+            echo "📦 Pulling latest code..."
+            git fetch --all --tags
+            git checkout ${{ github.ref_name }}
+
+            echo "🚀 Running deploy script..."
+            bash deploy/publish-yayanews.sh
+
+            echo "✅ Deployment complete: ${{ github.ref_name }}"

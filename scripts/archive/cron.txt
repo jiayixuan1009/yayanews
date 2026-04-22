@@ -1,0 +1,2 @@
+0 */2 * * * cd /var/www/yayanews && bash infra/scripts/backup-db.sh >> /var/log/yayanews-backup.log 2>&1
+*/2 * * * * bash /var/www/yayanews/scripts/yaya-watchdog.sh

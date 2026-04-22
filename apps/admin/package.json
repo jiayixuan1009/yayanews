@@ -1,0 +1,32 @@
+{
+  "name": "@yayanews/admin",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -H 0.0.0.0 -p 3003",
+    "build": "next build",
+    "start": "next start -H 0.0.0.0 -p 3003",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@yayanews/database": "*",
+    "@yayanews/types": "*",
+    "@google-analytics/data": "^5.2.1",
+    "next": "^14.2.35",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^3.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.37",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.0",
+    "dotenv": "^16.4.5",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.4.0"
+  }
+}

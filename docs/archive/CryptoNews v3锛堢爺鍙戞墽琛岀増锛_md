@@ -1,0 +1,909 @@
+# A. CryptoNews v3（研发执行版）
+
+> 版本：v3.0
+> 类型：研发执行文档
+> 面向对象：产品、研发、测试、设计、运营
+> 目标：指导 P0 / P1 / P2 开发落地
+
+---
+
+## 1. 项目目标
+
+CryptoNews v3 的首要目标不是做一个“内容很多的网站”，而是先跑通以下闭环：
+
+1. 用户可以消费内容
+2. 用户可以查看行情
+3. 用户可以在站内完成二跳
+4. 平台可以承接 SEO 流量
+5. 平台可以挂载基础商业转化能力
+
+---
+
+## 2. 开发范围
+
+### 2.1 P0 必做
+
+#### 前台
+
+* 首页
+* 文章详情页
+* 分类页
+* 标签页
+* 作者页
+* 搜索页
+* 行情列表页
+* 价格详情页
+* Guide 页
+
+#### 用户
+
+* 注册 / 登录
+* 收藏
+* 评论
+* 个人中心
+* 我的收藏
+
+#### 后台
+
+* 文章管理
+* 审核队列
+* 关键词管理
+* Campaign 管理
+
+#### 商业化
+
+* CTA 模块
+* Referral Link 接入
+* Click Log
+
+#### SEO
+
+* metadata
+* canonical
+* JSON-LD
+* sitemap
+* robots
+
+---
+
+### 2.2 P1 增强
+
+* 热榜系统
+* article_views / search_events
+* 专题增强
+* 相关推荐优化
+* CTA 归因增强
+
+---
+
+### 2.3 P2 自动化
+
+* content_sources
+* raw_contents
+* ai_drafts
+* editorial_reviews
+* worker / cron
+* 自动标签建议
+* 自动专题归类
+
+---
+
+## 3. 页面清单
+
+### 公共页面
+
+```text
+/
+ /markets
+ /price/[slug]
+ /news
+ /article/[slug]
+ /category/[slug]
+ /tag/[slug]
+ /topics
+ /topics/[slug]
+ /author/[id]
+ /guide/[slug]
+ /search?q=
+```
+
+### 用户页面
+
+```text
+/login
+/register
+/profile
+/profile/favorites
+```
+
+### 后台页面
+
+```text
+/admin/dashboard
+/admin/articles
+/admin/reviews
+/admin/keywords
+/admin/campaigns
+```
+
+---
+
+## 4. 目录结构
+
+```text
+src/
+├── app/
+│   ├── (main)/
+│   │   ├── page.tsx
+│   │   ├── markets/
+│   │   │   └── page.tsx
+│   │   ├── price/
+│   │   │   └── [slug]/
+│   │   │       └── page.tsx
+│   │   ├── news/
+│   │   ├── article/
+│   │   │   └── [slug]/
+│   │   ├── category/
+│   │   │   └── [slug]/
+│   │   ├── tag/
+│   │   │   └── [slug]/
+│   │   ├── topics/
+│   │   │   ├── page.tsx
+│   │   │   └── [slug]/
+│   │   ├── author/
+│   │   │   └── [id]/
+│   │   ├── guide/
+│   │   │   └── [slug]/
+│   │   ├── search/
+│   │   └── profile/
+│   ├── (auth)/
+│   │   ├── login/
+│   │   └── register/
+│   ├── admin/
+│   ├── api/
+│   └── sitemap.ts
+├── components/
+├── lib/
+├── hooks/
+├── types/
+└── configs/
+```
+
+---
+
+## 5. 核心模块说明
+
+### 5.1 首页
+
+职责：
+
+* 展示今日热点
+* 承接内容入口
+* 承接行情入口
+* 分发专题和 CTA
+
+组件建议：
+
+* MarketTicker
+* HeroSection
+* LatestArticles
+* TopicSection
+* CTASection
+
+---
+
+### 5.2 文章详情页
+
+职责：
+
+* 内容阅读主场景
+* 承担 SEO 承接
+* 承担二跳分发
+* 挂载 CTA
+
+组件建议：
+
+* ArticleHeader
+* ArticleBody
+* ArticleTags
+* RelatedArticles
+* Comments
+* SidebarCTA
+
+---
+
+### 5.3 行情列表页
+
+职责：
+
+* 展示市场概览
+* 分发到单币详情页
+
+组件建议：
+
+* MarketFilters
+* CoinTable
+* Pagination / InfiniteScroll
+
+---
+
+### 5.4 价格详情页
+
+职责：
+
+* 承接高意图用户
+* 连接行情和内容
+* 挂载高转化 CTA
+
+组件建议：
+
+* CoinHero
+* PriceChart
+* MarketStats
+* RelatedNews
+* CTASection
+
+---
+
+### 5.5 专题页
+
+职责：
+
+* 聚合同主题内容
+* 提升站内结构化沉淀
+* 承接搜索流量
+
+组件建议：
+
+* TopicHeader
+* Timeline
+* TopicArticles
+* RelatedTags
+* RelatedCoins
+
+---
+
+### 5.6 Guide 页
+
+职责：
+
+* 承接常青搜索流量
+* 补全非时效内容资产
+
+---
+
+## 6. 数据模型
+
+### 6.1 用户与权限
+
+#### profiles
+
+* id
+* email
+* nickname
+* avatar
+* bio
+* role
+* status
+* created_at
+* updated_at
+
+说明：
+
+* `email` 为 `auth.users.email` 的镜像字段
+* 不作为唯一真源
+
+#### authors
+
+* id
+* user_id
+* name
+* bio
+* avatar
+* social_links
+* is_verified
+* created_at
+* updated_at
+
+---
+
+### 6.2 内容
+
+#### categories
+
+* id
+* slug
+* name
+* description
+* sort_order
+
+#### tags
+
+* id
+* slug
+* name
+* description
+* article_count
+
+#### topics
+
+* id
+* slug
+* name
+* description
+* status
+
+#### articles
+
+* id
+* slug
+* title
+* summary
+* content
+* cover_image
+* author_id
+* category_id
+* status
+* is_featured
+* is_original
+* published_at
+* reviewed_by
+* updated_reason
+* fact_checked
+* editor_note
+* view_count
+* like_count
+* comment_count
+* created_at
+* updated_at
+
+约束：
+
+* `author_id -> authors.id`
+* `reviewed_by -> profiles.id`
+
+#### article_tags
+
+* article_id
+* tag_id
+
+#### article_topics
+
+* article_id
+* topic_id
+
+#### guides
+
+* id
+* slug
+* title
+* summary
+* content
+* status
+* author_id
+* published_at
+
+---
+
+### 6.3 互动
+
+#### comments
+
+* id
+* article_id
+* user_id
+* parent_id
+* content
+* status
+* created_at
+
+#### favorites
+
+* id
+* user_id
+* article_id
+* created_at
+
+#### likes
+
+* id
+* user_id
+* article_id
+* type
+* created_at
+
+---
+
+### 6.4 行情
+
+#### coins
+
+* id
+* slug
+* symbol
+* name
+* logo
+* description
+* market_cap_rank
+
+#### price_snapshots
+
+* id
+* coin_id
+* price
+* market_cap
+* volume_24h
+* change_24h
+* captured_at
+
+#### price_history
+
+* id
+* coin_id
+* interval
+* price
+* captured_at
+
+---
+
+### 6.5 埋点
+
+#### article_views
+
+* id
+* article_id
+* user_id
+* session_id
+* source
+* created_at
+
+#### search_events
+
+* id
+* keyword
+* user_id
+* result_count
+* clicked_result
+* created_at
+
+---
+
+### 6.6 商业化
+
+#### campaigns
+
+* id
+* name
+* slug
+* type
+* status
+* start_at
+* end_at
+* created_at
+
+#### referral_links
+
+* id
+* campaign_id
+* title
+* url
+* placement
+* click_count
+* conversion_count
+
+#### click_logs
+
+* id
+* referral_link_id
+* user_id
+* session_id
+* source_page
+* created_at
+
+---
+
+### 6.7 自动化
+
+#### content_sources
+
+* id
+* name
+* type
+* url
+* status
+
+#### raw_contents
+
+* id
+* source_id
+* title
+* content
+* external_url
+* published_at
+
+#### ai_drafts
+
+* id
+* raw_content_id
+* title
+* summary
+* content
+* status
+* created_at
+
+#### editorial_reviews
+
+* id
+* article_id
+* reviewer_id
+* decision
+* comment
+* created_at
+
+---
+
+## 7. 状态设计
+
+### 7.1 文章状态
+
+统一使用：
+
+* `draft`
+* `pending_review`
+* `approved`
+* `published`
+* `archived`
+
+说明：
+
+* AI 生成状态不进入 `articles.status`
+* AI 内部状态放在 `ai_drafts.status`
+
+---
+
+### 7.2 Campaign 状态
+
+* `draft`
+* `active`
+* `paused`
+* `ended`
+
+---
+
+### 7.3 评论状态
+
+* `pending`
+* `approved`
+* `rejected`
+
+---
+
+## 8. API 规范
+
+### 8.1 统一响应格式
+
+```ts
+interface ApiResponse<T> {
+  success: boolean
+  data: T | null
+  error?: {
+    code: string
+    message: string
+  }
+}
+```
+
+要求：
+
+* 不允许返回 `null` 直接代替完整响应对象
+* 所有失败都必须有 `error.code`
+* 前后端按同一约定处理
+
+---
+
+### 8.2 API 列表
+
+#### 内容
+
+* `GET /api/articles`
+* `GET /api/articles/[slug]`
+* `POST /api/articles`
+* `PUT /api/articles/[id]`
+
+#### 行情
+
+* `GET /api/markets`
+* `GET /api/markets/[slug]`
+
+#### 搜索
+
+* `GET /api/search`
+
+#### 专题
+
+* `GET /api/topics`
+* `GET /api/topics/[slug]`
+
+#### 商业化
+
+* `GET /api/campaigns`
+* `POST /api/click`
+
+#### Webhook
+
+* `POST /api/webhooks/ai-draft`
+* `POST /api/webhooks/market-sync`
+
+---
+
+## 9. 实现规范
+
+### 9.1 路由规范
+
+统一使用：
+
+* 列表页：`/markets`
+* 详情页：`/price/[slug]`
+
+禁止同时存在：
+
+* `/markets/[symbol]`
+* `/price/[symbol]`
+
+---
+
+### 9.2 Metadata 规范
+
+页面函数：
+
+```ts
+export async function generateMetadata() {}
+```
+
+工具函数命名：
+
+```ts
+buildPageMetadata()
+```
+
+避免命名冲突。
+
+---
+
+### 9.3 Supabase Client 规范
+
+如果 server client 为 async 封装，则统一写法：
+
+```ts
+const supabase = await createClient()
+```
+
+禁止混用同步和异步调用方式。
+
+---
+
+### 9.4 Admin Client 规范
+
+`service_role` 只允许在 server-only 环境使用：
+
+* 不进入 client component
+* 不暴露给浏览器
+* 不通过序列化 props 透传
+
+---
+
+### 9.5 Count 字段规范
+
+以下字段均为缓存聚合字段：
+
+* view_count
+* like_count
+* comment_count
+* article_count
+* click_count
+* conversion_count
+
+事实源为：
+
+* article_views
+* likes
+* comments
+* click_logs
+
+维护方式：
+
+* trigger
+* cron
+* batch aggregation
+
+---
+
+## 10. 权限与安全
+
+### 10.1 角色
+
+* user
+* author
+* editor
+* admin
+
+### 10.2 权限
+
+#### user
+
+* 查看公开内容
+* 评论
+* 收藏
+* 点赞
+
+#### author
+
+* 创建和编辑自己的内容
+
+#### editor
+
+* 审核内容
+* 管理标签 / 专题 / 发布状态
+
+#### admin
+
+* 管理所有内容和用户
+* 管理 campaign
+* 管理系统配置
+
+---
+
+### 10.3 RLS
+
+原则：
+
+* 私有数据表必须启用 RLS
+* 公共内容表必须写 public select policy
+* 未启用 RLS 的表不写空 policy
+
+建议显式启用 RLS 的表：
+
+* profiles
+* articles
+* comments
+* favorites
+* likes
+* article_views
+* search_events
+
+---
+
+## 11. SEO 研发要求
+
+每个页面必须支持：
+
+* title
+* description
+* canonical
+* og tags
+* twitter card
+
+文章页必须支持：
+
+* NewsArticle JSON-LD
+* 作者信息
+* 发布时间
+* 更新时间
+
+聚合页必须支持：
+
+* 唯一标题
+* 简介文案
+* 内链分发
+
+---
+
+## 12. 埋点要求
+
+### 必埋
+
+* page_view
+* article_view
+* article_favorite
+* article_comment
+* search_submit
+* search_result_click
+* price_page_view
+* cta_impression
+* cta_click
+* referral_click
+
+### 分析目标
+
+必须能回答：
+
+* 哪些页面最能带来二跳
+* 哪些专题最能留存
+* 哪些价格页最能带来 CTA 点击
+* 哪些搜索词无结果但高频
+
+---
+
+## 13. 任务拆解建议
+
+### 13.1 前端组
+
+* 路由与布局
+* 首页
+* 文章页
+* 行情页
+* 价格页
+* 专题页
+* Guide 页
+* 登录/个人中心
+* Admin 页面
+
+### 13.2 后端组
+
+* Supabase schema
+* API routes
+* Auth & RLS
+* 搜索接口
+* 行情聚合接口
+* click tracking
+* 埋点写入
+
+### 13.3 数据 / 自动化
+
+* article_views aggregation
+* market sync job
+* AI draft webhook
+* campaign click logs
+* sitemap refresh
+
+### 13.4 QA
+
+* 登录态
+* RLS 权限
+* SEO metadata
+* CTA 链接准确性
+* 异常响应一致性
+
+---
+
+## 14. 里程碑
+
+### P0（4~6 周）
+
+* 内容主链路
+* 行情主链路
+* 基础后台
+* SEO 基础
+* 商业化基础接入
+
+### P1（3~4 周）
+
+* 热榜
+* 埋点增强
+* 专题增强
+* Guide 扩展
+* CTA 归因增强
+
+### P2（4~6 周）
+
+* 自动化接入
+* AI Draft
+* 内容源接入
+* 自动标签 / 专题归类
+
+---
+
+## 15. 交付标准
+
+P0 完成标准：
+
+* 用户可完成内容阅读
+* 用户可查看行情
+* 搜索可用
+* 收藏 / 评论可用
+* Admin 可管理文章与 campaign
+* CTA 点击可追踪
+* SEO 页面可索引
+
+---
+

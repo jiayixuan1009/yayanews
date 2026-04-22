@@ -1,0 +1,10 @@
+{
+  "name": "@yayanews/pipeline",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Python data pipeline and AI workers",
+  "scripts": {
+    "dev": "node ../../infra/scripts/start-pipeline.mjs",
+    "start": "node ../../infra/scripts/start-pipeline.mjs"
+  }
+}
