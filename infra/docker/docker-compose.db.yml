@@ -1,0 +1,51 @@
+
+
+# ==========================================================
+# Server B (数据中心专用节点) - Docker Compose 架构
+# 用途：只提供底层数据持久化与缓存通道，与应用节点的资源消耗彻底断绝！
+# ==========================================================
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: yayanews_postgres_storage
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-yayanews_super}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-<REDACTED>}
+      POSTGRES_DB: ${POSTGRES_DB:-yayanews}
+    command: >
+      postgres 
+      -c shared_buffers=256MB 
+      -c work_mem=16MB 
+      -c maintenance_work_mem=64MB
+    ports:
+      # ⚠️ 如果两台阿里云 VPC 内网互通，直接暴漏 5432；
+      # 必须在阿里云安全组限制来源 IP 只有 Server A！
+      - "5432:5432"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-yayanews_super} -d ${POSTGRES_DB:-yayanews}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G # 适配 2GB 内存的主机：留出 1G 供给了底层 OS 和 Redis 运转
+
+  redis:
+    image: redis:7-alpine
+    container_name: yayanews_redis_storage
+    restart: always
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:-<REDACTED>}
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy volatile-lru
+    ports:
+      # 同理，必须依托阿里云安全组防御勒索病毒，仅 VPC 白名单通信
+      - "6379:6379"
+    volumes:
+      - ./redisdata:/data

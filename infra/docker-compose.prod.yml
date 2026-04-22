@@ -1,0 +1,30 @@
+# 生产：宿主机 127.0.0.1:3000 → 容器内 Next.js PORT=3002（与 infra/Dockerfile、ecosystem.config.cjs 一致）
+#
+# 数据库：PostgreSQL（见根目录 .env 的 DATABASE_URL）。初始化请用 npm run db:init / db:seed，勿依赖 SQLite。
+#
+# 必须在仓库根目录执行（保证 build.context 解析为项目根）：
+#   docker compose -f infra/docker-compose.prod.yml up -d --build
+#
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+      args:
+        NEXT_PUBLIC_SITE_URL: https://yayanews.cryptooptiontool.com
+        NEXT_PUBLIC_PARENT_SITE: https://www.biyapay.com
+        NEXT_PUBLIC_TRADING_SITE: https://invest.biyapay.com
+        # DATABASE_URL must NOT be a build arg - it is injected at runtime only
+    image: yayanews:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3002"
+    environment:
+      NEXT_PUBLIC_SITE_URL: https://yayanews.cryptooptiontool.com
+      NEXT_PUBLIC_PARENT_SITE: https://www.biyapay.com
+      NEXT_PUBLIC_TRADING_SITE: https://invest.biyapay.com
+      DATABASE_URL: postgresql://yayanews:yayanews_master@host.docker.internal:5432/yayanews
+      PORT: "3002"
+      HOSTNAME: "0.0.0.0"
+    env_file:
+      - ../.env

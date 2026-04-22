@@ -1,0 +1,67 @@
+name: 🚀 Standalone Run-ability Smoke
+
+on:
+  pull_request:
+    paths:
+      - 'ecosystem.config.cjs'
+      - '.env.example'
+      - 'package.json'
+  push:
+    branches: [ main ]
+    paths:
+      - 'ecosystem.config.cjs'
+      - '.env.example'
+      - 'package.json'
+
+jobs:
+  smoke-sandbox:
+    name: 架构唤醒测试 (PM2 模拟器)
+    runs-on: ubuntu-latest
+    
+    # 因为这是测试项目起不来的根本，需要真实依赖进行健康探测
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: fakeuser
+          POSTGRES_PASSWORD: fakepassword
+          POSTGRES_DB: yayanews
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    env:
+      DATABASE_URL: "postgresql://fakeuser:fakepassword@127.0.0.1:5432/yayanews"
+      REDIS_URL: "redis://127.0.0.1:6379"
+      SKIP_DB_INIT: "true"
+
+    steps:
+      - name: 收取全局基建环境
+        uses: actions/checkout@v4
+
+      - name: 搭建物联网环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.17.x'
+
+      - name: 重度构建 (Standalone化生成)
+        run: |
+          npm ci
+          npm run build
+
+      - name: 短命唤醒 (Dry Run Server)
+        # 绝杀：直接挂后台用脱水 server 起包。如果有遗漏的环境变量或挂壁逻辑，这里 1 秒钟就报错。
+        run: |
+          PORT=3002 node apps/web/.next/standalone/apps/web/server.js & 
+          # 给服务器留两秒呼吸（启动）
+          sleep 2
+          # 如果服务器没起稳或者崩了，这句 Curl (只获取返回头) 就会返回非零码从而炸伤这个 Job
+          curl -I --fail http://localhost:3002
