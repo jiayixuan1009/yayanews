@@ -23,13 +23,13 @@ def normalize_flash_batch(items: list[dict], target_lang: str) -> list[dict]:
         return []
 
     # 构造极简的输入集以节省Token，并保留内部排序索引
+    # 注意：不传 summary，避免 LLM 输出膨胀导致超 max_tokens 被截断
     input_list = []
     for idx, it in enumerate(items):
         input_list.append({
-            "_internal_idx": idx, # 用于事后映射原属性 (如果需要)
+            "_internal_idx": idx,
             "title": it.get("title", ""),
             "content": it.get("content", ""),
-            "summary": it.get("summary", ""),
             "channel": it.get("channel", "unknown"),
         })
 
@@ -45,18 +45,35 @@ def normalize_flash_batch(items: list[dict], target_lang: str) -> list[dict]:
             system_prompt=SYSTEM_PROMPT,
             user_prompt=user_prompt,
             temperature=0.1,  # 低温，严谨风格
-            max_tokens=4000
+            max_tokens=8192
         )
         
         # 解析 JSON 防御
         start_idx = raw_response.find("[")
         end_idx = raw_response.rfind("]")
-        if start_idx == -1 or end_idx == -1:
+        if start_idx == -1:
             log.error(f"Normalizer failed to output JSON array for {target_lang}. Response preview: {repr(raw_response[:400])}")
             return []
-            
-        json_str = raw_response[start_idx:end_idx+1]
-        results = json.loads(json_str)
+
+        if end_idx == -1 or end_idx < start_idx:
+            # 响应被 max_tokens 截断，无结尾 ]，尝试恢复已完成的条目
+            log.warning(f"Normalizer response truncated for {target_lang} (no closing ]), attempting partial recovery")
+            partial = raw_response[start_idx:]
+            last_obj_end = partial.rfind("}")
+            if last_obj_end == -1:
+                log.error(f"Normalizer: no complete objects found for {target_lang}")
+                return []
+            # 拼上缺失的 ]，并去掉末尾可能残留的逗号
+            candidate = partial[:last_obj_end + 1].rstrip().rstrip(",") + "]"
+            try:
+                results = json.loads(candidate)
+                log.warning(f"Normalizer [{target_lang}]: partial recovery succeeded, got {len(results)} items")
+            except json.JSONDecodeError as exc:
+                log.error(f"Normalizer partial recovery failed for {target_lang}: {exc}")
+                return []
+        else:
+            json_str = raw_response[start_idx:end_idx + 1]
+            results = json.loads(json_str)
 
         final_items = []
         for r in results:
