@@ -52,7 +52,7 @@ def normalize_flash_batch(items: list[dict], target_lang: str) -> list[dict]:
         start_idx = raw_response.find("[")
         end_idx = raw_response.rfind("]")
         if start_idx == -1 or end_idx == -1:
-            log.error(f"Normalizer failed to output JSON array for {target_lang}")
+            log.error(f"Normalizer failed to output JSON array for {target_lang}. Response preview: {repr(raw_response[:400])}")
             return []
             
         json_str = raw_response[start_idx:end_idx+1]
