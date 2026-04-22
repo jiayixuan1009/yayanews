@@ -103,12 +103,12 @@ module.exports = {
       cwd: path.join(root, "apps", "pipeline"),
       script: "pipeline/worker.py",
       interpreter: pythonBin,
-      instances: 2,
+      instances: 1, // 快讯单 worker 足够，从 2 降到 1 节省内存
       autorestart: true,
       exp_backoff_restart_delay: 100,
       max_restarts: 30,
       min_uptime: "10s",
-      max_memory_restart: "500M",
+      max_memory_restart: "300M",
       kill_timeout: 10000,
       env: { ...mergedEnv, RQ_QUEUES: "yayanews:flash" },
     },
@@ -117,12 +117,12 @@ module.exports = {
       cwd: path.join(root, "apps", "pipeline"),
       script: "pipeline/worker.py",
       interpreter: pythonBin,
-      instances: 3,
+      instances: 2, // 部署用 pm2 reload，禁止重复 pm2 start（否则实例叠加导致内存爆炸）
       autorestart: true,
       exp_backoff_restart_delay: 100,
       max_restarts: 30,
       min_uptime: "10s",
-      max_memory_restart: "500M",
+      max_memory_restart: "300M", // 从 500M 降到 300M，更快触发单进程重启而非全局 OOM
       kill_timeout: 10000,
       env: { ...mergedEnv, RQ_QUEUES: "yayanews:articles:high,yayanews:articles:default,yayanews:articles:low,yayanews:articles" },
     }
