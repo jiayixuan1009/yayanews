@@ -35,8 +35,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   return baseMeta;
 }
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+// ISR: topic detail pages; new articles in a topic surface within 3min.
+export const revalidate = 180;
 
 export default async function TopicDetailPage({ params, searchParams }: Props) {
   const page = Math.max(1, parseInt(searchParams.page || '1', 10));

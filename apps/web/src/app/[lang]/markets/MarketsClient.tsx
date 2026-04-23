@@ -258,9 +258,11 @@ export default function MarketsClient() {
   }, []);
 
   const fetchCryptoData = useCallback(async () => {
+    // Route through server proxy: adds API key, enforces 60s ISR cache,
+    // avoids client-side 429 rate limits from CoinGecko free tier.
     const [coinsRes, globalRes] = await Promise.all([
-      fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=true&price_change_percentage=7d', { cache: 'no-store' }),
-      fetch('https://api.coingecko.com/api/v3/global', { cache: 'no-store' }),
+      fetch('/api/markets/coingecko?endpoint=coins/markets&vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=true&price_change_percentage=7d'),
+      fetch('/api/markets/coingecko?endpoint=global'),
     ]);
     const coins = coinsRes.ok ? await coinsRes.json() : [];
     if (globalRes.ok) {
