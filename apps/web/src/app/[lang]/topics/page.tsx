@@ -19,7 +19,8 @@ export function generateMetadata({ params: { lang } }: { params: { lang: 'zh' | 
   });
 }
 
-export const revalidate = 0;
+// ISR: topic list changes slowly; 2min cache keeps TTFB low.
+export const revalidate = 120;
 
 export default async function TopicsPage({ params: { lang } }: { params: { lang: string } }) {
   const dict = await getDictionary(lang);

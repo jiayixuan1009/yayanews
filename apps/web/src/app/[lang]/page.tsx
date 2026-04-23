@@ -55,7 +55,9 @@ const LiveTicker = dynamic(() => import('@/components/LiveTicker'), {
   ),
 });
 
-export const revalidate = 0;
+// ISR: revalidate every 60s. Real-time freshness is delivered via SSE
+// (SiteLiveSubscriber / BreakingStreamBlock), so caching SSR is safe.
+export const revalidate = 60;
 
 export default async function HomePage({ params: { lang } }: { params: { lang: string } }) {
   const locale = lang === 'en' ? 'en' : 'zh';
