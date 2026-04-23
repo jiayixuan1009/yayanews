@@ -1,7 +1,7 @@
 import { getDictionary } from '@/lib/dictionaries';
 import LocalizedLink from '@/components/LocalizedLink';
 import type { Metadata } from 'next';
-import { createMetadata, buildOrganizationJsonLd, buildWebSiteJsonLd } from '@yayanews/seo';
+import { createMetadata, buildOrganizationJsonLd, buildWebSiteJsonLd, buildItemListJsonLd } from '@yayanews/seo';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { getArticleCoverSrc } from '@/lib/article-image';
@@ -337,6 +337,10 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(buildOrganizationJsonLd(locale)) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(buildItemListJsonLd(articles.slice(0, 10), locale)) }}
       />
     </>
   );
