@@ -226,7 +226,7 @@ export default function FlashPageClient({ initialCat, lang = 'zh', flashDict }: 
                 : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900'
             }`}
           >
-            {lang === 'en' ? ((c as unknown as Record<string, unknown>).name_en as string | undefined || c.name) : c.name}
+            {lang === 'en' ? (c.name_en || c.name) : c.name}
           </button>
         ))}
       </div>

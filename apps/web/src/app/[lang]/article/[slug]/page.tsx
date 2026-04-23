@@ -105,7 +105,7 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
       : [];
   const moreRead = sameCategory.slice(0, 4);
   // 从文章自己的 topic_id 获取所属专题（含同专题最新3篇文章）
-  const topicId = (article as any).topic_id as number | null | undefined;
+  const topicId = article.topic_id as number | null | undefined;
   const articleTopic = await getArticleTopic(article.id, topicId);
   const sentiment = getSentimentLabel(article.sentiment);
   const tickers = article.tickers

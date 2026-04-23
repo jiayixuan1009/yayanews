@@ -23,15 +23,15 @@ const LocalizedLink = forwardRef<HTMLAnchorElement, LocalizedLinkProps>(
     const currentLang = paramLang || pathLang || 'zh';
     
     // If href is a string and starts with /, prepend the lang
-    let localizedHref = href;
+    let localizedHref: LinkProps['href'] = href;
     if (typeof href === 'string') {
       if (href.startsWith('/')) {
         localizedHref = `/${currentLang}${href}`;
       }
     } else if (href && typeof href === 'object') {
-      const hrefObj = href as any;
-      if (hrefObj.pathname?.startsWith('/')) {
-        localizedHref = { ...hrefObj, pathname: `/${currentLang}${hrefObj.pathname}` };
+      const urlObj = href as { pathname?: string } & Record<string, unknown>;
+      if (urlObj.pathname?.startsWith('/')) {
+        localizedHref = { ...urlObj, pathname: `/${currentLang}${urlObj.pathname}` };
       }
     }
 
