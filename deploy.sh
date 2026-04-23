@@ -1,30 +1,24 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+# Root deployment entrypoint. Kept as a thin wrapper so existing docs/cron
+# entries that reference ./deploy.sh continue to work, but the real logic
+# (backup, health check, rollback) lives in infra/deploy/publish-yayanews.sh.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REAL_SCRIPT="$SCRIPT_DIR/infra/deploy/publish-yayanews.sh"
+
+if [[ ! -x "$REAL_SCRIPT" ]]; then
+    if [[ -f "$REAL_SCRIPT" ]]; then
+        chmod +x "$REAL_SCRIPT"
+    else
+        echo "FATAL: $REAL_SCRIPT not found." >&2
+        exit 1
+    fi
+fi
 
 echo "=========================================="
-echo "    YayaNews Production Deploy Script     "
+echo "  YayaNews Production Deploy (delegating)"
+echo "  -> $REAL_SCRIPT"
 echo "=========================================="
 
-echo "[1/4] Pulling latest code from main..."
-git pull origin main
-
-echo "[2/4] Installing Node dependencies..."
-npm install
-
-echo "[3/4] Building Workspace & Copying Standalone..."
-# 必须在根目录执行 npm run build，以触发 infra/scripts/copy-standalone.mjs
-npm run build
-
-echo "[4/4] Restarting PM2 processes..."
-# 因为静态资源 chunk 发生了改变，web 必须用 restart 彻底清空旧内存，避免 ChunkLoadError
-pm2 restart yayanews
-# 其他后台服务可用 reload 实现零停机
-pm2 reload yaya-admin || echo "yaya-admin reload failed, skipping"
-pm2 reload yaya-ws-gateway || echo "yaya-ws-gateway reload failed, skipping"
-pm2 reload yaya-worker-flash || echo "workers reload failed"
-pm2 reload yaya-worker-articles || echo "workers reload failed"
-pm2 reload yaya-pipeline-daemon || echo "daemon reload failed"
-
-echo "=========================================="
-echo "      Deployment Complete! ✅             "
-echo "=========================================="
+exec "$REAL_SCRIPT" "$@"

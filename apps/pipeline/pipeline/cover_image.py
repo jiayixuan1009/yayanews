@@ -37,13 +37,15 @@
 from __future__ import annotations
 
 import html as html_lib
+import ipaddress
 import re
 import os
+import socket
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 import requests
 
@@ -131,12 +133,62 @@ def _abs_url(url: str, base: str | None) -> str:
     return url
 
 
+def _ssrf_block_reason(url: str) -> str | None:
+    """Return a non-None string if the URL should be blocked for SSRF reasons.
+
+    Blocks: non-http(s) schemes, hosts that resolve to loopback/link-local/
+    private/reserved IPs, and IPv6 equivalents. Used for external fetches
+    (source page crawl, image download).
+    """
+    try:
+        parsed = urlparse(url)
+    except Exception as exc:  # pragma: no cover - defensive
+        return f"URL 无法解析: {exc}"
+
+    scheme = (parsed.scheme or "").lower()
+    if scheme not in ("http", "https"):
+        return f"scheme 不允许: {scheme or '(empty)'}"
+
+    host = parsed.hostname
+    if not host:
+        return "缺少 host"
+
+    # Resolve all A/AAAA records; if ANY is private/loopback/link-local, block.
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror as exc:
+        return f"DNS 解析失败: {exc}"
+
+    for info in infos:
+        addr = info[4][0]
+        # Strip IPv6 zone index if present
+        addr = addr.split("%", 1)[0]
+        try:
+            ip = ipaddress.ip_address(addr)
+        except ValueError:
+            continue
+        if (
+            ip.is_loopback
+            or ip.is_link_local
+            or ip.is_private
+            or ip.is_reserved
+            or ip.is_multicast
+            or ip.is_unspecified
+        ):
+            return f"拒绝内网/受限地址: {host} -> {addr}"
+    return None
+
+
 def fetch_cover_from_source_url(url: str, timeout: float = 15.0) -> CoverResult:
     """GET 信源页面并尝试解析封面图。"""
+    blocked = _ssrf_block_reason(url)
+    if blocked:
+        return CoverResult(None, "none", f"拒绝抓取: {blocked}")
     try:
         r = requests.get(
             url,
             timeout=timeout,
+            allow_redirects=True,
             headers={
                 "User-Agent": "YayaNewsCoverBot/1.0 (+pipeline; og:image)",
                 "Accept": "text/html,application/xhtml+xml",
@@ -332,12 +384,17 @@ def _openai_image_create_url(prompt: str, api_key: str, timeout: float = 120.0) 
 
 def _download_to_public_covers(image_url: str) -> str | None:
     """下载图片到 public/covers/generated/，返回站内路径 /covers/generated/xxx.png"""
+    blocked = _ssrf_block_reason(image_url)
+    if blocked:
+        print(f"[cover][ssrf] blocked download {image_url!r}: {blocked}")
+        return None
     GENERATED_COVERS_DIR.mkdir(parents=True, exist_ok=True)
     name = f"{uuid.uuid4().hex}.png"
     dest = GENERATED_COVERS_DIR / name
     r = requests.get(
         image_url,
         timeout=60,
+        allow_redirects=True,
         headers={"User-Agent": "YayaNewsCoverGen/1.0"},
     )
     r.raise_for_status()
