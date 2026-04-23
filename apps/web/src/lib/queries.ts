@@ -250,7 +250,8 @@ export async function getTopics(limit = 20): Promise<Topic[]> {
 export async function getTopicBySlug(
   slug: string,
   page = 1,
-  pageSize = 20
+  pageSize = 20,
+  lang?: string
 ): Promise<(Topic & { articles: Article[]; featured_articles: Article[]; total_count: number }) | undefined> {
   const topic = await db.queryGet<Topic>(
     `SELECT *, COALESCE(name_zh, title) as name_zh, COALESCE(name_en, title) as name_en
@@ -285,10 +286,10 @@ export async function getTopicBySlug(
       FROM topic_featured_articles tfa
       JOIN articles a ON a.id = tfa.article_id
       LEFT JOIN categories c ON a.category_id = c.id
-      WHERE tfa.topic_id = $1::int AND a.status = 'published' AND a.audit_status = 'approved'
+      WHERE tfa.topic_id = $1::int AND a.status = 'published' AND a.audit_status = 'approved'${lang ? ' AND a.lang = $2::text' : ''}
       ORDER BY tfa.sort_order ASC
       LIMIT 6
-    `, [topic.id]);
+    `, lang ? [topic.id, lang] : [topic.id]);
   } catch {
     // topic_featured_articles \u8868\u5c1a\u672a\u521b\u5efa\uff0c\u4f7f\u7528\u65e7\u7cbe\u9009\u6216\u6b22\u8fce\u4e3a\u7a7a
     featured = [];

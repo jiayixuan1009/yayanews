@@ -12,9 +12,9 @@ if (-not $env:YAYA_DEPLOY_KEY)  { throw 'YAYA_DEPLOY_KEY not set (path to SSH pr
 if (-not $env:YAYA_DEPLOY_PATH) { $env:YAYA_DEPLOY_PATH = '/var/www/yayanews' }
 
 $key        = $env:YAYA_DEPLOY_KEY
-$host       = $env:YAYA_DEPLOY_HOST
+$remoteHost = $env:YAYA_DEPLOY_HOST
 $remoteRoot = $env:YAYA_DEPLOY_PATH
-$server     = "${host}:${remoteRoot}"
+$server     = "${remoteHost}:${remoteRoot}"
 
 # accept-new 只在 known_hosts 缺失时接受新指纹，避免 MITM
 $sshOpts = @('-o', 'StrictHostKeyChecking=accept-new', '-i', $key)
@@ -27,7 +27,7 @@ function Copy-Remote {
 
 function Invoke-Remote {
     param([string]$Cmd)
-    & ssh @sshOpts $host $Cmd
+    & ssh @sshOpts $remoteHost $Cmd
     if ($LASTEXITCODE -ne 0) { throw "ssh failed: $Cmd" }
 }
 
