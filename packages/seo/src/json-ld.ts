@@ -185,3 +185,27 @@ export function buildWebSiteJsonLd(lang?: string): Record<string, any> {
   };
 }
 
+/**
+ * ItemList schema for the homepage "top stories" list.
+ * Google News uses this to qualify the site for Top Stories carousels
+ * and to understand editorial ranking of articles on the homepage.
+ */
+export function buildItemListJsonLd(
+  articles: Array<Pick<Article, 'slug' | 'title' | 'published_at'>>,
+  lang?: string,
+): Record<string, any> {
+  const loc = localePrefix(lang);
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListOrder: 'https://schema.org/ItemListOrderDescending',
+    numberOfItems: articles.length,
+    itemListElement: articles.map((a, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: `${siteConfig.siteUrl}${loc}/article/${a.slug}`,
+      name: a.title,
+    })),
+  };
+}
+

@@ -60,6 +60,8 @@ export default async function RootLayout({
         {/* Preconnect to external data APIs used by LiveTicker */}
         <link rel="dns-prefetch" href="https://api.coingecko.com" />
         <link rel="dns-prefetch" href="https://assets.coingecko.com" />
+        {/* RSS autodiscovery — advertises the news feed to browsers and crawlers */}
+        <link rel="alternate" type="application/rss+xml" title={`${siteConfig.siteName} — News Feed`} href="/feed-news.xml" />
       </head>
       <body className="flex min-h-screen flex-col bg-[#f6f3ee] font-body text-slate-900 overflow-x-hidden w-full">
         <Analytics />
