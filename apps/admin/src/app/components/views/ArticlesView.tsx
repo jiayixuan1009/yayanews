@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import type { Article } from '@yayanews/types';
 import { DERIVATIVES_SUBCATEGORIES } from '@yayanews/types';
 import { adminFetch } from '@/lib/admin-fetch';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 const CATEGORIES = [
   { slug: '', label: '全部分类' },
@@ -358,7 +359,7 @@ export default function ArticlesView() {
                     <h4 className="text-xs font-semibold text-slate-400 uppercase mb-2">正文内容</h4>
                     <div
                       className="prose prose-invert prose-sm max-w-none rounded-lg bg-slate-950 border border-slate-800 p-4 text-slate-300 leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: selected.content }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(selected.content) }}
                     />
                   </div>
 
