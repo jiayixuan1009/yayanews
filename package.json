@@ -19,6 +19,8 @@
     "lint": "npm run lint -w @yayanews/web && npm run lint -w @yayanews/admin",
     "db:init": "dotenv -e .env -- npm run db:init -w @yayanews/database",
     "db:seed": "dotenv -e .env -- npm run db:seed -w @yayanews/database",
+    "db:migrate": "dotenv -e .env -- npm run db:migrate -w @yayanews/database",
+    "db:migrate:status": "dotenv -e .env -- npm run db:migrate:status -w @yayanews/database",
     "db:restore:cloud-seed": "dotenv -e .env -- psql -v ON_ERROR_STOP=1 -f data/cloud_seed.sql",
     "db:report:seed": "node scripts/report-seed-en-stats.mjs",
     "db:restore:recommended": "node scripts/restore-recommended.mjs",

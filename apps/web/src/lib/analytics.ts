@@ -12,10 +12,19 @@
  *   import { trackOutbound, trackConversion, trackPageSection } from '@/lib/analytics';
  */
 
+type GtagFn = (...args: unknown[]) => void;
+
+declare global {
+  interface Window {
+    gtag?: GtagFn;
+    dataLayer?: unknown[];
+  }
+}
+
 /** GA4 gtag 安全调用包装，GA 未加载时静默跳过 */
-function gtag(...args: any[]) {
-  if (typeof window !== 'undefined' && typeof (window as any).gtag === 'function') {
-    (window as any).gtag(...args);
+function gtag(...args: unknown[]) {
+  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+    window.gtag(...args);
   }
 }
 

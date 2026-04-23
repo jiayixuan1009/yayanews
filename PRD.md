@@ -3,6 +3,12 @@
 > 内部会议同步文档 | 更新：2025-03-12（含：用户侧 SSE · PSI 入库 · 周报邮件 · §十五 未落地方案）  
 > **第一目标**：做全世界最快的中文金融新闻采集发布网站
 
+> ⚠️ **架构更新（2026-04）**：数据层已从 SQLite 全量迁移至 PostgreSQL（pgvector）。
+> 本文中提及 `SQLite` / `better-sqlite3` 的段落均为历史上下文，实际实现请参阅
+> [packages/database/schema.sql](packages/database/schema.sql)、
+> [packages/database/migrations/](packages/database/migrations/) 与
+> [docs/architecture.md](docs/architecture.md)。
+
 **给非技术同事**：下文表格里的英文多是工具名，可略读；每段开头的 **「本段概要」** 用白话说明这一段在讲什么、和您的工作有什么关系。
 
 ---
