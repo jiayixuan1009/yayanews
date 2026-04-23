@@ -41,7 +41,10 @@ export default function FlashList({ items: initialItems, compact = false, emptyT
               return [newFlash, ...prev].slice(0, 50);
             });
           }
-        } catch (e) {}
+        } catch (e) {
+          // Malformed WS frame — surface in dev so we notice schema drift, ignore in prod.
+          if (process.env.NODE_ENV !== 'production') console.warn('[FlashList] bad WS frame', e);
+        }
       };
       ws.onclose = () => {
         if (!cancelled) setTimeout(connect, 3000);
