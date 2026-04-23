@@ -30,7 +30,7 @@ export function generateMetadata({ params }: { params: { lang: string } }): Meta
 }
 
 export default async function SearchPage({ searchParams, params }: { searchParams: { q?: string }; params: { lang: string } }) {
-  const dict = await getDictionary(params.lang as any);
+  const dict = await getDictionary(params.lang);
   const query = searchParams.q?.trim() || '';
   const results = query ? await searchArticles(query) : [];
   const popularTags = !query ? await getPopularTags(20) : [];

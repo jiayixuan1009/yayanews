@@ -89,7 +89,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
     : [ { name: dict.nav.flash || '快讯', slug: 'flash', href: '/flash' }, ...restEntries.slice(0, pos), { name: dict.nav.ai || 'AI资讯', slug: 'ai', href: '/news/ai' }, ...restEntries.slice(pos)];
 
   const chipItems = categoryEntries.map(e => ({
-    name: (dict.nav as any)[e.slug] || e.name,
+    name: (dict.nav as Record<string, string>)[e.slug] || e.name,
     slug: e.slug,
     href: e.href,
   }));
@@ -108,7 +108,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
 
       <section className="border-b border-[#ddd5ca] bg-white/90">
         <div className="container-main py-2 text-sm">
-          <LiveTicker title={dict.home.liveTicker} tickerUs={(dict.home as any).tickerUs} tickerApac={(dict.home as any).tickerApac} tickerCrypto={(dict.home as any).tickerCrypto} />
+          <LiveTicker title={dict.home.liveTicker} tickerUs={(dict.home as Record<string, string>).tickerUs} tickerApac={(dict.home as Record<string, string>).tickerApac} tickerCrypto={(dict.home as Record<string, string>).tickerCrypto} />
         </div>
       </section>
       <HomeHeroEditorial
@@ -173,7 +173,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
                   {moreArticles.map(item => (
                     <LocalizedLink key={item.id} href={`/article/${item.slug}`} className="group flex flex-col gap-3 min-w-0">
                       <div className="text-[11px] uppercase tracking-[0.16em] text-[#1d5c4f] font-semibold">
-                        {item.category_name ? ((dict.nav as any)?.[item.category_slug || ''] || item.category_name) : 'Yaya Financial News'}
+                        {item.category_name ? ((dict.nav as Record<string, string>)?.[item.category_slug || ''] || item.category_name) : 'Yaya Financial News'}
                       </div>
                       <div className="relative aspect-[16/10] overflow-hidden bg-[#e9e3d8]">
                         <Image 
@@ -225,7 +225,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
                         {item.title}
                       </h3>
                       <div className="mt-2 flex flex-wrap gap-x-2 text-[11px] uppercase tracking-[0.16em] text-[#555a55]">
-                        <span>{(dict.nav as any)?.[item.category_slug || ''] || item.category_name || 'Yaya Financial News'}</span>
+                        <span>{(dict.nav as Record<string, string>)?.[item.category_slug || ''] || item.category_name || 'Yaya Financial News'}</span>
                         <span>{item.published_at?.slice(0, 10)}</span>
                       </div>
                     </LocalizedLink>

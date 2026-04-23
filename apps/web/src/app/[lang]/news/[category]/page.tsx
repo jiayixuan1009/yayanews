@@ -25,7 +25,7 @@ import { createMetadata, buildBreadcrumbJsonLd } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 
 export async function generateMetadata({ params }: { params: { category: string; lang: string } }): Promise<Metadata> {
-  const dict = await getDictionary(params.lang as any);
+  const dict = await getDictionary(params.lang);
   const meta = (dict as any).categoryMeta?.[params.category];
   if (!meta) return {};
   return createMetadata({
@@ -262,7 +262,7 @@ export default async function CategoryPage({
                         <span className="w-1.5 h-1.5 rounded-full bg-[#cc3333] shrink-0"></span>
                         <span className="yn-meta tabular-nums text-[#cc3333]">{f.published_at?.slice(11, 16) ?? '—'}</span>
                       </div>
-                      <LocalizedLink href={`/flash/${encodeFlashSlug(f as any)}`} className="group block">
+                      <LocalizedLink href={`/flash/${encodeFlashSlug(f)}`} className="group block">
                         <p className="text-[0.95rem] leading-relaxed text-[#14261f] group-hover:text-[#1d5c4f] transition-colors">{f.title}</p>
                       </LocalizedLink>
                     </li>

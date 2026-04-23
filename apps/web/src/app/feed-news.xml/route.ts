@@ -39,8 +39,8 @@ export async function GET() {
   const flashItems = recentFlashes.map(f => `
     <item>
       <title>${escapeXml(f.title)}</title>
-      <link>${escapeXml(`${siteConfig.siteUrl}/zh/flash/${encodeFlashSlug(f as any)}`)}</link>
-      <guid isPermaLink="true">${escapeXml(`${siteConfig.siteUrl}/zh/flash/${encodeFlashSlug(f as any)}`)}</guid>
+      <link>${escapeXml(`${siteConfig.siteUrl}/zh/flash/${encodeFlashSlug(f)}`)}</link>
+      <guid isPermaLink="true">${escapeXml(`${siteConfig.siteUrl}/zh/flash/${encodeFlashSlug(f)}`)}</guid>
       <pubDate>${new Date(f.published_at).toUTCString()}</pubDate>
       <author>${escapeXml(siteConfig.siteName)}</author>
       <description><![CDATA[${f.content || f.title}]]></description>

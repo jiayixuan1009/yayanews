@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: { params: { slug: string; lan
 export const revalidate = 60;
 
 export default async function FlashDetailPage({ params }: { params: { slug: string; lang: string } }) {
-  const dict = await getDictionary(params.lang as any);
+  const dict = await getDictionary(params.lang);
   const flashId = decodeFlashSlug(params.slug);
   if (!flashId) notFound();
 

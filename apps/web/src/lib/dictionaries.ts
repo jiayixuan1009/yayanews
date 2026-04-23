@@ -6,7 +6,20 @@ const dictionaries = {
 };
 
 export type Locale = keyof typeof dictionaries;
+export type Dictionary = Awaited<ReturnType<(typeof dictionaries)[Locale]>>;
 
-export const getDictionary = async (locale: Locale) => {
-  return dictionaries[locale]?.() ?? dictionaries.zh();
+function isLocale(value: string): value is Locale {
+  return value === 'en' || value === 'zh';
+}
+
+/**
+ * Load a locale dictionary. Accepts any string (e.g. `params.lang` from a
+ * dynamic Next.js route segment) and falls back to Chinese if the value is
+ * not a known locale. This keeps call sites free of `as any` casts.
+ */
+export const getDictionary = async (locale: string): Promise<Dictionary> => {
+  if (isLocale(locale)) {
+    return dictionaries[locale]();
+  }
+  return dictionaries.zh();
 };

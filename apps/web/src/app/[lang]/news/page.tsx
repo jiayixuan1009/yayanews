@@ -172,7 +172,7 @@ export default async function NewsPage({
                 <ul className="space-y-2.5">
                   {flashMini.map(f => (
                     <li key={f.id} className="border-b border-slate-800/80 pb-2.5 last:border-0 last:pb-0">
-                      <LocalizedLink href={`/flash/${encodeFlashSlug(f as any)}`} className="group block">
+                      <LocalizedLink href={`/flash/${encodeFlashSlug(f)}`} className="group block">
                         <span className="yn-meta tabular-nums group-hover:text-primary-400/70">{f.published_at?.slice(5, 16) ?? '—'}</span>
                         <p className="mt-0.5 line-clamp-2 text-sm font-medium leading-snug text-slate-200 group-hover:text-primary-400 transition-colors">{f.title}</p>
                       </LocalizedLink>
