@@ -136,7 +136,8 @@ module.exports = {
       max_restarts: 20,
       min_uptime: "10s",
       max_memory_restart: "400M",
-      env: mergedEnv,
+      // 显式注入 WS_PORT，避免 Nginx upstream 改端口后静默错位
+      env: { ...mergedEnv, WS_PORT: mergedEnv.WS_PORT || 3001 },
     },
     {
       name: "yaya-admin",
