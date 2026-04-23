@@ -87,3 +87,6 @@ patch_security.php
 reset_password.php
 try_catch_index.php
 scripts/maintenance/query_topics.js
+
+# Temporary credential redaction list (filter-repo)
+.git-redactions.txt
