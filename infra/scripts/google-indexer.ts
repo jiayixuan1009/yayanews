@@ -9,7 +9,10 @@ function getServiceAccountCredentials() {
   let envFile = '';
   try {
     envFile = fs.readFileSync(envPath, 'utf8');
-  } catch (err) {}
+  } catch (err) {
+    // Non-fatal: env may be supplied via process.env / GA4_CREDENTIALS_BASE64 etc.
+    console.warn('[google-indexer] env file not readable, falling back to process.env:', (err as Error).message);
+  }
 
   if (process.env.GA4_CREDENTIALS_BASE64) {
       return JSON.parse(Buffer.from(process.env.GA4_CREDENTIALS_BASE64, 'base64').toString('utf8'));

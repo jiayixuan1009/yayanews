@@ -59,7 +59,9 @@ export default function SiteLiveSubscriber() {
               });
             }
           }
-        } catch (e) {}
+        } catch (e) {
+          if (process.env.NODE_ENV !== 'production') console.warn('[SiteLiveSubscriber] bad WS frame', e);
+        }
       };
       ws.onclose = () => {
         if (!cancelled) setTimeout(connect, 3000);
