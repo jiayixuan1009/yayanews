@@ -10,18 +10,19 @@ services:
     container_name: yayanews_postgres_storage
     restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-yayanews_super}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-<REDACTED>}
-      POSTGRES_DB: ${POSTGRES_DB:-yayanews}
+      # 必须显式提供，缺失则容器启动失败（防止默认弱密码上线）
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB required}
     command: >
       postgres 
       -c shared_buffers=256MB 
       -c work_mem=16MB 
       -c maintenance_work_mem=64MB
     ports:
-      # ⚠️ 如果两台阿里云 VPC 内网互通，直接暴漏 5432；
-      # 必须在阿里云安全组限制来源 IP 只有 Server A！
-      - "5432:5432"
+      # 默认仅绑定 127.0.0.1，避免端口被公网直接探测到。
+      # 如需跨主机访问，请将 BIND_IP 设为内网 IP，并在云安全组中限制来源。
+      - "${BIND_IP:-127.0.0.1}:5432:5432"
     volumes:
       - ./pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -38,14 +39,17 @@ services:
     image: redis:7-alpine
     container_name: yayanews_redis_storage
     restart: always
+    environment:
+      # 显式必填，避免误用默认弱密码上线
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD required}
     command: >
       redis-server
-      --requirepass ${REDIS_PASSWORD:-<REDACTED>}
+      --requirepass ${REDIS_PASSWORD}
       --appendonly yes
       --maxmemory 256mb
       --maxmemory-policy volatile-lru
     ports:
-      # 同理，必须依托阿里云安全组防御勒索病毒，仅 VPC 白名单通信
-      - "6379:6379"
+      # 同 PG，默认仅绑回环；跨主机访问请显式 BIND_IP + 云安全组白名单
+      - "${BIND_IP:-127.0.0.1}:6379:6379"
     volumes:
       - ./redisdata:/data
