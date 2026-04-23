@@ -34,7 +34,7 @@ export default function SiteLiveSubscriber() {
                 duration: 6000,
                 action: data.payload.slug ? {
                   label: t.readNow,
-                  onClick: () => window.open(`/article/${data.payload.slug}`, '_blank'),
+                  onClick: () => window.open(`/${isEn ? 'en' : 'zh'}/article/${data.payload.slug}`, '_blank'),
                 } : undefined,
               });
             }

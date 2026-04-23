@@ -13,7 +13,7 @@ interface Props {
 }
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
-  const topic = await getTopicBySlug(params.slug, 1, 20);
+  const topic = await getTopicBySlug(params.slug, 1, 20, params.lang === 'en' ? 'en' : 'zh');
   if (!topic) return createMetadata({ title: params.lang === 'en' ? 'Topic Not Found' : '专题未找到', lang: params.lang as 'zh' | 'en' });
 
   const isZh = params.lang !== 'en';
@@ -29,7 +29,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     url: `/topics/${params.slug}`,
     image: topic.cover_image || undefined,
     lang: params.lang as 'zh' | 'en',
-    noIndex: topic.status === 'archive' || page > 1, // P2 SEO: archive + pagination noindex
+    noIndex: topic.status === 'archive' || page > 1 || (topic.total_count || 0) < 3, // P2 SEO: archive + pagination + thin (<3 articles in this lang) noindex
   });
 
   return baseMeta;
@@ -42,7 +42,7 @@ export default async function TopicDetailPage({ params, searchParams }: Props) {
   const page = Math.max(1, parseInt(searchParams.page || '1', 10));
   const pageSize = 20;
 
-  const topic = await getTopicBySlug(params.slug, page, pageSize);
+  const topic = await getTopicBySlug(params.slug, page, pageSize, params.lang === 'en' ? 'en' : 'zh');
 
   // draft → 404；topic 不存在 → 404
   if (!topic || topic.status === 'draft') notFound();

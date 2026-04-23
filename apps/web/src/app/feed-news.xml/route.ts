@@ -25,16 +25,22 @@ export async function GET() {
 
   const recentFlashes = flashes.filter(f => new Date(f.published_at) >= fortyEightHoursAgo);
 
-  const articleItems = articles.map(a => `
+  const articleItems = articles.map(a => {
+    // Per-article locale prefix — EN articles live at /en/article/..., sending them
+    // under /zh/article/... would 404 and create a redirect loop for crawlers.
+    const lang = a.lang === 'en' ? 'en' : 'zh';
+    const articleUrl = `${siteConfig.siteUrl}/${lang}/article/${a.slug}`;
+    return `
     <item>
       <title>${escapeXml(a.title)}</title>
-      <link>${escapeXml(`${siteConfig.siteUrl}/zh/article/${a.slug}`)}</link>
-      <guid isPermaLink="true">${escapeXml(`${siteConfig.siteUrl}/zh/article/${a.slug}`)}</guid>
+      <link>${escapeXml(articleUrl)}</link>
+      <guid isPermaLink="true">${escapeXml(articleUrl)}</guid>
       <pubDate>${new Date(a.published_at || a.created_at).toUTCString()}</pubDate>
       <author>${escapeXml(a.author || siteConfig.siteName)}</author>
       <description><![CDATA[${a.summary || a.title}]]></description>
       ${a.category_name ? `<category>${escapeXml(a.category_name)}</category>` : ''}
-    </item>`).join('');
+    </item>`;
+  }).join('');
 
   const flashItems = recentFlashes.map(f => `
     <item>
