@@ -19,5 +19,5 @@ export function generateMetadata({ params: { lang } }: { params: { lang: 'zh' | 
 
 export default async function FlashPage({ params, searchParams }: { params: { lang: 'zh' | 'en' }, searchParams: { cat?: string } }) {
   const dict = await getDictionary(params.lang);
-  return <FlashPageClient initialCat={searchParams.cat || ''} lang={params.lang} flashDict={(dict as any).flash} />;
+  return <FlashPageClient initialCat={searchParams.cat || ''} lang={params.lang} flashDict={dict.flash} />;
 }

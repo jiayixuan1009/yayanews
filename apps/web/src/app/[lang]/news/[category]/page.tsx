@@ -26,7 +26,7 @@ import { siteConfig } from '@yayanews/types';
 
 export async function generateMetadata({ params }: { params: { category: string; lang: string } }): Promise<Metadata> {
   const dict = await getDictionary(params.lang);
-  const meta = (dict as any).categoryMeta?.[params.category];
+  const meta = (dict.categoryMeta as Record<string, { title: string; desc: string; label?: string; quote?: string } | undefined>)?.[params.category];
   if (!meta) return {};
   return createMetadata({
     title: meta.title,
@@ -47,7 +47,7 @@ export default async function CategoryPage({
 }) {
   const locale = params.lang === 'en' ? 'en' : 'zh';
   const dict = await getDictionary(locale);
-  const meta = (dict as any).categoryMeta?.[params.category];
+  const meta = (dict.categoryMeta as Record<string, { title: string; desc: string; label?: string; quote?: string } | undefined>)?.[params.category];
   if (!meta) notFound();
 
   const depthFilter = searchParams.type || '';

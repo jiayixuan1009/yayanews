@@ -27,7 +27,7 @@ export default async function TopicsPage({ params: { lang } }: { params: { lang:
   const rawTopics = await getTopics(50);
   const topics = rawTopics.filter(t => (t.article_count || 0) > 0 && !(t.slug || '').toLowerCase().includes('sora'));
   const isZh = lang !== 'en';
-  const t = (dict as any).topics;
+  const t = dict.topics;
 
   return (
     <div className="container-main py-6 sm:py-8">
@@ -47,7 +47,7 @@ export default async function TopicsPage({ params: { lang } }: { params: { lang:
               const desc = isZh
                 ? (topic.description_zh || topic.description)
                 : (topic.description_en || topic.description);
-              const coverImg = topic.cover_image || (topic as any).latest_cover_image || null;
+              const coverImg = topic.cover_image || topic.latest_cover_image || null;
               return (
                 <LocalizedLink
                   key={topic.id}

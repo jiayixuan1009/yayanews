@@ -45,6 +45,8 @@ export interface Article {
   lang?: string;
   audit_status?: 'pending' | 'approved' | 'rejected';
   audit_reason?: string | null;
+  /** Many queries join this from topic_articles for list views. */
+  topic_id?: number | null;
 }
 
 export interface SubCategory {
@@ -111,6 +113,8 @@ export interface Topic {
   article_count?: number;
   created_at?: string;
   updated_at?: string;
+  /** Precomputed cover from the most recent article in this topic (query join). */
+  latest_cover_image?: string | null;
   /** 专题页从查询中附带的文章列表（兼容旧接口） */
   articles?: Article[];
   /** 精选文章列表（最多6条，来自 topic_featured_articles） */

@@ -1,4 +1,5 @@
 import type { Viewport } from 'next';
+import type { Metadata } from 'next';
 import { siteConfig } from '@yayanews/types';
 import { createMetadata, getSiteVerificationMeta } from '@yayanews/seo';
 import Header from '@/components/Header';
@@ -41,7 +42,7 @@ export function generateMetadata({ params }: { params: { lang: string } }) {
     url: '/',
     lang: locale,
   });
-  (meta as any).verification = getSiteVerificationMeta();
+  (meta as Metadata).verification = getSiteVerificationMeta();
   return meta;
 }
 
@@ -57,9 +58,13 @@ export default async function RootLayout({
   return (
     <html lang={locale} className={`${inter.variable} ${publicSans.variable} ${interTight.variable} ${notoSansSC.variable}`}>
       <head>
-        {/* Preconnect to external data APIs used by LiveTicker */}
-        <link rel="dns-prefetch" href="https://api.coingecko.com" />
-        <link rel="dns-prefetch" href="https://assets.coingecko.com" />
+        {/* Preconnect to external origins hit during critical path:
+            - assets.coingecko.com: coin logos rendered in LiveTicker (above the fold)
+            - api.coingecko.com: proxied market data (warm TLS before client fetch)
+            dns-prefetch for gtag only (loaded lazyOnload, so TLS warmup is lower priority) */}
+        <link rel="preconnect" href="https://assets.coingecko.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://api.coingecko.com" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         {/* RSS autodiscovery — advertises the news feed to browsers and crawlers */}
         <link rel="alternate" type="application/rss+xml" title={`${siteConfig.siteName} — News Feed`} href="/feed-news.xml" />
       </head>
