@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getNewsArticlesForNewsSitemap } from '@/lib/queries';
 import { siteConfig } from '@yayanews/types';
+import { log as baseLog } from '@/lib/logger';
+
+const log = baseLog.child({ route: '/sitemap-news.xml' });
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -117,7 +120,7 @@ export async function GET() {
       },
     });
   } catch (e) {
-    console.error('[sitemap-news.xml]', e);
+    log.error({ err: e }, 'sitemap-news generation failed');
     const xml = buildStandardHomeSitemapXml(baseUrl);
     return new NextResponse(xml, {
       status: 200,

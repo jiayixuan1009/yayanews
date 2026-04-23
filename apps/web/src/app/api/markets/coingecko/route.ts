@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { log as baseLog } from '@/lib/logger';
+
+const log = baseLog.child({ route: '/api/markets/coingecko' });
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -62,7 +65,7 @@ export async function GET(req: NextRequest) {
 
     if (!res.ok) {
       const text = await res.text();
-      console.error(`[CoinGecko proxy] ${endpoint} → HTTP ${res.status}: ${text.slice(0, 200)}`);
+      log.error({ endpoint, status: res.status, body: text.slice(0, 200) }, 'coingecko upstream error');
       return NextResponse.json({ error: `CoinGecko error ${res.status}` }, { status: res.status });
     }
 
@@ -71,7 +74,7 @@ export async function GET(req: NextRequest) {
       headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' },
     });
   } catch (err: unknown) {
-    console.error('[CoinGecko proxy] fetch error:', err);
+    log.error({ err }, 'coingecko fetch failed');
     return NextResponse.json({ error: 'Failed to fetch CoinGecko data' }, { status: 502 });
   }
 }

@@ -3,6 +3,9 @@ import { getBenchmarks } from '@/lib/admin-queries';
 import { requireAuth } from '@/lib/admin-auth';
 import { spawn } from 'child_process';
 import path from 'path';
+import { log as baseLog } from '@/lib/logger';
+
+const log = baseLog.child({ route: '/api/benchmarks' });
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +19,7 @@ export async function GET(req: NextRequest) {
     const data = await getBenchmarks(limit, offset);
     return NextResponse.json(data);
   } catch (e: unknown) {
-    console.error('[benchmarks][GET]', e);
+    log.error({ err: e, method: 'GET' }, 'benchmarks query failed');
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
@@ -44,13 +47,13 @@ export async function POST(req: NextRequest) {
     child.stderr.on('data', chunk => { stderr += chunk.toString(); });
 
     child.on('error', (err) => {
-      console.error('[benchmarks][POST] spawn error:', err, 'stderr:', stderr);
+      log.error({ err, stderr }, 'benchmark spawn error');
       resolve(NextResponse.json({ ok: false, error: 'Failed to start benchmark' }, { status: 500 }));
     });
 
     child.on('close', (code) => {
       if (code !== 0) {
-        console.error(`[benchmarks][POST] exit ${code}`, 'stderr:', stderr);
+        log.error({ exitCode: code, stderr }, 'benchmark non-zero exit');
         resolve(NextResponse.json({ ok: false, error: 'Benchmark failed', exitCode: code }, { status: 500 }));
         return;
       }

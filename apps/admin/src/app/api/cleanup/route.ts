@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { deleteExpiredArticles, deleteExpiredFlash } from '@/lib/admin-cleanup';
 import { requireAuth } from '@/lib/admin-auth';
+import { log as baseLog } from '@/lib/logger';
+
+const log = baseLog.child({ route: '/api/cleanup' });
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +37,7 @@ export async function POST(req: NextRequest) {
       deletedCount,
     });
   } catch (err: any) {
-    console.error('[Cleanup API] Error:', err);
+    log.error({ err }, 'cleanup failed');
     return NextResponse.json({ error: '数据清理执行异常: ' + err.message }, { status: 500 });
   }
 }

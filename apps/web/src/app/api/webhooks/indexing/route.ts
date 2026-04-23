@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { google } from 'googleapis';
+import { log as baseLog } from '@/lib/logger';
 
+const log = baseLog.child({ route: '/api/webhooks/indexing' });
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://yayanews.cryptooptiontool.com';
 
 function getServiceAccountCredentials() {
@@ -22,7 +24,7 @@ export async function POST(req: Request) {
   try {
     const webhookSecret = getWebhookSecret();
     if (!webhookSecret) {
-      console.error('INDEXING_WEBHOOK_SECRET is not configured.');
+      log.error('INDEXING_WEBHOOK_SECRET is not configured');
       return NextResponse.json({ error: 'Webhook secret misconfigured' }, { status: 500 });
     }
 
@@ -42,7 +44,7 @@ export async function POST(req: Request) {
     // 2. Load Credentials
     const credentials = getServiceAccountCredentials();
     if (!credentials || !credentials.client_email || !credentials.private_key) {
-      console.error('Google Service Account credentials missing');
+      log.error('google service account credentials missing');
       return NextResponse.json({ error: 'Credentials misconfigured' }, { status: 500 });
     }
 
@@ -73,14 +75,14 @@ export async function POST(req: Request) {
         });
         results.push({ url: fullUrl, status: response.status, data: response.data });
       } catch (err: any) {
-        console.error(`ERROR pushing ${fullUrl}:`, err?.response?.data || err.message);
+        log.error({ err: err?.response?.data || err?.message, url: fullUrl }, 'indexing push failed');
         results.push({ url: fullUrl, status: err?.response?.status || 500, error: err.message });
       }
     }
 
     return NextResponse.json({ success: true, results });
   } catch (error: any) {
-    console.error('Webhook error:', error);
+    log.error({ err: error }, 'webhook error');
     return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 });
   }
 }
