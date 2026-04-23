@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { log } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,7 @@ export async function GET() {
       qAll: typeof dbModule.queryAll,
     });
   } catch (err: unknown) {
-    console.error('[api/debug] error', err);
+    log.error({ err, route: '/api/debug' }, 'module resolution failed');
     const message = err instanceof Error ? err.message : 'unknown error';
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }

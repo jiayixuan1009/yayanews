@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
+import { log } from './logger';
 
 function getConfiguredAdminToken(): string | null {
   const token = process.env.ADMIN_API_TOKEN?.trim();
@@ -19,7 +20,7 @@ function tokensMatch(provided: string, expected: string): boolean {
 export function requireAuth(req: NextRequest): NextResponse | null {
   const configuredToken = getConfiguredAdminToken();
   if (!configuredToken) {
-    console.error('ADMIN_API_TOKEN is not configured for admin API access.');
+    log.error('ADMIN_API_TOKEN is not configured for admin API access');
     return NextResponse.json(
       { error: 'Server misconfigured', message: 'Admin auth token is not configured' },
       { status: 500 }

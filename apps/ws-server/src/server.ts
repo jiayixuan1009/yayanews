@@ -2,6 +2,9 @@ import { WebSocketServer, WebSocket } from 'ws';
 import type { IncomingMessage } from 'http';
 import { URL } from 'url';
 import * as redis from 'redis';
+import { createLogger } from '@yayanews/logger';
+
+const log = createLogger('ws-server');
 
 // ExtWebSocket to store custom properties like isAlive
 interface ExtWebSocket extends WebSocket {
@@ -29,7 +32,7 @@ function verifyClient(
   if (ALLOWED_ORIGINS.length > 0) {
     const origin = info.origin || '';
     if (!ALLOWED_ORIGINS.includes(origin)) {
-      console.warn(`[ws] rejected connection: bad origin "${origin}"`);
+      log.warn({ origin }, 'rejected connection: bad origin');
       cb(false, 403, 'forbidden origin');
       return;
     }
@@ -41,7 +44,7 @@ function verifyClient(
       const reqUrl = new URL(info.req.url || '/', `http://${host}`);
       const token = reqUrl.searchParams.get('token') || '';
       if (token !== REQUIRED_TOKEN) {
-        console.warn('[ws] rejected connection: missing/invalid token');
+        log.warn('rejected connection: missing/invalid token');
         cb(false, 401, 'unauthorized');
         return;
       }
@@ -63,16 +66,17 @@ const subscriber = redis.createClient({
   url: redisUrl,
 });
 
-subscriber.on('error', (err) => console.error('Redis Client Error', err));
+subscriber.on('error', (err) => log.error({ err }, 'redis client error'));
 
 (async () => {
   try {
     await subscriber.connect();
-    console.log(`Connected to Redis server at ${redisUrl}`);
+    log.info({ redisUrl }, 'connected to redis');
 
     await subscriber.pSubscribe('*:new:*', (message, channel) => {
-      console.log(`Broadcast: ${channel}`);
-      
+      const clientCount = wss.clients.size;
+      log.info({ channel, clients: clientCount }, 'broadcast');
+
       wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify({ channel, payload: JSON.parse(message) }));
@@ -80,7 +84,7 @@ subscriber.on('error', (err) => console.error('Redis Client Error', err));
       });
     });
   } catch (err) {
-    console.error('Failed to initialize Redis subscription:', err);
+    log.error({ err }, 'failed to initialize redis subscription');
   }
 })();
 
@@ -96,7 +100,7 @@ const interval = setInterval(() => {
 
 wss.on('connection', (ws: ExtWebSocket) => {
   ws.isAlive = true;
-  console.log('WS Client connected');
+  log.debug('ws client connected');
 
   ws.on('pong', () => {
     ws.isAlive = true;
@@ -114,13 +118,16 @@ wss.on('connection', (ws: ExtWebSocket) => {
 
   ws.send(JSON.stringify({ type: 'connected' }));
 
-  ws.on('close', () => console.log('WS Client disconnected'));
+  ws.on('close', () => log.debug('ws client disconnected'));
 });
 
 wss.on('close', () => clearInterval(interval));
 
-console.log(
-  `WebSocket Gateway is listening on ws://localhost:${PORT} ` +
-    `(origin check: ${ALLOWED_ORIGINS.length ? 'on' : 'off'}, ` +
-    `token check: ${REQUIRED_TOKEN ? 'on' : 'off'})`
+log.info(
+  {
+    port: PORT,
+    originCheck: ALLOWED_ORIGINS.length > 0,
+    tokenCheck: Boolean(REQUIRED_TOKEN),
+  },
+  'websocket gateway listening',
 );
