@@ -10,7 +10,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function seedData() {
-  const connectionString = process.env.DATABASE_URL || 'postgresql://yayanews:<REDACTED>@127.0.0.1:5432/yayanews';
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    console.error('[Seed] DATABASE_URL is required.');
+    process.exit(1);
+  }
   const pool = new Pool({ connectionString });
   
   try {

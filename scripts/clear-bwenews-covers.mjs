@@ -3,7 +3,7 @@
  * 将 cover_image 设为 NULL，前端会自动使用占位图
  *
  * 用法 (在生产机上执行):
- *   DATABASE_URL="postgresql://yayanews:<REDACTED>@127.0.0.1:5432/yayanews" node scripts/clear-bwenews-covers.mjs
+ *   DATABASE_URL="postgresql://<user>:<password>@127.0.0.1:5432/yayanews" node scripts/clear-bwenews-covers.mjs
  */
 import pg from 'pg';
 const { Client } = pg;
