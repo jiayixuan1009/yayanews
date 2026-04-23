@@ -62,7 +62,7 @@ export default function FlashList({ items: initialItems, compact = false, emptyT
     <div className="space-y-0">
       {items.map(item => (
         <LocalizedLink 
-          href={`/flash/${encodeFlashSlug(item as any)}`} 
+          href={`/flash/${encodeFlashSlug(item)}`} 
           key={item.id} 
           className="group flex gap-3 border-b border-slate-800/50 py-3 last:border-0 hover:bg-slate-800/30 transition-colors cursor-pointer rounded-lg px-2 -mx-2 mb-1"
         >

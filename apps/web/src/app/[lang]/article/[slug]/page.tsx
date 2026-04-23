@@ -81,7 +81,7 @@ function formatDate(value?: string | null) {
 }
 
 export default async function ArticlePage({ params }: { params: { slug: string; lang: string } }) {
-  const dict = await getDictionary(params.lang as any);
+  const dict = await getDictionary(params.lang);
 
   function getSentimentLabel(sentiment?: string) {
     if (sentiment === 'bullish') return { label: dict.article.bullish, cls: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
