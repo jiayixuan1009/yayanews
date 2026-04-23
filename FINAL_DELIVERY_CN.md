@@ -1,5 +1,11 @@
 # YayaNews Stitch 改版最终交付说明
 
+> ⚠️ **架构更新（2026-04）**：数据层已从 SQLite 全量迁移至 PostgreSQL（pgvector）。
+> 下文中涉及 `SQLite` / `src/lib/queries.ts` 的段落记录的是当时交付时的实现；
+> 当前真实架构请参阅 [docs/architecture.md](docs/architecture.md)、
+> [packages/database/schema.sql](packages/database/schema.sql) 与
+> [packages/database/migrations/](packages/database/migrations/)。
+
 ## 当前交付内容
 本包是在现有 YayaNews 项目基础上的前端展示层改版版本，目标是把 Stitch 的编辑型新闻站风格接入现有 Next.js + SQLite 项目。
 
