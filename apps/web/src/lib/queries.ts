@@ -27,6 +27,30 @@ function formatArticleDates(a: any) {
   };
 }
 
+/**
+ * Batch-load tags for a set of articles in ONE query, avoiding N+1.
+ * Mutates nothing; returns a new array of articles with `tags` attached.
+ */
+async function attachTagsBatch<T extends { id: number }>(articles: T[]): Promise<(T & { tags: Tag[] })[]> {
+  if (articles.length === 0) return [];
+  const ids = articles.map(a => a.id);
+  const rows = await db.queryAll<Tag & { article_id: number }>(
+    `SELECT at.article_id, t.*
+     FROM tags t
+     JOIN article_tags at ON t.id = at.tag_id
+     WHERE at.article_id = ANY($1::bigint[])`,
+    [ids]
+  );
+  const byArticle = new Map<number, Tag[]>();
+  for (const r of rows) {
+    const { article_id: aid, ...tag } = r;
+    const list = byArticle.get(aid);
+    if (list) list.push(tag as Tag);
+    else byArticle.set(aid, [tag as Tag]);
+  }
+  return articles.map(a => ({ ...a, tags: byArticle.get(a.id) || [] }));
+}
+
 /** 按固定栏目顺序排序：快讯、美股、港股、衍生品、加密货币、其他（未在顺序中的排在最后） */
 export async function getCategoriesOrdered(): Promise<Category[]> {
   const list = await getCategories();
@@ -70,11 +94,8 @@ export async function getPublishedArticles(lang: string = 'zh', limit = 20, offs
   params.push(limit, offset);
 
   const articles = await db.queryAll<Article>(sql, params);
-  const result: Article[] = [];
-  for (const a of articles) {
-    result.push(formatArticleDates({ ...a, tags: await getArticleTags(a.id) }));
-  }
-  return result;
+  const withTags = await attachTagsBatch(articles);
+  return withTags.map(formatArticleDates);
 }
 
 export async function getArticleCountByType(categorySlug?: string, articleType?: string, lang?: string): Promise<number> {
@@ -445,12 +466,8 @@ export async function getPublishedArticlesByTagSlug(tagSlug: string, limit = 48,
   params.push(limit, offset);
 
   const articles = await db.queryAll<Article>(query, params);
-  
-  const result: Article[] = [];
-  for (const a of articles) {
-    result.push({ ...a, tags: await getArticleTags(a.id) });
-  }
-  return result;
+  const withTags = await attachTagsBatch(articles);
+  return withTags;
 }
 
 export async function getArticleCountByTagSlug(tagSlug: string, lang?: string): Promise<number> {
