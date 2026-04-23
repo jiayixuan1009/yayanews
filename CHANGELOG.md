@@ -82,7 +82,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - `NEXT_PUBLIC_GA_MEASUREMENT_ID` uncommented with real property ID
 - Monitoring section expanded with inline comments for GSC, Bing UET, Clarity
 
-**Production database (yayanews@<REDACTED-IP>):**
+**Production database:**
 - `seo_body_zh` / `seo_body_en` columns confirmed present (idempotent ALTER)
 - Updated `seo_body` for existing topics: `earnings` (财报), `btc` (比特币), `fed` (美联储)
 - Inserted `hk-stock-sectors` and `crypto-regulation` as new topic records
