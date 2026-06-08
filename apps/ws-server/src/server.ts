@@ -61,6 +61,16 @@ const wss = new WebSocketServer({ port: PORT, verifyClient });
 
 // Utilize process.env.REDIS_URL, fallback to localhost
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+function redactConnectionUrl(value: string): string {
+  try {
+    const parsed = new URL(value);
+    if (parsed.username) parsed.username = '***';
+    if (parsed.password) parsed.password = '***';
+    return parsed.toString();
+  } catch {
+    return '<configured>';
+  }
+}
 
 const subscriber = redis.createClient({
   url: redisUrl,
@@ -71,7 +81,7 @@ subscriber.on('error', (err) => log.error({ err }, 'redis client error'));
 (async () => {
   try {
     await subscriber.connect();
-    log.info({ redisUrl }, 'connected to redis');
+    log.info({ redisUrl: redactConnectionUrl(redisUrl) }, 'connected to redis');
 
     await subscriber.pSubscribe('*:new:*', (message, channel) => {
       const clientCount = wss.clients.size;

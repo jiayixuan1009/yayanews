@@ -4,6 +4,12 @@ from pipeline.utils.logger import get_logger
 
 log = get_logger("normalizer")
 
+MAX_TITLE_CHARS = 140
+MAX_CONTENT_CHARS = 260
+MAX_TOKENS_BASE = 500
+MAX_TOKENS_PER_ITEM = 320
+MAX_TOKENS_HARD_CAP = 4096
+
 SYSTEM_PROMPT = """快讯标准化引擎。对输入的多条中英文金融快讯执行：翻译→去重→输出。
 
 【输入】{"target_lang":"zh"或"en", "news_list":[...]}
@@ -28,8 +34,8 @@ def normalize_flash_batch(items: list[dict], target_lang: str) -> list[dict]:
     for idx, it in enumerate(items):
         input_list.append({
             "_internal_idx": idx,
-            "title": it.get("title", ""),
-            "content": it.get("content", ""),
+            "title": (it.get("title", "") or "")[:MAX_TITLE_CHARS],
+            "content": (it.get("content", "") or "")[:MAX_CONTENT_CHARS],
             "channel": it.get("channel", "unknown"),
         })
 
@@ -39,13 +45,17 @@ def normalize_flash_batch(items: list[dict], target_lang: str) -> list[dict]:
     }
 
     user_prompt = json.dumps(user_payload, ensure_ascii=False)
+    response_max_tokens = min(
+        MAX_TOKENS_HARD_CAP,
+        MAX_TOKENS_BASE + len(input_list) * MAX_TOKENS_PER_ITEM,
+    )
     
     try:
         raw_response = chat(
             system_prompt=SYSTEM_PROMPT,
             user_prompt=user_prompt,
             temperature=0.1,  # 低温，严谨风格
-            max_tokens=8192
+            max_tokens=response_max_tokens,
         )
         
         # 解析 JSON 防御

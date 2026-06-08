@@ -1,4 +1,5 @@
 """LLM 调用封装，兼容 OpenAI API 格式。支持主备双线路路由与自动兜底。"""
+import inspect
 import json
 import time
 from openai import OpenAI
@@ -12,6 +13,62 @@ log = get_logger("llm")
 
 _primary_client = None
 _fallback_client = None
+
+
+def _caller_name() -> str:
+    for frame in inspect.stack()[2:8]:
+        module = inspect.getmodule(frame.frame)
+        name = module.__name__ if module else ""
+        if name and name != __name__:
+            return f"{name}.{frame.function}"
+    return "unknown"
+
+
+def _usage_value(usage, key: str) -> int | None:
+    if usage is None:
+        return None
+    if isinstance(usage, dict):
+        return usage.get(key)
+    return getattr(usage, key, None)
+
+
+def _record_usage(
+    *,
+    caller: str,
+    route: str,
+    model: str,
+    status: str,
+    response=None,
+    system_prompt: str = "",
+    user_prompt: str = "",
+    result: str = "",
+    max_tokens: int | None = None,
+    temperature: float | None = None,
+    latency_ms: int | None = None,
+    error: Exception | None = None,
+) -> None:
+    try:
+        usage = getattr(response, "usage", None) if response is not None else None
+        from pipeline.utils.database import insert_llm_usage
+
+        insert_llm_usage(
+            caller=caller,
+            route=route,
+            model=model,
+            status=status,
+            prompt_tokens=_usage_value(usage, "prompt_tokens"),
+            completion_tokens=_usage_value(usage, "completion_tokens"),
+            total_tokens=_usage_value(usage, "total_tokens"),
+            prompt_chars=len(system_prompt) + len(user_prompt),
+            completion_chars=len(result or ""),
+            max_tokens=max_tokens,
+            temperature=temperature,
+            latency_ms=latency_ms,
+            error_type=type(error).__name__ if error else "",
+            error_message=str(error) if error else "",
+        )
+    except Exception as record_error:
+        log.debug(f"LLM usage record skipped: {record_error}")
 
 
 def _get_primary() -> OpenAI:
@@ -46,6 +103,8 @@ def chat(
 ) -> str:
     """发送一次 LLM 对话。主线路优先，失败自动切换兜底线路。"""
     model = model or LLM_MODEL
+    caller = _caller_name()
+    primary_error = None
 
     # ── 1. 尝试主线路 ──
     try:
@@ -62,30 +121,86 @@ def chat(
             max_tokens=max_tokens,
         )
         result = response.choices[0].message.content.strip()
-        log.info(f"LLM [primary] OK: model={model}, len={len(result)}, {time.monotonic()-t0:.1f}s")
+        elapsed_ms = int((time.monotonic() - t0) * 1000)
+        _record_usage(
+            caller=caller,
+            route="primary",
+            model=model,
+            status="ok",
+            response=response,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            result=result,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            latency_ms=elapsed_ms,
+        )
+        log.info(f"LLM [primary] OK: model={model}, len={len(result)}, {elapsed_ms/1000:.1f}s")
         return result
     except Exception as e:
+        primary_error = e
+        _record_usage(
+            caller=caller,
+            route="primary",
+            model=model,
+            status="error",
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            error=e,
+        )
         log.warning(f"LLM [primary] failed ({type(e).__name__}: {e}), trying fallback...")
 
     # ── 2. 兜底线路 ──
     fallback = _get_fallback()
     if fallback is None:
-        raise RuntimeError(f"LLM primary failed and no fallback configured: {e}")
+        raise RuntimeError(f"LLM primary failed and no fallback configured: {primary_error}")
 
     fallback_model = LLM_FALLBACK_MODEL or model
     log.debug(f"LLM [fallback] request: model={fallback_model}, prompt_len={len(user_prompt)}")
     t0 = time.monotonic()
-    response = fallback.chat.completions.create(
-        model=fallback_model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    try:
+        response = fallback.chat.completions.create(
+            model=fallback_model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+    except Exception as e:
+        _record_usage(
+            caller=caller,
+            route="fallback",
+            model=fallback_model,
+            status="error",
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            latency_ms=int((time.monotonic() - t0) * 1000),
+            error=e,
+        )
+        raise
+
     result = response.choices[0].message.content.strip()
-    log.info(f"LLM [fallback] OK: model={fallback_model}, len={len(result)}, {time.monotonic()-t0:.1f}s")
+    elapsed_ms = int((time.monotonic() - t0) * 1000)
+    _record_usage(
+        caller=caller,
+        route="fallback",
+        model=fallback_model,
+        status="ok",
+        response=response,
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        result=result,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        latency_ms=elapsed_ms,
+    )
+    log.info(f"LLM [fallback] OK: model={fallback_model}, len={len(result)}, {elapsed_ms/1000:.1f}s")
     return result
 
 

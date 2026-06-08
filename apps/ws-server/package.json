@@ -10,7 +10,7 @@
   "dependencies": {
     "@yayanews/logger": "*",
     "redis": "^4.6.13",
-    "ws": "^8.20.0"
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.0",

@@ -1,46 +1,26 @@
 /**
- * 连接 .env 中的 DATABASE_URL，列出当前库与「理想状态」相比可能缺失的内容，便于后续补齐。
- * 用法: node scripts/content-gap-report.mjs
+ * Connect to the configured database and report common content gaps.
+ *
+ * Usage:
+ *   node scripts/content-gap-report.mjs
  */
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import pg from 'pg';
+import { readRequiredEnvValue } from './lib/read-env.mjs';
 
 const { Pool } = pg;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
 
-function readDatabaseUrl() {
-  const envPath = path.join(root, '.env');
-  if (!fs.existsSync(envPath)) {
-    throw new Error('缺少 .env，无法读取 DATABASE_URL');
-  }
-  const envContent = fs.readFileSync(envPath, 'utf8');
-  for (const line of envContent.split('\n')) {
-    const t = line.trim();
-    if (!t || t.startsWith('#')) continue;
-    const m = t.match(/^DATABASE_URL=(.+)$/);
-    if (m) return m[1].replace(/^["']|["']$/g, '').trim();
-  }
-  throw new Error('.env 中未找到 DATABASE_URL');
-}
-
 async function main() {
-  const connectionString = readDatabaseUrl();
+  const connectionString = readRequiredEnvValue(path.join(root, '.env'), 'DATABASE_URL');
   const pool = new Pool({ connectionString });
 
   const rows = async (sql, params = []) => (await pool.query(sql, params)).rows;
 
   try {
-    const [
-      enArt,
-      zhArt,
-      enFlash,
-      zhFlash,
-      enPending,
-      zhPending,
-    ] = await Promise.all([
+    const [enArt, zhArt, enFlash, zhFlash, enPending, zhPending] = await Promise.all([
       rows(`SELECT COUNT(*)::int AS n FROM articles WHERE lang = 'en' AND status = 'published' AND audit_status = 'approved'`),
       rows(`SELECT COUNT(*)::int AS n FROM articles WHERE lang = 'zh' AND status = 'published' AND audit_status = 'approved'`),
       rows(`SELECT COUNT(*)::int AS n FROM flash_news WHERE lang = 'en'`),
@@ -50,55 +30,55 @@ async function main() {
     ]);
 
     const report = {
-      当前库统计: {
-        英文长文_已发布已审核: enArt[0].n,
-        中文长文_已发布已审核: zhArt[0].n,
-        英文快讯: enFlash[0].n,
-        中文快讯: zhFlash[0].n,
-        英文长文_待审核或非approved: enPending[0].n,
-        中文长文_待审核或非approved: zhPending[0].n,
+      currentDatabaseStats: {
+        enPublishedApprovedArticles: enArt[0].n,
+        zhPublishedApprovedArticles: zhArt[0].n,
+        enFlashNews: enFlash[0].n,
+        zhFlashNews: zhFlash[0].n,
+        enPublishedButNotApprovedArticles: enPending[0].n,
+        zhPublishedButNotApprovedArticles: zhPending[0].n,
       },
-      可能缺失与补齐方式: [],
+      possibleGapsAndActions: [],
     };
 
     if (enArt[0].n === 0) {
-      report.可能缺失与补齐方式.push({
-        项: '英文长文 (articles, lang=en, 前台列表用)',
-        说明: 'Git 种子 cloud_seed.sql 不含英文长文；当前库也为 0。',
-        后续补齐: [
-          '若有旧服务器/RDS：对该库 pg_dump 后只合并 articles（及 article_tags）里 lang=en 的行',
-          '若无备份：用现有翻译/Pipeline 从中文稿生成英文稿并写库（parent_id 关联中文母稿）',
-          '少量稿件可在 Admin 后台手工创建英文版本并发布、审核通过',
+      report.possibleGapsAndActions.push({
+        area: 'English long-form articles',
+        note: 'No published and approved English articles were found.',
+        actions: [
+          'Restore English articles from an older database backup if one exists.',
+          'Run the translation pipeline to create English versions linked by parent_id.',
+          'Manually create and approve a small seed set from the admin UI.',
         ],
       });
     }
 
     if (enFlash[0].n === 0 && zhFlash[0].n > 0) {
-      report.可能缺失与补齐方式.push({
-        项: '英文快讯',
-        说明: '有中文快讯但无英文快讯。',
-        后续补齐: [
-          '执行 npm run db:restore:recommended 或 db:restore:cloud-seed 导入种子中的英文快讯',
-          '确认线上 Pipeline / 翻译任务是否写入 flash_news.lang=en',
+      report.possibleGapsAndActions.push({
+        area: 'English flash news',
+        note: 'Chinese flash news exists, but English flash news is empty.',
+        actions: [
+          'Confirm the translation pipeline writes flash_news.lang=en.',
+          'Restore recommended seed data if appropriate for this environment.',
         ],
       });
     }
 
     if (enPending[0].n > 0 || zhPending[0].n > 0) {
-      report.可能缺失与补齐方式.push({
-        项: '审核状态',
-        说明: '存在已发布但未 approved 的稿件，前台若只展示 approved 会看不到。',
-        后续补齐: [
-          '在 Admin 审核通过，或批量 UPDATE articles SET audit_status = \'approved\' WHERE ...（需业务确认）',
+      report.possibleGapsAndActions.push({
+        area: 'Article audit status',
+        note: 'Some published articles are not approved and may be hidden from the public site.',
+        actions: [
+          'Review and approve the articles from the admin UI, or run a targeted SQL update after business confirmation.',
         ],
       });
     }
 
-    if (report.可能缺失与补齐方式.length === 0) {
-      report.可能缺失与补齐方式.push({
-        项: '(未检出明显缺口)',
-        说明: '按当前规则未发现英文长文为 0、或英文快讯全空等典型问题；仍建议对照运营目标核对篇数。',
-        后续补齐: ['定期执行本脚本: npm run db:gap-report'],
+    if (report.possibleGapsAndActions.length === 0) {
+      report.possibleGapsAndActions.push({
+        area: 'No obvious gaps detected',
+        note: 'The common zero-content and audit-status checks did not find a clear issue.',
+        actions: ['Run this report periodically and compare counts against editorial expectations.'],
       });
     }
 
@@ -108,7 +88,7 @@ async function main() {
   }
 }
 
-main().catch((e) => {
-  console.error(e.message || e);
+main().catch((error) => {
+  console.error(error.message || error);
   process.exit(1);
 });

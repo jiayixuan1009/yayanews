@@ -7,25 +7,13 @@
  *   PM2 不接受裸命令名如 "python"，需要传完整路径。
  *   此处使用 interpreter: "python3" 配合 script 为模块入口脚本的方式兼容 Ubuntu。
  */
-const fs = require('fs');
 const path = require('path');
+const { readEnvFile } = require('./scripts/lib/read-env.cjs');
 
 const root = __dirname;
 let baseEnv = {};
 try {
-  const envContent = fs.readFileSync(path.join(root, '.env'), 'utf8');
-  envContent.split('\n').forEach(line => {
-    const trimmed = line.trim();
-    if (trimmed && !trimmed.startsWith('#')) {
-      const eqIdx = trimmed.indexOf('=');
-      if (eqIdx > 0) {
-        const key = trimmed.slice(0, eqIdx).trim();
-        let val = trimmed.slice(eqIdx + 1).trim();
-        val = val.replace(/^["'](.*)["']$/, '$1');
-        baseEnv[key] = val;
-      }
-    }
-  });
+  baseEnv = Object.fromEntries(readEnvFile(path.join(root, '.env')));
 } catch (e) {
   console.warn('No .env file found or failed to parse. Proceeding with default env.');
 }
@@ -58,16 +46,28 @@ try {
   console.warn(`Could not resolve absolute path for ${pythonBin}, fallback to string value.`);
 }
 
+// --- Shared robust restart defaults ---
+// exp_backoff_restart_delay: Exponential backoff caps restart storm (100ms base → ~3min max)
+// max_restarts: 15 in 30s window prevents runaway restart loops
+// min_uptime: "20s" means a restart only counts if app was stable <20s (prevents false positives)
+// kill_timeout: 5000ms gives graceful SIGTERM time before SIGKILL
+// listen_timeout: 8000ms for Next.js server readiness
+const robustNode = {
+  autorestart: true,
+  exp_backoff_restart_delay: 200,
+  max_restarts: 15,
+  min_uptime: "20s",
+  kill_timeout: 5000,
+  listen_timeout: 8000,
+};
+
 module.exports = {
   apps: [
     {
       name: "yayanews",
       cwd: root,
       script: "apps/web/.next/standalone/apps/web/server.js",
-      autorestart: true,
-      exp_backoff_restart_delay: 100,
-      max_restarts: 20,
-      min_uptime: "10s",
+      ...robustNode,
       max_memory_restart: "800M",
       env: { ...mergedEnv, NODE_ENV: "production", PORT: 3002, HOSTNAME: "0.0.0.0" },
     },
@@ -78,9 +78,9 @@ module.exports = {
       script: "pipeline/daemon/finnhub_ws_flash.py",
       interpreter: pythonBin,
       autorestart: true,
-      exp_backoff_restart_delay: 100,
-      max_restarts: 50,
-      min_uptime: "10s",
+      exp_backoff_restart_delay: 200,
+      max_restarts: 30,
+      min_uptime: "20s",
       max_memory_restart: "200M",
       kill_timeout: 10000,
       env: mergedEnv,
@@ -91,8 +91,8 @@ module.exports = {
       script: "pipeline/run_daemon.py",
       interpreter: pythonBin,
       autorestart: true,
-      exp_backoff_restart_delay: 100,
-      max_restarts: 20,
+      exp_backoff_restart_delay: 200,
+      max_restarts: 15,
       min_uptime: "30s",
       max_memory_restart: "300M",
       kill_timeout: 10000,
@@ -105,9 +105,9 @@ module.exports = {
       interpreter: pythonBin,
       instances: 1,
       autorestart: true,
-      exp_backoff_restart_delay: 100,
-      max_restarts: 30,
-      min_uptime: "10s",
+      exp_backoff_restart_delay: 200,
+      max_restarts: 20,
+      min_uptime: "20s",
       max_memory_restart: "200M",
       kill_timeout: 10000,
       env: { ...mergedEnv, RQ_QUEUES: "yayanews:flash" },
@@ -119,9 +119,9 @@ module.exports = {
       interpreter: pythonBin,
       instances: 1,
       autorestart: true,
-      exp_backoff_restart_delay: 100,
-      max_restarts: 30,
-      min_uptime: "10s",
+      exp_backoff_restart_delay: 200,
+      max_restarts: 20,
+      min_uptime: "20s",
       max_memory_restart: "200M",
       kill_timeout: 10000,
       env: { ...mergedEnv, RQ_QUEUES: "yayanews:articles:high,yayanews:articles:default,yayanews:articles:low,yayanews:articles" },
@@ -131,22 +131,16 @@ module.exports = {
       name: "yaya-ws-gateway",
       cwd: path.join(root, "apps", "ws-server"),
       script: "dist/server.js",
-      autorestart: true,
-      exp_backoff_restart_delay: 100,
-      max_restarts: 20,
-      min_uptime: "10s",
+      ...robustNode,
       max_memory_restart: "400M",
-      // 显式注入 WS_PORT，避免 Nginx upstream 改端口后静默错位
-      env: { ...mergedEnv, WS_PORT: mergedEnv.WS_PORT || 3001 },
+      // Pin WS_PORT so Nginx upstream and the gateway cannot drift silently.
+      env: { ...mergedEnv, NODE_ENV: "production", WS_PORT: mergedEnv.WS_PORT || 3001 },
     },
     {
       name: "yaya-admin",
       cwd: root,
       script: "apps/admin/.next/standalone/apps/admin/server.js",
-      autorestart: true,
-      exp_backoff_restart_delay: 100,
-      max_restarts: 20,
-      min_uptime: "10s",
+      ...robustNode,
       max_memory_restart: "600M",
       env: { ...mergedEnv, NODE_ENV: "production", PORT: 3003, HOSTNAME: "0.0.0.0" },
     }

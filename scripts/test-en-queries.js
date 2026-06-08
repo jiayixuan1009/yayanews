@@ -1,13 +1,8 @@
-const fs = require('fs');
+const path = require('path');
 const { Pool } = require('pg');
+const { readRequiredEnvValue } = require('./lib/read-env.cjs');
 
-const envContent = fs.readFileSync('.env', 'utf8');
-let dbUrl = '';
-envContent.split('\n').forEach(line => {
-  if (line.startsWith('DATABASE_URL=')) {
-    dbUrl = line.split('=')[1].replace(/["']/g, '').trim();
-  }
-});
+const dbUrl = readRequiredEnvValue(path.join(__dirname, '..', '.env'), 'DATABASE_URL');
 
 const pool = new Pool({ connectionString: dbUrl });
 

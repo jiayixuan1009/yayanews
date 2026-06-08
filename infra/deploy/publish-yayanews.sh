@@ -9,6 +9,11 @@ ADMIN_HEALTH_URL="http://127.0.0.1:3003/admin"
 HEARTBEAT_FILE="$APP_DIR/apps/pipeline/data/daemon_heartbeat.txt"
 HEALTH_RETRIES=10
 HEALTH_INTERVAL=3
+BACKUP_RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-7}"
+BACKUP_KEEP_LATEST="${BACKUP_KEEP_LATEST:-5}"
+REQUIRE_DB_BACKUP="${REQUIRE_DB_BACKUP:-1}"
+CLEAN_NEXT_CACHE_BEFORE_DEPLOY="${CLEAN_NEXT_CACHE_BEFORE_DEPLOY:-1}"
+MIN_FREE_MB="${MIN_FREE_MB:-3072}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -119,6 +124,50 @@ assert_recent_heartbeat() {
     return 1
 }
 
+assert_disk_space() {
+    local free_mb
+    free_mb=$(df -Pm "$APP_DIR" | awk 'NR == 2 { print $4 }')
+    if [ "${free_mb:-0}" -lt "$MIN_FREE_MB" ]; then
+        log "${RED}Insufficient disk space${NC}: ${free_mb:-0}MB free, require ${MIN_FREE_MB}MB"
+        exit 1
+    fi
+    log "   ${GREEN}Disk preflight OK${NC}: ${free_mb}MB free"
+}
+
+prune_backups() {
+    local dir="$1"
+    [ -d "$dir" ] || return 0
+
+    find "$dir" -type f -name "*.sql.gz" -mtime +"$BACKUP_RETENTION_DAYS" -delete 2>/dev/null || true
+    find "$dir" -maxdepth 1 -type f -name "*.sql.gz" -printf '%T@ %p\n' \
+        | sort -rn \
+        | awk -v keep="$BACKUP_KEEP_LATEST" 'NR > keep { sub(/^[^ ]+ /, ""); print }' \
+        | while IFS= read -r file; do
+            rm -f -- "$file"
+        done
+}
+
+backup_database() {
+    local backup_file="$1"
+    local database_url
+
+    database_url="$(read_env_value DATABASE_URL 2>/dev/null || true)"
+    if [ -z "$database_url" ]; then
+        rm -f "$backup_file"
+        log "${YELLOW}   DATABASE_URL is missing; skipping database backup${NC}"
+        return 1
+    fi
+
+    if pg_dump "$database_url" 2>/dev/null | gzip > "$backup_file"; then
+        log "   ${GREEN}Backup complete${NC}: $(basename "$backup_file") ($(du -h "$backup_file" | cut -f1))"
+        return 0
+    fi
+
+    rm -f "$backup_file"
+    log "${YELLOW}   Database backup failed; continuing deploy${NC}"
+    return 1
+}
+
 cd "$APP_DIR"
 mkdir -p "$BACKUP_DIR"
 DEPLOY_START=$(date +%s)
@@ -129,15 +178,17 @@ CORE_PM2_APPS=(yayanews yaya-admin yaya-ws-gateway)
 PYTHON_PM2_APPS=(yaya-finnhub-ws yaya-pipeline-daemon yaya-worker-flash yaya-worker-articles)
 
 log "${GREEN}Starting deploy${NC} commit=$CURRENT_COMMIT"
+assert_disk_space
 
 log "Backing up database..."
 BACKUP_FILE="$BACKUP_DIR/$(date '+%Y%m%d_%H%M%S')_pre_deploy.sql.gz"
-if sudo -u postgres pg_dump yayanews 2>/dev/null | gzip > "$BACKUP_FILE"; then
-    log "   ${GREEN}Backup complete${NC}: $(basename "$BACKUP_FILE") ($(du -h "$BACKUP_FILE" | cut -f1))"
-else
-    log "${YELLOW}   Database backup failed; continuing deploy${NC}"
+if ! backup_database "$BACKUP_FILE"; then
+    if [ "$REQUIRE_DB_BACKUP" = "1" ]; then
+        log "${RED}Database backup is required; aborting deploy${NC}"
+        exit 1
+    fi
 fi
-find "$BACKUP_DIR" -name "*.sql.gz" -mtime +30 -delete 2>/dev/null || true
+prune_backups "$BACKUP_DIR"
 
 assert_pipeline_enabled
 
@@ -162,6 +213,10 @@ npm run db:init
 
 log "Building workspaces..."
 export NODE_ENV=production
+if [ "$CLEAN_NEXT_CACHE_BEFORE_DEPLOY" = "1" ]; then
+    rm -rf apps/web/.next/cache apps/admin/.next/cache .next/cache .turbo 2>/dev/null || true
+fi
+assert_disk_space
 npm run build 2>&1 | tail -3
 mkdir -p apps/web/.next/standalone/.next
 mkdir -p apps/admin/.next/standalone/.next
