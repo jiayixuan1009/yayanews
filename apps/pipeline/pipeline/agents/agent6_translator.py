@@ -17,7 +17,7 @@ from pipeline.utils.fetch_english_source import (
 from psycopg2.extras import RealDictCursor
 log = get_logger("agent6")
 
-def _get_translation_candidates(limit: int = 5) -> list[dict]:
+def _get_translation_candidates(limit: int = 5, min_views: int = 0) -> list[dict]:
     """
     Search PostgreSQL for high-quality Chinese articles that lack an English translation counterpart.
 
@@ -36,12 +36,13 @@ def _get_translation_candidates(limit: int = 5) -> list[dict]:
                 WHERE lang = 'zh'
                   AND article_type != 'flash'
                   AND status = 'published'
+                                    AND view_count >= %s
                   AND id NOT IN (
                       SELECT parent_id FROM articles
                       WHERE lang = 'en' AND parent_id IS NOT NULL
                   )
                 ORDER BY published_at DESC LIMIT %s
-                """, (limit,)
+                                """, (min_views, limit)
             )
             return [dict(r) for r in cur.fetchall()]
     finally:
@@ -169,19 +170,20 @@ def translate_queue(batch_size: int = 5, force: bool = False) -> list[dict]:
     When ENABLE_REALTIME_TRANSLATION is False, this function is a no-op to save tokens.
     Pass force=True for one-off backfill (e.g. CLI / npm run pipeline:translate-en).
     """
-    from pipeline.config.settings import ENABLE_REALTIME_TRANSLATION
+    from pipeline.config.settings import ENABLE_REALTIME_TRANSLATION, TRANSLATION_MIN_VIEWS
     
     if not force and not ENABLE_REALTIME_TRANSLATION:
         print("\n[Agent 6] 实时翻译已关闭 (ENABLE_REALTIME_TRANSLATION=0)，跳过英文翻译以节省 Token。")
         print("          一次性补齐可执行: npm run pipeline:translate-en   或  python -m pipeline.translate_en")
         return []
     
-    Candidates = _get_translation_candidates(limit=batch_size)
+    min_views = 0 if force else TRANSLATION_MIN_VIEWS
+    Candidates = _get_translation_candidates(limit=batch_size, min_views=min_views)
     if not Candidates:
-        print("\n[Agent 6] 无需翻译的文章。")
+        print(f"\n[Agent 6] 无需翻译的文章（min_views={min_views}）。")
         return []
         
-    step_print("Agent 6: 英文版本地化", f"发现 {len(Candidates)} 篇待译文章...")
+    step_print("Agent 6: 英文版本地化", f"发现 {len(Candidates)} 篇待译文章 | min_views={min_views}")
     
     translated_count = 0
     results = []

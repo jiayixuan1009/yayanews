@@ -1,12 +1,11 @@
 import pg from 'pg';
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { readRequiredEnvValue } from '../lib/read-env.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const root = path.join(__dirname, '..');
-const envContent = fs.readFileSync(path.join(root, '.env'), 'utf8');
-const dbUrl = envContent.match(/DATABASE_URL=["']?([^"'\n]+)/)[1].trim();
+const root = path.join(__dirname, '..', '..');
+const dbUrl = readRequiredEnvValue(path.join(root, '.env'), 'DATABASE_URL');
 
 const pool = new pg.Pool({ connectionString: dbUrl });
 

@@ -12,13 +12,23 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pipeline.utils.llm import chat
 from pipeline.llm_config import get_model_for_channel
 from pipeline.utils.logger import get_logger, step_print
-from pipeline.config.settings import CATEGORIES, PIPELINE_LLM_WORKERS
+from pipeline.config.settings import (
+    ARTICLE_DEEP_MAX_TOKENS,
+    ARTICLE_STANDARD_MAX_TOKENS,
+    CATEGORIES,
+    PIPELINE_LLM_WORKERS,
+)
 
 log = get_logger("agent2")
 
 LENGTH_MAP = {
     "standard": {"min": 800, "max": 1500, "desc": "800-1500字分析文章"},
     "deep": {"min": 2000, "max": 3500, "desc": "2000字以上深度研报"},
+}
+
+MAX_TOKENS_BY_TYPE = {
+    "standard": ARTICLE_STANDARD_MAX_TOKENS,
+    "deep": ARTICLE_DEEP_MAX_TOKENS,
 }
 
 SYSTEM_PROMPT = """你是 YayaNews 金融新闻记者。规则：
@@ -44,8 +54,7 @@ def _generate_original(topic: dict) -> dict:
 3. 如引用数据，请注明来源方向（如"据 CoinGecko 数据"、"根据美联储声明"）
 4. 结构清晰，使用小标题分段
 5. 语言专业但易读
-6. 文章末尾加一段"风险提示"：提醒读者以上内容仅供参考，不构成投资建议
-7. 输出纯 HTML 正文内容
+6. 输出纯 HTML 正文内容，不要添加风险提示或免责声明（发布阶段会统一追加）
 
 请同时输出 SEO 与结构化字段（与正文同一次生成，勿分步）。
 
@@ -62,7 +71,13 @@ JSON 格式（仅此一个 JSON 对象）：
 
     # 深度研报用 reasoner 模型（更强推理），标准文用 chat（更快更便宜）
     model = get_model_for_channel("quality" if article_type == "deep" else "default")
-    result = chat(SYSTEM_PROMPT, prompt, model=model, temperature=0.4, max_tokens=4096)
+    result = chat(
+        SYSTEM_PROMPT,
+        prompt,
+        model=model,
+        temperature=0.4,
+        max_tokens=MAX_TOKENS_BY_TYPE.get(article_type, ARTICLE_STANDARD_MAX_TOKENS),
+    )
     return _parse_result(result, topic)
 
 
@@ -84,16 +99,21 @@ def _rewrite_from_source(topic: dict) -> dict:
 2. 用独立的中文叙事写作，补充市场背景分析和投资者视角
 3. 标题方向：{topic['title']}
 4. 字数：{length['desc']}
-5. 文末加风险提示
-6. 输出纯 HTML
+5. 输出纯 HTML，不要添加风险提示或免责声明（发布阶段会统一追加）
 
-8. 绝不能在文中补充不存在的具体财报数字、外部价格数据或未经素材确认的事件！
+6. 绝不能在文中补充不存在的具体财报数字、外部价格数据或未经素材确认的事件！
 
 JSON（单对象，含 SEO，与上文原创稿相同字段）：
 {{"content":"<p>...</p>","seo_title":"...","seo_description":"...","tags":[],"sentiment":"neutral","tickers":[],"key_points":[]}}"""
 
     model = get_model_for_channel("quality" if article_type == "deep" else "default")
-    result = chat(SYSTEM_PROMPT, prompt, model=model, temperature=0.2, max_tokens=4096)
+    result = chat(
+        SYSTEM_PROMPT,
+        prompt,
+        model=model,
+        temperature=0.2,
+        max_tokens=MAX_TOKENS_BY_TYPE.get(article_type, ARTICLE_STANDARD_MAX_TOKENS),
+    )
     return _parse_result(result, topic)
 
 

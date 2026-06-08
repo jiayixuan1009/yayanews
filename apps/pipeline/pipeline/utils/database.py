@@ -33,6 +33,7 @@ def now_cn() -> str:
     return datetime.now(TZ_CN).strftime("%Y-%m-%d %H:%M:%S")
 
 _pool = None
+_llm_usage_table_missing = False
 
 def get_pool():
     global _pool
@@ -330,6 +331,57 @@ def insert_pipeline_run(
     except Exception as e:
         conn.rollback()
         log.error(f"Pipeline run insert failed: {e}")
+        return -1
+    finally:
+        get_pool().putconn(conn)
+
+def insert_llm_usage(
+    caller: str = "",
+    route: str = "",
+    model: str = "",
+    status: str = "ok",
+    prompt_tokens: Optional[int] = None,
+    completion_tokens: Optional[int] = None,
+    total_tokens: Optional[int] = None,
+    prompt_chars: int = 0,
+    completion_chars: int = 0,
+    max_tokens: Optional[int] = None,
+    temperature: Optional[float] = None,
+    latency_ms: Optional[int] = None,
+    error_type: str = "",
+    error_message: str = "",
+) -> int:
+    global _llm_usage_table_missing
+    if _llm_usage_table_missing:
+        return -1
+
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO llm_usage
+                (caller, route, model, status, prompt_tokens, completion_tokens,
+                 total_tokens, prompt_chars, completion_chars, max_tokens,
+                 temperature, latency_ms, error_type, error_message)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id""",
+                (
+                    caller, route, model, status, prompt_tokens, completion_tokens,
+                    total_tokens, prompt_chars, completion_chars, max_tokens,
+                    temperature, latency_ms, error_type[:80], error_message[:500],
+                ),
+            )
+            uid = cur.fetchone()[0]
+        conn.commit()
+        return uid
+    except psycopg2.errors.UndefinedTable as e:
+        conn.rollback()
+        _llm_usage_table_missing = True
+        log.warning(f"LLM usage table missing; run database migrations to enable token accounting: {e}")
+        return -1
+    except Exception as e:
+        conn.rollback()
+        log.warning(f"LLM usage insert failed: {e}")
         return -1
     finally:
         get_pool().putconn(conn)

@@ -1,35 +1,13 @@
-#!/bin/bash
-# scripts/safe-deploy.sh
-# ---------------------------------------------------------
-# A memory-safe deployment script for low-tier instances.
-# Prevents NodeJS build-time OOM by stopping the PM2 process
-# before kicking off the intensive NextJS webpack compilation.
-# ---------------------------------------------------------
+#!/usr/bin/env bash
+# Compatibility wrapper for older runbooks.
+# The production deploy logic lives in infra/deploy/publish-yayanews.sh.
+set -euo pipefail
 
-set -e
+APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+REAL_SCRIPT="$APP_DIR/infra/deploy/publish-yayanews.sh"
 
-# Change to the application root directory
-cd /var/www/yayanews || { echo "Directory /var/www/yayanews does not exist. Aborting."; exit 1; }
+if [ ! -x "$REAL_SCRIPT" ]; then
+    chmod +x "$REAL_SCRIPT"
+fi
 
-echo "[1/5] Fetching latest changes..."
-git fetch
-git reset --hard origin/main
-
-echo "[2/5] Stopping PM2 container 'yayanews' to free RAM..."
-pm2 stop yayanews || echo "Warning: Could not stop yayanews (maybe it's already stopped)"
-
-echo "[3/5] Cleaning out old build artifacts..."
-rm -rf apps/web/.next
-
-echo "[4/5] Installing dependencies and executing safe build..."
-npm install --include=dev
-npm run build -w @yayanews/web
-
-echo "[4.5/5] Copying static assets for standalone deployment..."
-cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static
-cp -r apps/web/public apps/web/.next/standalone/apps/web/public
-
-echo "[5/5] Build SUCCESS. Restarting production server..."
-pm2 restart yayanews
-
-echo "Done! The production server is back online."
+exec "$REAL_SCRIPT" "$@"

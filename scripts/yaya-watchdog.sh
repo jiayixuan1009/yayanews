@@ -5,6 +5,15 @@
 # ==============================================================================
 LOG_FILE="/var/log/yayanews_watchdog.log"
 APP_DIR="/var/www/yayanews"
+EXPECTED_APPS=(
+    yayanews
+    yaya-admin
+    yaya-ws-gateway
+    yaya-finnhub-ws
+    yaya-pipeline-daemon
+    yaya-worker-flash
+    yaya-worker-articles
+)
 
 log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
@@ -45,21 +54,49 @@ EOF
     fi
 fi
 
-# --- 2. PostgreSQL Check ---
-if ! systemctl is-active --quiet postgresql; then
-    log "[PGSQL] Service is down. Starting..."
-    systemctl start postgresql
+# --- 2. PM2 Process Check ---
+cd "$APP_DIR" || exit 1
+
+if ! pm2 ping >/dev/null 2>&1; then
+    log "[PM2] Daemon not responding. Resurrecting..."
+    pm2 resurrect >> "$LOG_FILE" 2>&1 || pm2 startOrRestart ecosystem.config.cjs --update-env >> "$LOG_FILE" 2>&1
+    sleep 5
 fi
 
-# --- 3. PM2 Process Check ---
-# Get the number of errored or stopped processes
-ERRORED_COUNT=$(pm2 list | grep -iE 'errored|stopped' | wc -l)
+NEEDS_RESTART=0
+PM2_JSON=$(pm2 jlist 2>/dev/null || echo "[]")
+for app in "${EXPECTED_APPS[@]}"; do
+    status=$(printf '%s' "$PM2_JSON" | node -e "
+const fs = require('fs');
+const apps = JSON.parse(fs.readFileSync(0, 'utf8'));
+const name = process.argv[1];
+const app = apps.find((item) => item.name === name);
+process.stdout.write(app?.pm2_env?.status || 'missing');
+" "$app")
+    if [ "$status" != "online" ]; then
+        log "[PM2] App '$app' is '$status'. Full ecosystem restart required."
+        NEEDS_RESTART=1
+    fi
+done
 
-if [ "$ERRORED_COUNT" -gt 0 ]; then
-    log "[PM2] Detected $ERRORED_COUNT errored/stopped processes. Resetting and restarting..."
-    cd "$APP_DIR" || exit 1
-    # Reset restart counters and attempt to revive
-    pm2 reset all >> "$LOG_FILE" 2>&1
-    pm2 restart all >> "$LOG_FILE" 2>&1
-    log "[PM2] >> Processes restarted."
+if [ "$NEEDS_RESTART" -eq 1 ]; then
+    pm2 startOrRestart ecosystem.config.cjs --update-env >> "$LOG_FILE" 2>&1
+    pm2 save >> "$LOG_FILE" 2>&1 || true
+    log "[PM2] >> Ecosystem startOrRestart completed."
+fi
+
+# --- 3. HTTP/TCP health checks ---
+if ! curl -fsS --max-time 8 http://127.0.0.1:3002/zh >/dev/null; then
+    log "[HTTP] Web app failed health check. Restarting yayanews..."
+    pm2 restart yayanews >> "$LOG_FILE" 2>&1 || pm2 startOrRestart ecosystem.config.cjs --only yayanews --update-env >> "$LOG_FILE" 2>&1
+fi
+
+if ! curl -fsS --max-time 8 http://127.0.0.1:3003/admin >/dev/null; then
+    log "[HTTP] Admin app failed health check. Restarting yaya-admin..."
+    pm2 restart yaya-admin >> "$LOG_FILE" 2>&1 || pm2 startOrRestart ecosystem.config.cjs --only yaya-admin --update-env >> "$LOG_FILE" 2>&1
+fi
+
+if ! (echo > /dev/tcp/127.0.0.1/3001) >/dev/null 2>&1; then
+    log "[TCP] WS gateway port 3001 failed health check. Restarting yaya-ws-gateway..."
+    pm2 restart yaya-ws-gateway >> "$LOG_FILE" 2>&1 || pm2 startOrRestart ecosystem.config.cjs --only yaya-ws-gateway --update-env >> "$LOG_FILE" 2>&1
 fi

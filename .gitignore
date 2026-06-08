@@ -90,3 +90,7 @@ scripts/maintenance/query_topics.js
 
 # Temporary credential redaction list (filter-repo)
 .git-redactions.txt
+
+# Local Windows service helpers; production uses Linux PM2/cron/watchdog scripts.
+scripts/pm2-startup.cmd
+scripts/watchdog.ps1

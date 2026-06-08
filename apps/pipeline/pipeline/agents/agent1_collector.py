@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import feedparser
 
-from pipeline.config.settings import CATEGORIES, RSS_FEEDS, PIPELINE_COLLECT_WORKERS
+from pipeline.config.settings import CATEGORIES, RSS_FEEDS, PIPELINE_COLLECT_WORKERS, ARTICLE_DEEP_RATIO
 from pipeline.utils.llm import chat
 from pipeline.utils.database import get_recent_titles, now_cn
 from pipeline.utils.logger import get_logger, step_print
@@ -39,6 +39,8 @@ def _generate_topics_by_keyword(category_slug: str, count: int = 5) -> list[dict
     """用 LLM 基于关键词生成选题。"""
     cat = CATEGORIES[category_slug]
     keywords = ", ".join(cat["keywords"])
+    deep_pct = max(0, min(100, round(ARTICLE_DEEP_RATIO * 100)))
+    standard_pct = 100 - deep_pct
 
     prompt = f"""你是金融新闻编辑。请为"{cat['name']}"频道生成{count}个新闻选题。
 
@@ -48,7 +50,7 @@ def _generate_topics_by_keyword(category_slug: str, count: int = 5) -> list[dict
 1. 选题要有新闻性和时效感（假设今天的新闻）
 2. 覆盖不同子话题
 3. 标题控制在 15-30 字
-4. 每个选题标注类型：standard（分析文章800-1500字）或 deep（深度研报2000+字），约70%为standard、30%为deep
+4. 每个选题标注类型：standard（分析文章800-1500字）或 deep（深度研报2000+字），约{standard_pct}%为standard、{deep_pct}%为deep
 
 请以如下 JSON 数组格式输出，不要输出其他内容：
 [{{"title": "标题", "type": "standard", "angle": "切入角度简述"}}]"""
@@ -98,17 +100,28 @@ def _topics_from_rss(category_slug: str) -> list[dict]:
 
 
 def _collect_one_category(cat_slug: str, min_per_cat: int, existing_titles: frozenset) -> tuple[str, list[dict]]:
-    """单分类：LLM 选题 + RSS，本地去重。"""
-    ai_topics = _generate_topics_by_keyword(cat_slug, count=min_per_cat)
+    """单分类：RSS 优先，不足时再用 LLM 补缺口。"""
     rss_topics = _topics_from_rss(cat_slug)
     seen_local: set[str] = set()
     out: list[dict] = []
-    for t in ai_topics + rss_topics:
+
+    for t in rss_topics:
         title = t["title"].strip()
         if title in existing_titles or title in seen_local:
             continue
         seen_local.add(title)
         out.append(t)
+
+    need = max(0, min_per_cat - len(out))
+    if need > 0:
+        ai_topics = _generate_topics_by_keyword(cat_slug, count=need)
+        for t in ai_topics:
+            title = t["title"].strip()
+            if title in existing_titles or title in seen_local:
+                continue
+            seen_local.add(title)
+            out.append(t)
+
     return cat_slug, out
 
 

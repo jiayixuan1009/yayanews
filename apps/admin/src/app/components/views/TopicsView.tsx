@@ -65,7 +65,7 @@ export default function TopicsView() {
   const fetchTopics = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await adminFetch('/api/admin/topics', { headers: { 'x-admin-secret': 'yayanews2024' } });
+      const res = await adminFetch('/api/admin/topics');
       const data = await res.json();
       setTopics(data.topics || []);
     } catch { /* silent */ }
@@ -74,7 +74,7 @@ export default function TopicsView() {
 
   const fetchFeatured = useCallback(async (topicId: number) => {
     try {
-      const res = await adminFetch(`/api/admin/topics/${topicId}`, { headers: { 'x-admin-secret': 'yayanews2024' } });
+      const res = await adminFetch(`/api/admin/topics/${topicId}`);
       const data = await res.json();
       setFeatured(data.featured || []);
     } catch { setFeatured([]); }
@@ -140,7 +140,7 @@ export default function TopicsView() {
 
       const res = await adminFetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json', 'x-admin-secret': 'yayanews2024' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
@@ -154,7 +154,7 @@ export default function TopicsView() {
     if (!confirm(`确认归档专题「${t.name_zh}」？\n归档后不可恢复为上线状态（不可继续新增文章），但 URL 保持有效。`)) return;
     await adminFetch(`/api/admin/topics/${t.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'x-admin-secret': 'yayanews2024' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'archive' }),
     });
     fetchTopics();
@@ -166,7 +166,7 @@ export default function TopicsView() {
     const merged = Array.from(new Set([...featured.map(f => f.id), ...ids])).slice(0, 6);
     const res = await adminFetch(`/api/admin/topics/${selected.id}/featured`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'x-admin-secret': 'yayanews2024' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ article_ids: merged }),
     });
     const data = await res.json();
@@ -179,7 +179,7 @@ export default function TopicsView() {
     const newIds = featured.filter(f => f.id !== articleId).map(f => f.id);
     await adminFetch(`/api/admin/topics/${selected.id}/featured`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'x-admin-secret': 'yayanews2024' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ article_ids: newIds }),
     });
     fetchFeatured(selected.id);
@@ -190,8 +190,7 @@ export default function TopicsView() {
     setDiscovering(true);
     try {
       const res = await adminFetch('/api/admin/topics/generate', {
-        method: 'POST',
-        headers: { 'x-admin-secret': 'yayanews2024' }
+        method: 'POST'
       });
       const data = await res.json();
       if (res.ok && data.success) {

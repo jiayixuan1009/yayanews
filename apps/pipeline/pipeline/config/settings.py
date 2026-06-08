@@ -190,12 +190,24 @@ FLASH_CHANNELS = {
 
 FLASH_CONCURRENCY = int(os.environ.get("FLASH_CONCURRENCY", "6"))
 FLASH_TRANSLATE_BATCH = int(os.environ.get("FLASH_TRANSLATE_BATCH", "1"))
+FLASH_NORMALIZE_BATCH = int(os.environ.get("FLASH_NORMALIZE_BATCH", "12"))
+FLASH_LLM_CANDIDATE_MULTIPLIER = int(os.environ.get("FLASH_LLM_CANDIDATE_MULTIPLIER", "4"))
+FLASH_OUTPUT_LANGS = [
+    lang.strip().lower()
+    for lang in os.environ.get("FLASH_OUTPUT_LANGS", "zh,en").split(",")
+    if lang.strip().lower() in ("zh", "en")
+] or ["zh"]
+FLASH_LLM_CLEAN_SAME_LANG = os.environ.get("FLASH_LLM_CLEAN_SAME_LANG", "1") == "1"
 # WebSocket 缓冲单次消费条数（需配合 pipeline.daemon.finnhub_ws_flash）
 FLASH_WS_DRAIN_MAX = int(os.environ.get("FLASH_WS_DRAIN_MAX", "25"))
 
 # 文章 Pipeline：选题并行分类数、LLM 并行度（写作/SEO）
 PIPELINE_COLLECT_WORKERS = int(os.environ.get("PIPELINE_COLLECT_WORKERS", "4"))
 PIPELINE_LLM_WORKERS = int(os.environ.get("PIPELINE_LLM_WORKERS", "4"))
+ARTICLE_STANDARD_MAX_TOKENS = int(os.environ.get("ARTICLE_STANDARD_MAX_TOKENS", "2800"))
+ARTICLE_DEEP_MAX_TOKENS = int(os.environ.get("ARTICLE_DEEP_MAX_TOKENS", "4096"))
+ARTICLE_DEEP_RATIO = float(os.environ.get("ARTICLE_DEEP_RATIO", "0.15"))
+ENABLE_FLASH_EMBEDDING = os.environ.get("ENABLE_FLASH_EMBEDDING", "1") == "1"
 
 # ── Agent 6 英文翻译控制（按需翻译，节省 ~17% Token）──
 ENABLE_REALTIME_TRANSLATION = os.environ.get("ENABLE_REALTIME_TRANSLATION", "0") == "1"

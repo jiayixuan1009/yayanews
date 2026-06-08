@@ -54,7 +54,7 @@ def main() -> None:
         out = translate_queue(batch_size=n, force=True)
         total_ok += len(out)
 
-        rest = _get_translation_candidates(limit=1)
+        rest = _get_translation_candidates(limit=1, min_views=0)
         if not rest:
             print(f"\n[translate_en] 全部完成：本进程累计成功入库 {total_ok} 篇（共跑 {batch_idx} 批）。")
             return

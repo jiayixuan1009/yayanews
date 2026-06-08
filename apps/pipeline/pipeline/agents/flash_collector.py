@@ -12,6 +12,7 @@
   cn_sina(6) > cn_rss(5) ≈ Finnhub/WS(5) > Marketaux(4) > CryptoCompare(3) > CoinGecko(2) > RSS(1) > LLM(0)
 """
 import json
+import re
 import time
 import requests
 import feedparser
@@ -20,7 +21,10 @@ from datetime import datetime
 
 from pipeline.config.settings import (
     CATEGORIES, RSS_FEEDS, CN_FLASH_RSS_FEEDS, SCMP_HKEX_FEEDS,
-    FLASH_CHANNELS, FLASH_CONCURRENCY, FLASH_TRANSLATE_BATCH, FLASH_WS_DRAIN_MAX,
+    FLASH_CHANNELS, FLASH_CONCURRENCY, FLASH_WS_DRAIN_MAX,
+    FLASH_NORMALIZE_BATCH, FLASH_LLM_CANDIDATE_MULTIPLIER, FLASH_OUTPUT_LANGS,
+    FLASH_LLM_CLEAN_SAME_LANG,
+    ENABLE_FLASH_EMBEDDING,
 )
 from pipeline.utils.ws_flash_buffer import drain_ws_buffer
 from pipeline.utils.database import insert_flash, now_cn, check_semantic_duplicate, get_pool
@@ -114,7 +118,48 @@ def _is_chinese(text: str) -> bool:
     return cn_count / max(len(text), 1) > 0.15
 
 
-import re
+def _local_normalize_flash_item(item: dict, target_lang: str) -> dict:
+    """本地规整同语种快讯，避免把已可用的中文/英文源再送进 LLM。"""
+    title = re.sub(r"<[^>]+>", " ", item.get("title", "") or "")
+    content = re.sub(r"<[^>]+>", " ", item.get("content", "") or "")
+    title = re.sub(r"\s+", " ", title).strip()
+    content = re.sub(r"\s+", " ", content).strip() or title
+
+    if target_lang == "zh":
+        title = title[:60]
+        content = content[:180]
+    else:
+        title = title[:100]
+        content = content[:260]
+
+    out = {
+        "title": title,
+        "content": content,
+        "raw_text": item.get("raw_text") or f"{title} {content}",
+        "source_lang": item.get("lang", target_lang),
+        "final_lang": target_lang,
+        "lang": target_lang,
+        "channel": item.get("channel"),
+        "source": item.get("source"),
+        "source_url": item.get("source_url"),
+        "importance": item.get("importance", "normal"),
+        "collected_at": item.get("collected_at", now_cn()),
+    }
+    if item.get("category_override"):
+        out["category_override"] = item["category_override"]
+    return out
+
+
+def _is_same_lang_flash_item(item: dict, target_lang: str) -> bool:
+    lang = (item.get("lang") or "").lower()
+    if lang == target_lang:
+        return True
+    text = f"{item.get('title', '')} {item.get('content', '')}"
+    return target_lang == "zh" and _is_chinese(text)
+
+
+def _flash_channel_weight(item: dict) -> int:
+    return int(FLASH_CHANNELS.get(item.get("channel", ""), {}).get("weight", 0))
 
 _RELEVANCE_KEYWORDS = re.compile(
     r"(?i)\b("
@@ -750,7 +795,10 @@ CHANNEL_REGISTRY = {
 
 def collect_flash(count: int = 10) -> list[dict]:
     """多通道并发采集快讯，批量翻译，按权重入库。"""
-    step_print("快讯多通道引擎", f"目标: {count} 条 | 并发: {FLASH_CONCURRENCY} | 批量翻译: {FLASH_TRANSLATE_BATCH}条/次")
+    step_print(
+        "快讯多通道引擎",
+        f"目标: {count} 条 | 并发: {FLASH_CONCURRENCY} | 输出语言: {','.join(FLASH_OUTPUT_LANGS)} | 清洗批次: {FLASH_NORMALIZE_BATCH}",
+    )
 
     existing_texts = _get_recent_flash_texts(200)
     stats: dict[str, dict] = {}
@@ -811,37 +859,67 @@ def collect_flash(count: int = 10) -> list[dict]:
     if filtered_out:
         print(f"  前置过滤: 丢弃 {filtered_out} 条无关新闻，保留 {len(all_items)} 条")
 
-    # ── 双路并行翻译清洗（LLM） ──
+    # ── 按配置翻译清洗（LLM）。默认只产中文，英文按需打开。 ──
     t1 = time.time()
     
     if all_items:
-        print(f"\n  并发标准化清洗 {len(all_items)} 条快讯...")
-        with ThreadPoolExecutor(max_workers=2) as norm_pool:
-            future_zh = norm_pool.submit(normalize_flash_batch, all_items, "zh")
-            future_en = norm_pool.submit(normalize_flash_batch, all_items, "en")
-            zh_items = future_zh.result()
-            en_items = future_en.result()
-        
-        normalized_items = zh_items + en_items
-        
-        # 将原始源头的 category_override, collected_at 映射回清洗结果
-        final_items = []
-        for n_item in normalized_items:
-            orig_idx = n_item.pop("id", None)
-            if orig_idx is not None and isinstance(orig_idx, int) and 0 <= orig_idx < len(all_items):
-                orig = all_items[orig_idx]
-                if orig.get("category_override"):
-                    n_item["category_override"] = orig["category_override"]
-                n_item["collected_at"] = orig.get("collected_at", now_cn())
-                if not n_item.get("channel"):
-                    n_item["channel"] = orig.get("channel")
-            else:
-                n_item["collected_at"] = now_cn()
-            final_items.append(n_item)
-            
+        print(f"\n  标准化清洗 {len(all_items)} 条快讯 -> {','.join(FLASH_OUTPUT_LANGS)}...")
+
+        def _normalize_chunk(chunk: list[dict], target_lang: str) -> list[dict]:
+            normalized = normalize_flash_batch(chunk, target_lang)
+            final = []
+            for n_item in normalized:
+                orig_idx = n_item.pop("id", n_item.pop("_internal_idx", None))
+                if isinstance(orig_idx, str) and orig_idx.isdigit():
+                    orig_idx = int(orig_idx)
+                if isinstance(orig_idx, int) and 0 <= orig_idx < len(chunk):
+                    orig = chunk[orig_idx]
+                    if orig.get("category_override"):
+                        n_item["category_override"] = orig["category_override"]
+                    n_item["collected_at"] = orig.get("collected_at", now_cn())
+                    n_item.setdefault("channel", orig.get("channel"))
+                    n_item.setdefault("source", orig.get("source"))
+                    n_item.setdefault("source_url", orig.get("source_url"))
+                    n_item["raw_text"] = orig.get("raw_text", "")
+                else:
+                    n_item["collected_at"] = now_cn()
+                final.append(n_item)
+            return final
+
+        futures = []
+        normalized_items = []
+        local_count = 0
+        llm_count = 0
+        llm_skipped_count = 0
+        llm_cap = max(count, count * max(1, FLASH_LLM_CANDIDATE_MULTIPLIER))
+        with ThreadPoolExecutor(max_workers=min(len(FLASH_OUTPUT_LANGS) * 2, 4)) as norm_pool:
+            for target_lang in FLASH_OUTPUT_LANGS:
+                llm_items = []
+                for item in all_items:
+                    if not FLASH_LLM_CLEAN_SAME_LANG and _is_same_lang_flash_item(item, target_lang):
+                        normalized_items.append(_local_normalize_flash_item(item, target_lang))
+                        local_count += 1
+                    else:
+                        llm_items.append(item)
+                if len(llm_items) > llm_cap:
+                    llm_items.sort(key=lambda it: (-_flash_channel_weight(it), it.get("channel", "")))
+                    llm_skipped_count += len(llm_items) - llm_cap
+                    llm_items = llm_items[:llm_cap]
+                for offset in range(0, len(llm_items), FLASH_NORMALIZE_BATCH):
+                    chunk = llm_items[offset: offset + FLASH_NORMALIZE_BATCH]
+                    llm_count += len(chunk)
+                    futures.append(norm_pool.submit(_normalize_chunk, chunk, target_lang))
+            for future in as_completed(futures):
+                normalized_items.extend(future.result())
+
+        final_items = normalized_items
         all_items = final_items
         translate_time = time.time() - t1
-        print(f"  清洗完成，产生 {len(zh_items)} 条中文, {len(en_items)} 条英文，耗时 {translate_time:.1f}s")
+        lang_counts = {lang: sum(1 for item in all_items if item.get("lang") == lang) for lang in FLASH_OUTPUT_LANGS}
+        print(
+            f"  清洗完成，产生 {lang_counts}，本地 {local_count} 条，"
+            f"LLM {llm_count} 条，跳过低权重 LLM 候选 {llm_skipped_count} 条，耗时 {translate_time:.1f}s"
+        )
     else:
         translate_time = 0.0
 
@@ -855,8 +933,7 @@ def collect_flash(count: int = 10) -> list[dict]:
 
     # ── 按权重排序 ──
     def _sort_key(item):
-        ch_name = item.get("channel", "")
-        w = FLASH_CHANNELS.get(ch_name, {}).get("weight", 0)
+        w = _flash_channel_weight(item)
         return -w
 
     all_items.sort(key=_sort_key)
@@ -881,7 +958,7 @@ def collect_flash(count: int = 10) -> list[dict]:
                 
         # 2. 第二条防线：pgvector 语义查重（过滤 0.85 以上深度洗稿内容）
         embedding = None
-        if not is_duplicate:
+        if not is_duplicate and ENABLE_FLASH_EMBEDDING:
             embedding = get_embedding(item_full_text)
             if embedding:
                 dup_record = check_semantic_duplicate(embedding, threshold=0.85)
@@ -936,7 +1013,7 @@ def collect_flash(count: int = 10) -> list[dict]:
             cat_id = CATEGORIES.get(cat_override, CATEGORIES["crypto"])["id"] if cat_override else 2
 
             subcat = _detect_subcategory(title, cat_id)
-            fallback_embed = get_embedding(item_full_text)
+            fallback_embed = get_embedding(item_full_text) if ENABLE_FLASH_EMBEDDING else None
             fid = insert_flash(
                 title=title,
                 content=item.get("content", ""),
