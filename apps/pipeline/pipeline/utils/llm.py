@@ -6,6 +6,7 @@ from openai import OpenAI
 from pipeline.config.settings import (
     LLM_BASE_URL, LLM_API_KEY, LLM_MODEL, LLM_REASONER_MODEL,
     LLM_FALLBACK_BASE_URL, LLM_FALLBACK_API_KEY, LLM_FALLBACK_MODEL,
+    EMBEDDING_API_KEY, EMBEDDING_BASE_URL, EMBEDDING_MODEL,
 )
 from pipeline.utils.logger import get_logger
 
@@ -13,6 +14,9 @@ log = get_logger("llm")
 
 _primary_client = None
 _fallback_client = None
+_embedding_client = None
+_embedding_skip_logged = False
+_embedding_disabled_reason = None
 
 
 def _caller_name() -> str:
@@ -92,6 +96,24 @@ def _get_fallback() -> OpenAI | None:
 def get_client() -> OpenAI:
     """向后兼容：返回主线路客户端。"""
     return _get_primary()
+
+
+def _get_embedding_client() -> OpenAI | None:
+    global _embedding_client, _embedding_skip_logged
+    if not EMBEDDING_API_KEY:
+        if not _embedding_skip_logged:
+            log.info("Embedding skipped: EMBEDDING_API_KEY/OPENAI_API_KEY is not configured")
+            _embedding_skip_logged = True
+        return None
+    if _embedding_client is None:
+        _embedding_client = OpenAI(
+            base_url=EMBEDDING_BASE_URL,
+            api_key=EMBEDDING_API_KEY,
+            timeout=60.0,
+            max_retries=1,
+        )
+        log.info(f"Embedding client initialized: base={EMBEDDING_BASE_URL}, model={EMBEDDING_MODEL}")
+    return _embedding_client
 
 
 def chat(
@@ -251,16 +273,27 @@ def batch_translate(items: list[dict], batch_size: int = 8) -> list[dict]:
     return results
 
 
-def get_embedding(text: str, model: str = "text-embedding-3-small") -> list[float]:
+def get_embedding(text: str, model: str = "") -> list[float]:
     """请求大模型的文本嵌入接口向量化内容，以备写入 pgvector"""
+    global _embedding_disabled_reason
     if not text:
         return None
-    client = get_client()
+    if _embedding_disabled_reason:
+        return None
+    client = _get_embedding_client()
+    if client is None:
+        return None
+    model = model or EMBEDDING_MODEL
     try:
         res = client.embeddings.create(input=[text], model=model)
         return res.data[0].embedding
     except Exception as e:
-        log.warning(f"Embedding failed: {e}")
+        status_code = getattr(e, "status_code", None)
+        if status_code in (400, 404):
+            _embedding_disabled_reason = f"{type(e).__name__}: {e}"
+            log.warning(f"Embedding disabled after provider rejected request: {_embedding_disabled_reason}")
+        else:
+            log.warning(f"Embedding failed: {e}")
         return None
 
 def compute_similarity(text_a: str, text_b: str) -> float:
