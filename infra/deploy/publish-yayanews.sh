@@ -72,7 +72,8 @@ assert_http_ready() {
 }
 
 assert_pm2_online() {
-    pm2 jlist | node -e "
+    local failures
+    failures="$(pm2 jlist | node -e "
 const fs = require('fs');
 const apps = JSON.parse(fs.readFileSync(0, 'utf8'));
 const expected = process.argv.slice(1);
@@ -88,7 +89,24 @@ if (failures.length) {
   console.error(failures.join(', '));
   process.exit(1);
 }
-" "$@"
+" "$@" 2>&1)" || {
+        echo "$failures"
+        return 1
+    }
+}
+
+wait_for_pm2_online() {
+    local failures=""
+    for i in $(seq 1 "$HEALTH_RETRIES"); do
+        if failures="$(assert_pm2_online "$@" 2>&1)"; then
+            return 0
+        fi
+        log "   ${YELLOW}Waiting for PM2 services${NC} ($failures, attempt $i/$HEALTH_RETRIES)"
+        sleep "$HEALTH_INTERVAL"
+    done
+
+    log "${RED}PM2 services did not become online${NC}: $failures"
+    return 1
 }
 
 assert_pipeline_enabled() {
@@ -288,7 +306,7 @@ if ! command -v pm2 >/dev/null 2>&1; then
 fi
 pm2 startOrRestart ecosystem.config.cjs --update-env
 pm2 save >/dev/null
-assert_pm2_online "${CORE_PM2_APPS[@]}" "${PYTHON_PM2_APPS[@]}"
+wait_for_pm2_online "${CORE_PM2_APPS[@]}" "${PYTHON_PM2_APPS[@]}"
 log "   ${GREEN}PM2 services are online${NC}"
 
 log "Running post-deploy health checks..."
