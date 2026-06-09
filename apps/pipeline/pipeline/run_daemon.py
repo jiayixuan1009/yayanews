@@ -17,11 +17,11 @@ import os
 import sys
 import time
 import json
-from pathlib import Path
 from redis import Redis
 from rq import Queue
 from pipeline.tasks import task_collect_and_enqueue_articles, task_run_flash
 from pipeline.utils.redis_conn import get_redis_connection
+from pipeline.utils.runtime_paths import get_pipeline_data_dir
 
 FLASH_SEC = int(os.environ.get("DAEMON_FLASH_SEC", "60"))
 ARTICLE_SEC = int(os.environ.get("DAEMON_ARTICLE_SEC", "1800"))
@@ -54,14 +54,13 @@ def main():
         flush=True,
     )
 
-    data_dir = Path("data")
-    data_dir.mkdir(exist_ok=True)
+    data_dir = get_pipeline_data_dir()
     status_file = data_dir / "daemon_status.txt"
     heartbeat_file = data_dir / "daemon_heartbeat.txt"
     config_file = data_dir / "daemon_config.json"
 
     if not status_file.exists():
-        status_file.write_text("running")
+        status_file.write_text("running", encoding="utf-8")
 
     def write_heartbeat(msg="idle"):
         try:
@@ -73,13 +72,13 @@ def main():
                 "failed": q_flash.failed_job_registry.count + q_articles.failed_job_registry.count,
                 "finished": q_flash.finished_job_registry.count + q_articles.finished_job_registry.count
             }
-            heartbeat_file.write_text(json.dumps(state))
+            heartbeat_file.write_text(json.dumps(state), encoding="utf-8")
         except Exception:
             pass
 
     while True:
         try:
-            status = status_file.read_text().strip()
+            status = status_file.read_text(encoding="utf-8").strip()
         except Exception:
             status = "running"
             
@@ -97,7 +96,7 @@ def main():
         dyn_articles = ARTICLE_COUNT
         try:
             if config_file.exists():
-                cfg = json.loads(config_file.read_text())
+                cfg = json.loads(config_file.read_text(encoding="utf-8"))
                 mode = cfg.get("mode", "all")
                 dyn_flash = int(cfg.get("flash", FLASH_COUNT))
                 dyn_articles = int(cfg.get("articles", ARTICLE_COUNT))

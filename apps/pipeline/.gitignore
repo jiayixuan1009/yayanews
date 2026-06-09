@@ -1,4 +1,6 @@
 data/pipeline_run.log
 data/pipeline_run.log.*
+data/daemon_status.txt
 data/daemon_heartbeat.txt
+data/daemon_config.json
 data/ws_flash_queue.jsonl
