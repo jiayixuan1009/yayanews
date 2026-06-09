@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from pipeline.utils.logger import get_logger
 
 log = get_logger("indexer")
+_indexnow_missing_key_logged = False
 
 
 def _site_base_and_host() -> tuple[str, str]:
@@ -30,10 +31,13 @@ def _encode_flash_slug(flash_id: int, title: str, published_at: str) -> str:
     return f"{yyyymmddhh}{padded_id}"
 
 def _do_indexnow_ping(full_urls):
+    global _indexnow_missing_key_logged
     _, host = _site_base_and_host()
     key = (os.environ.get("INDEXNOW_KEY") or "").strip()
     if not key:
-        log.warning("Skipping IndexNow ping: INDEXNOW_KEY is not configured")
+        if not _indexnow_missing_key_logged:
+            log.info("Skipping IndexNow ping: INDEXNOW_KEY is not configured")
+            _indexnow_missing_key_logged = True
         return
     payload = {
         "host": host,

@@ -11,6 +11,7 @@ interface PipelineStatus {
     queued: number;
     started: number;
     failed: number;
+    failedTotal?: number;
     finished: number;
   };
 }
@@ -255,9 +256,10 @@ export default function PipelineView() {
         </div>
         <div className="rounded-lg border border-red-900/30 bg-red-950/10 p-2.5 flex flex-col justify-center">
            <div className="text-xs font-medium text-red-400 flex items-center gap-1.5 mb-0.5">
-             <span className="h-1.5 w-1.5 rounded-full bg-red-500/50" />死信异常 (Failed)
+             <span className="h-1.5 w-1.5 rounded-full bg-red-500/50" />近24h死信
            </div>
            <div className="text-xl font-bold text-red-400 font-mono leading-none">{status.metrics?.failed || 0}</div>
+           <div className="mt-1 text-[10px] text-red-500/60 leading-none">历史 {status.metrics?.failedTotal || 0}</div>
         </div>
         <div className="rounded-lg border border-emerald-900/30 bg-emerald-950/10 p-2.5 flex flex-col justify-center">
            <div className="text-xs font-medium text-emerald-500 flex items-center gap-1.5 mb-0.5">

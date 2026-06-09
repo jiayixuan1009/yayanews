@@ -44,7 +44,7 @@ function getStatus() {
   let running = statusStr !== 'paused';
   const pid = running ? 1 : null; // Representing PM2 daemon Active state
   
-  let metrics = { queued: 0, started: 0, failed: 0, finished: 0 };
+  let metrics = { queued: 0, started: 0, failed: 0, failedTotal: 0, finished: 0 };
 
   try {
     const rawHb = fs.readFileSync(HEARTBEAT_FILE, 'utf-8');
@@ -54,7 +54,8 @@ function getStatus() {
     metrics = {
       queued: hb.queued || 0,
       started: hb.started || 0,
-      failed: hb.failed || 0,
+      failed: hb.failed_recent ?? hb.failed ?? 0,
+      failedTotal: hb.failed_total ?? hb.failed ?? 0,
       finished: hb.finished || 0,
     };
     
