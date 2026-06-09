@@ -81,8 +81,8 @@ bash deploy/publish-yayanews.sh
 bash infra/scripts/backup-db.sh
 
 # 自动备份（添加到 crontab）
-# 每天凌晨 2 点备份
-0 2 * * * cd /var/www/yayanews && bash infra/scripts/backup-db.sh
+# 生产现状：每 2 小时备份一次，日志写入 /var/log/yayanews-backup.log
+0 */2 * * * cd /var/www/yayanews && bash infra/scripts/backup-db.sh >> /var/log/yayanews-backup.log 2>&1
 ```
 
 ## 常见问题

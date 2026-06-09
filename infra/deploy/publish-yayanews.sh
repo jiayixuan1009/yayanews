@@ -196,9 +196,9 @@ log "Installing dependencies..."
 unset NODE_ENV
 export NEXT_PUBLIC_SITE_URL="${NEXT_PUBLIC_SITE_URL:-https://yayanews.cryptooptiontool.com}"
 if [ -f package-lock.json ]; then
-    npm ci --include=dev 2>&1 | tail -1
+    npm ci --include=dev
 else
-    npm install 2>&1 | tail -1
+    npm install
 fi
 
 if [ ! -f apps/pipeline/requirements.txt ]; then
@@ -217,7 +217,7 @@ if [ "$CLEAN_NEXT_CACHE_BEFORE_DEPLOY" = "1" ]; then
     rm -rf apps/web/.next/cache apps/admin/.next/cache .next/cache .turbo 2>/dev/null || true
 fi
 assert_disk_space
-npm run build 2>&1 | tail -3
+npm run build
 mkdir -p apps/web/.next/standalone/.next
 mkdir -p apps/admin/.next/standalone/.next
 cp -r apps/web/public apps/web/.next/standalone/public
@@ -228,7 +228,7 @@ log "   ${GREEN}Build complete${NC}"
 log "Running schema repair preflight..."
 export PYTHONPATH="$APP_DIR/apps/pipeline"
 if [ -f apps/pipeline/scripts/fix_schema.py ]; then
-    python3 apps/pipeline/scripts/fix_schema.py 2>&1 | tail -3
+    python3 apps/pipeline/scripts/fix_schema.py
 else
     log "${YELLOW}   fix_schema.py not found; skipping${NC}"
 fi
@@ -238,7 +238,7 @@ if ! command -v pm2 >/dev/null 2>&1; then
     log "${RED}PM2 is not installed${NC}"
     exit 1
 fi
-pm2 startOrRestart ecosystem.config.cjs --update-env 2>&1 | tail -5
+pm2 startOrRestart ecosystem.config.cjs --update-env
 pm2 save >/dev/null
 assert_pm2_online "${CORE_PM2_APPS[@]}" "${PYTHON_PM2_APPS[@]}"
 log "   ${GREEN}PM2 services are online${NC}"
