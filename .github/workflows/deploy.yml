@@ -3,7 +3,7 @@ name: Deploy to Production
 on:
   push:
     tags:
-      - 'v*'    # 推送 v 开头的 tag 时触发
+      - 'v*'
 
 jobs:
   deploy:
@@ -20,12 +20,23 @@ jobs:
             set -euo pipefail
             cd /var/www/yayanews
 
-            echo "🏷️ Deploying tag: ${{ github.ref_name }}"
-            echo "📦 Pulling latest code..."
-            git fetch --all --tags
-            git checkout ${{ github.ref_name }}
+            echo "Deploying tag: ${{ github.ref_name }}"
+            if [ -n "$(git status --porcelain)" ]; then
+              echo "Production worktree is dirty; snapshotting and aborting before checkout."
+              if [ -f infra/scripts/snapshot-worktree.sh ]; then
+                bash infra/scripts/snapshot-worktree.sh
+              else
+                mkdir -p infra/backups/worktree
+                git status --short > "infra/backups/worktree/dirty-status-${{ github.run_id }}.txt"
+              fi
+              exit 1
+            fi
 
-            echo "🚀 Running deploy script..."
+            echo "Pulling latest code..."
+            git fetch --all --tags
+            git checkout --detach "${{ github.ref_name }}"
+
+            echo "Running deploy script..."
             bash deploy/publish-yayanews.sh
 
-            echo "✅ Deployment complete: ${{ github.ref_name }}"
+            echo "Deployment complete: ${{ github.ref_name }}"
