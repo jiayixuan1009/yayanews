@@ -61,6 +61,27 @@ curl -I http://127.0.0.1:3003/admin
 cat apps/pipeline/data/daemon_heartbeat.txt
 ```
 
+## Loopback binding
+
+Production should expose only Nginx on public `80/443`. Web, Admin, and
+WebSocket services bind to loopback by default:
+
+```dotenv
+WEB_HOSTNAME=127.0.0.1
+ADMIN_HOSTNAME=127.0.0.1
+WS_HOST=127.0.0.1
+WS_PORT=3001
+```
+
+When `.env` or `ecosystem.config.cjs` changes, reload PM2 with:
+
+```bash
+pm2 start ecosystem.config.cjs --update-env
+pm2 save
+```
+
+This reloads the ecosystem file itself and avoids stale PM2 environment values.
+
 如果出现“前台可访问，但新闻不再更新”，优先检查：
 
 1. `.env` 中是否存在 `ENABLE_PYTHON_WORKERS=true`

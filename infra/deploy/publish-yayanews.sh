@@ -304,7 +304,7 @@ if ! command -v pm2 >/dev/null 2>&1; then
     log "${RED}PM2 is not installed${NC}"
     exit 1
 fi
-pm2 startOrRestart ecosystem.config.cjs --update-env
+pm2 start ecosystem.config.cjs --update-env
 pm2 save >/dev/null
 wait_for_pm2_online "${CORE_PM2_APPS[@]}" "${PYTHON_PM2_APPS[@]}"
 log "   ${GREEN}PM2 services are online${NC}"

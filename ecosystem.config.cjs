@@ -70,7 +70,12 @@ module.exports = {
       script: "apps/web/.next/standalone/apps/web/server.js",
       ...robustNode,
       max_memory_restart: "800M",
-      env: { ...mergedEnv, NODE_ENV: "production", PORT: 3002, HOSTNAME: "0.0.0.0" },
+      env: {
+        ...mergedEnv,
+        NODE_ENV: "production",
+        PORT: 3002,
+        HOSTNAME: mergedEnv.WEB_HOSTNAME || "127.0.0.1",
+      },
     },
     ...(mergedEnv.ENABLE_PYTHON_WORKERS === 'true' ? [
     {
@@ -135,7 +140,12 @@ module.exports = {
       ...robustNode,
       max_memory_restart: "400M",
       // Pin WS_PORT so Nginx upstream and the gateway cannot drift silently.
-      env: { ...mergedEnv, NODE_ENV: "production", WS_PORT: mergedEnv.WS_PORT || 3001 },
+      env: {
+        ...mergedEnv,
+        NODE_ENV: "production",
+        WS_HOST: mergedEnv.WS_HOST || "127.0.0.1",
+        WS_PORT: mergedEnv.WS_PORT || 3001,
+      },
     },
     {
       name: "yaya-admin",
@@ -143,7 +153,12 @@ module.exports = {
       script: "apps/admin/.next/standalone/apps/admin/server.js",
       ...robustNode,
       max_memory_restart: "600M",
-      env: { ...mergedEnv, NODE_ENV: "production", PORT: 3003, HOSTNAME: "0.0.0.0" },
+      env: {
+        ...mergedEnv,
+        NODE_ENV: "production",
+        PORT: 3003,
+        HOSTNAME: mergedEnv.ADMIN_HOSTNAME || "127.0.0.1",
+      },
     }
   ],
 };
