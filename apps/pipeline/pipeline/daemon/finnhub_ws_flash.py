@@ -7,6 +7,9 @@ Finnhub WebSocket 新闻订阅守护进程（降低轮询延迟）。
 订阅多标的实时新闻，写入 data/ws_flash_queue.jsonl，由 collect_flash 批量翻译入库。
 """
 import json
+import os
+import random
+import re
 import signal
 import sys
 import time
@@ -33,6 +36,54 @@ _WS_SYMBOLS = [
 ]
 
 _running = True
+_rate_limited_until = 0.0
+
+_MIN_RETRY_DELAY = max(1, int(os.environ.get("FINNHUB_WS_MIN_RETRY_SECONDS", "5")))
+_MAX_RETRY_DELAY = max(_MIN_RETRY_DELAY, int(os.environ.get("FINNHUB_WS_MAX_RETRY_SECONDS", "900")))
+_RATE_LIMIT_FALLBACK_DELAY = max(
+    _MIN_RETRY_DELAY,
+    int(os.environ.get("FINNHUB_WS_RATE_LIMIT_RETRY_SECONDS", "300")),
+)
+_retry_delay = float(_MIN_RETRY_DELAY)
+
+
+def _extract_rate_limit_reset(err):
+    message = str(err)
+    match = re.search(r"'x-ratelimit-reset': '(\d+)'", message, re.IGNORECASE)
+    if not match:
+        match = re.search(r'"x-ratelimit-reset":\s*"?(\d+)"?', message, re.IGNORECASE)
+    if not match:
+        return None
+    try:
+        return int(match.group(1))
+    except ValueError:
+        return None
+
+
+def _remember_rate_limit(err):
+    global _rate_limited_until
+    message = str(err)
+    if "429" not in message and "too many requests" not in message.lower():
+        return
+
+    now = time.time()
+    reset_at = _extract_rate_limit_reset(err)
+    if reset_at and reset_at > now:
+        wait_seconds = min(_MAX_RETRY_DELAY, max(_MIN_RETRY_DELAY, int(reset_at - now) + 5))
+    else:
+        wait_seconds = min(_MAX_RETRY_DELAY, _RATE_LIMIT_FALLBACK_DELAY)
+    _rate_limited_until = max(_rate_limited_until, now + wait_seconds)
+
+
+def _next_retry_seconds():
+    global _retry_delay
+    now = time.time()
+    if _rate_limited_until > now:
+        return min(_MAX_RETRY_DELAY, max(_MIN_RETRY_DELAY, _rate_limited_until - now))
+
+    delay = _retry_delay
+    _retry_delay = min(_MAX_RETRY_DELAY, max(_MIN_RETRY_DELAY, _retry_delay * 2))
+    return delay + random.uniform(0, min(3.0, delay * 0.2))
 
 
 def _on_message(ws, message):
@@ -80,6 +131,7 @@ def _on_message(ws, message):
 
 
 def _on_error(ws, err):
+    _remember_rate_limit(err)
     log.warning(f"WS error: {err}")
 
 
@@ -88,6 +140,8 @@ def _on_close(ws, code, msg):
 
 
 def _on_open(ws):
+    global _retry_delay
+    _retry_delay = float(_MIN_RETRY_DELAY)
     log.info("WS connected, subscribing news symbols...")
     # Finnhub: {"type":"subscribe","news":["AAPL","MSFT",...]}
     chunk = 8
@@ -129,8 +183,9 @@ def main():
         except Exception as e:
             log.error(f"run_forever: {e}")
         if _running:
-            log.info("5s 后重连...")
-            time.sleep(5)
+            delay = _next_retry_seconds()
+            log.info(f"Retrying Finnhub WS in {delay:.0f}s")
+            time.sleep(delay)
     log.info("退出")
 
 
