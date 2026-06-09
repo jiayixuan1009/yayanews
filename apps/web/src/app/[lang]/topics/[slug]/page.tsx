@@ -8,27 +8,29 @@ import { siteConfig } from '@yayanews/types';
 import { sanitizeHtml } from '@/lib/sanitize';
 
 interface Props {
-  params: { slug: string; lang: string };
-  searchParams: { page?: string };
+  params: Promise<{ slug: string; lang: string }>;
+  searchParams: Promise<{ page?: string }>;
 }
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
-  const topic = await getTopicBySlug(params.slug, 1, 20, params.lang === 'en' ? 'en' : 'zh');
-  if (!topic) return createMetadata({ title: params.lang === 'en' ? 'Topic Not Found' : '专题未找到', lang: params.lang as 'zh' | 'en' });
+  const [{ slug, lang }, resolvedSearchParams] = await Promise.all([params, searchParams]);
+  const locale = lang === 'en' ? 'en' : 'zh';
+  const topic = await getTopicBySlug(slug, 1, 20, locale);
+  if (!topic) return createMetadata({ title: lang === 'en' ? 'Topic Not Found' : '专题未找到', lang: lang as 'zh' | 'en' });
 
-  const isZh = params.lang !== 'en';
+  const isZh = lang !== 'en';
   const name = isZh ? topic.name_zh : topic.name_en;
   const desc = isZh ? topic.description_zh : topic.description_en;
   const metaTitle = topic.meta_title || `${name} ${isZh ? '专题报道' : 'Topic Coverage'} | YayaNews`;
   const metaDesc = topic.meta_description || (desc || '').slice(0, isZh ? 120 : 160);
-  const page = parseInt(searchParams.page || '1', 10);
+  const page = parseInt(resolvedSearchParams.page || '1', 10);
 
   const baseMeta = createMetadata({
     title: metaTitle,
     description: metaDesc,
-    url: `/topics/${params.slug}`,
+    url: `/topics/${slug}`,
     image: topic.cover_image || undefined,
-    lang: params.lang as 'zh' | 'en',
+    lang: lang as 'zh' | 'en',
     noIndex: topic.status === 'archive' || page > 1 || (topic.total_count || 0) < 3, // P2 SEO: archive + pagination + thin (<3 articles in this lang) noindex
   });
 
@@ -39,15 +41,16 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 export const revalidate = 180;
 
 export default async function TopicDetailPage({ params, searchParams }: Props) {
-  const page = Math.max(1, parseInt(searchParams.page || '1', 10));
+  const [{ slug, lang }, resolvedSearchParams] = await Promise.all([params, searchParams]);
+  const page = Math.max(1, parseInt(resolvedSearchParams.page || '1', 10));
   const pageSize = 20;
 
-  const topic = await getTopicBySlug(params.slug, page, pageSize, params.lang === 'en' ? 'en' : 'zh');
+  const topic = await getTopicBySlug(slug, page, pageSize, lang === 'en' ? 'en' : 'zh');
 
   // draft → 404；topic 不存在 → 404
   if (!topic || topic.status === 'draft') notFound();
 
-  const isZh = params.lang !== 'en';
+  const isZh = lang !== 'en';
   const name = isZh ? (topic.name_zh || topic.title || '') : (topic.name_en || topic.title || '');
   const desc = isZh ? topic.description_zh : topic.description_en;
   const totalPages = Math.ceil((topic.total_count || 0) / pageSize);
@@ -59,14 +62,14 @@ export default async function TopicDetailPage({ params, searchParams }: Props) {
     '@type': 'CollectionPage',
     name,
     description: desc || '',
-    url: `${siteConfig.siteUrl}/${params.lang}/topics/${params.slug}`,
+    url: `${siteConfig.siteUrl}/${lang}/topics/${slug}`,
     mainEntity: {
       '@type': 'ItemList',
       itemListElement: (topic.articles || []).map((a, i) => ({
         '@type': 'ListItem',
         position: (page - 1) * pageSize + i + 1,
         name: a.title,
-        url: `${siteConfig.siteUrl}/${params.lang}/article/${a.slug}`,
+        url: `${siteConfig.siteUrl}/${lang}/article/${a.slug}`,
         datePublished: a.published_at || '',
       })),
     },
@@ -105,9 +108,9 @@ export default async function TopicDetailPage({ params, searchParams }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(buildBreadcrumbJsonLd([
-            { name: isZh ? '首页' : 'Home', url: `/${params.lang}` },
-            { name: isZh ? '专题' : 'Topics', url: `/${params.lang}/topics` },
-            { name, url: `/${params.lang}/topics/${params.slug}` },
+            { name: isZh ? '首页' : 'Home', url: `/${lang}` },
+            { name: isZh ? '专题' : 'Topics', url: `/${lang}/topics` },
+            { name, url: `/${lang}/topics/${slug}` },
           ])),
         }}
       />
@@ -252,7 +255,7 @@ export default async function TopicDetailPage({ params, searchParams }: Props) {
               >
                 {page > 1 ? (
                   <LocalizedLink
-                    href={page === 2 ? `/topics/${params.slug}` : `/topics/${params.slug}?page=${page - 1}`}
+                    href={page === 2 ? `/topics/${slug}` : `/topics/${slug}?page=${page - 1}`}
                     className="border border-[#d8d1c5] px-4 py-2 text-sm text-[#14261f] hover:border-[#bfb4a5]"
                   >
                     ← {isZh ? '上一页' : 'Previous'}
@@ -265,7 +268,7 @@ export default async function TopicDetailPage({ params, searchParams }: Props) {
 
                 {page < totalPages ? (
                   <LocalizedLink
-                    href={`/topics/${params.slug}?page=${page + 1}`}
+                    href={`/topics/${slug}?page=${page + 1}`}
                     className="border border-[#d8d1c5] px-4 py-2 text-sm text-[#14261f] hover:border-[#bfb4a5]"
                   >
                     {isZh ? '下一页' : 'Next'} →

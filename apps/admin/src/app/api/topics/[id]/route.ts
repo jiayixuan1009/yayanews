@@ -5,11 +5,12 @@ import { requireAuth } from '@/lib/admin-auth';
 export const dynamic = 'force-dynamic';
 
 /** PUT /api/topics/[id] - 更新专题 */
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const denied = requireAuth(req);
   if (denied) return denied;
 
-  const id = parseInt(params.id, 10);
+  const { id: rawId } = await params;
+  const id = parseInt(rawId, 10);
   if (isNaN(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
 
   try {
@@ -66,11 +67,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 /** GET /api/topics/[id] - 获取单个专题（含精选文章列表） */
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const denied = requireAuth(req);
   if (denied) return denied;
 
-  const id = parseInt(params.id, 10);
+  const { id: rawId } = await params;
+  const id = parseInt(rawId, 10);
   if (isNaN(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
 
   try {

@@ -3,8 +3,9 @@ import LocalizedLink from '@/components/LocalizedLink';
 import { SITE_NAME_ZH, SITE_NAME_EN } from '@yayanews/types';
 import { createMetadata } from '@yayanews/seo';
 
-export function generateMetadata({ params }: { params: { lang: string } }): Metadata {
-  const isZh = params.lang !== 'en';
+export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
+  const { lang } = await params;
+  const isZh = lang !== 'en';
   return createMetadata({
     title: isZh ? '编辑标准与内容政策' : 'Editorial Standards & Content Policy',
     description: isZh
@@ -12,12 +13,13 @@ export function generateMetadata({ params }: { params: { lang: string } }): Meta
       : `${SITE_NAME_EN} editorial standards, content review process, source verification policy and disclaimer. How we ensure accuracy, timeliness and impartiality.`,
     url: '/editorial',
     type: 'website',
-    lang: params.lang as 'zh' | 'en',
+    lang: lang as 'zh' | 'en',
   });
 }
 
-export default function EditorialPage({ params }: { params: { lang: string } }) {
-  const isZh = params.lang !== 'en';
+export default async function EditorialPage({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang } = await params;
+  const isZh = lang !== 'en';
 
   return (
     <div className="container-main py-12 md:py-20 lg:max-w-3xl mx-auto">

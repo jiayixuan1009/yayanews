@@ -3,8 +3,9 @@ import LocalizedLink from '@/components/LocalizedLink';
 import { siteConfig, SITE_NAME_ZH, SITE_NAME_EN, SITE_SLOGAN_ZH, SITE_SLOGAN_EN } from '@yayanews/types';
 import { createMetadata, buildOrganizationJsonLd } from '@yayanews/seo';
 
-export function generateMetadata({ params }: { params: { lang: string } }): Metadata {
-  const isZh = params.lang !== 'en';
+export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
+  const { lang } = await params;
+  const isZh = lang !== 'en';
   return createMetadata({
     title: isZh ? '关于我们' : 'About Us',
     description: isZh
@@ -12,12 +13,13 @@ export function generateMetadata({ params }: { params: { lang: string } }): Meta
       : `About ${SITE_NAME_EN} — ${SITE_SLOGAN_EN}. Delivering 24/7 real-time coverage of US stocks, HK markets, crypto and derivatives.`,
     url: '/about',
     type: 'website',
-    lang: params.lang as 'zh' | 'en',
+    lang: lang as 'zh' | 'en',
   });
 }
 
-export default function AboutPage({ params }: { params: { lang: string } }) {
-  const isZh = params.lang !== 'en';
+export default async function AboutPage({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang } = await params;
+  const isZh = lang !== 'en';
   const brandName = isZh ? SITE_NAME_ZH : SITE_NAME_EN;
   const slogan = isZh ? SITE_SLOGAN_ZH : SITE_SLOGAN_EN;
 
@@ -25,7 +27,7 @@ export default function AboutPage({ params }: { params: { lang: string } }) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(buildOrganizationJsonLd(params.lang)) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(buildOrganizationJsonLd(lang)) }}
       />
       <div className="container-main py-12 md:py-20 lg:max-w-4xl mx-auto">
       {/* Header Section */}

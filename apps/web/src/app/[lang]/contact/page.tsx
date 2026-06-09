@@ -8,8 +8,9 @@ export const metadata: Metadata = {
   alternates: { canonical: '/contact' },
 };
 
-export default function ContactPage({ params }: { params: { lang: string } }) {
-  const isZh = params.lang !== 'en';
+export default async function ContactPage({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang } = await params;
+  const isZh = lang !== 'en';
 
   return (
     <div className="container-main py-10 max-w-3xl">

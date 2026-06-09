@@ -7,7 +7,8 @@ import { createMetadata } from '@yayanews/seo';
 import { getDictionary } from '@/lib/dictionaries';
 import SectionHeader from '@/components/editorial/SectionHeader';
 
-export function generateMetadata({ params: { lang } }: { params: { lang: 'zh' | 'en' } }): Metadata {
+export async function generateMetadata({ params }: { params: Promise<{ lang: 'zh' | 'en' }> }): Promise<Metadata> {
+  const { lang } = await params;
   const isZh = lang !== 'en';
   return createMetadata({
     title: isZh ? '热门专题 | 金融市场重大事件深度追踪' : 'Trending Topics | Deep Financial Market Event Tracking',
@@ -22,7 +23,8 @@ export function generateMetadata({ params: { lang } }: { params: { lang: 'zh' | 
 // ISR: topic list changes slowly; 2min cache keeps TTFB low.
 export const revalidate = 120;
 
-export default async function TopicsPage({ params: { lang } }: { params: { lang: string } }) {
+export default async function TopicsPage({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang } = await params;
   const dict = await getDictionary(lang);
   const rawTopics = await getTopics(50);
   const topics = rawTopics.filter(t => (t.article_count || 0) > 0 && !(t.slug || '').toLowerCase().includes('sora'));

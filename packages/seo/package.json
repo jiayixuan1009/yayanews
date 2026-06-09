@@ -7,11 +7,18 @@
     "@yayanews/types": "*"
   },
   "devDependencies": {
-    "next": "^14.2.0",
     "typescript": "^5.4.0"
   },
   "peerDependencies": {
     "next": ">=14.0.0",
     "react": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
   }
 }

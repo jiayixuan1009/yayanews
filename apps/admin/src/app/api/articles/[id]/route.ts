@@ -5,12 +5,13 @@ import * as db from '@yayanews/database';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const denied = requireAuth(req);
   if (denied) return denied;
+  const { id } = await params;
 
   try {
-    const article = await getAdminArticleById(Number(params.id));
+    const article = await getAdminArticleById(Number(id));
     if (!article) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(article);
   } catch (e: unknown) {
@@ -18,12 +19,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const denied = requireAuth(req);
   if (denied) return denied;
+  const { id } = await params;
 
   try {
-    const ok = await deleteArticle(Number(params.id));
+    const ok = await deleteArticle(Number(id));
     return NextResponse.json({ success: ok });
   } catch (e: unknown) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
@@ -31,11 +33,12 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 }
 
 /** PATCH /api/articles/[id] - 更新文章的专题绑定或状态 */
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const denied = requireAuth(req);
   if (denied) return denied;
 
-  const id = Number(params.id);
+  const { id: rawId } = await params;
+  const id = Number(rawId);
   if (isNaN(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
 
   try {

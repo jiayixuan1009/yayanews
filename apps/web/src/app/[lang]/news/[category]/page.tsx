@@ -24,14 +24,15 @@ import { isRemoteImageOptimizable } from '@/lib/remote-image';
 import { createMetadata, buildBreadcrumbJsonLd } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 
-export async function generateMetadata({ params }: { params: { category: string; lang: string } }): Promise<Metadata> {
-  const dict = await getDictionary(params.lang);
-  const meta = (dict.categoryMeta as Record<string, { title: string; desc: string; label?: string; quote?: string } | undefined>)?.[params.category];
+export async function generateMetadata({ params }: { params: Promise<{ category: string; lang: string }> }): Promise<Metadata> {
+  const { category, lang } = await params;
+  const dict = await getDictionary(lang);
+  const meta = (dict.categoryMeta as Record<string, { title: string; desc: string; label?: string; quote?: string } | undefined>)?.[category];
   if (!meta) return {};
   return createMetadata({
     title: meta.title,
     description: meta.desc,
-    url: `/${params.lang}/news/${params.category}`,
+    url: `/${lang}/news/${category}`,
   });
 }
 
@@ -42,24 +43,25 @@ export default async function CategoryPage({
   params,
   searchParams,
 }: {
-  params: { category: string; lang: string };
-  searchParams: { type?: string };
+  params: Promise<{ category: string; lang: string }>;
+  searchParams: Promise<{ type?: string }>;
 }) {
-  const locale = params.lang === 'en' ? 'en' : 'zh';
+  const [{ category, lang }, resolvedSearchParams] = await Promise.all([params, searchParams]);
+  const locale = lang === 'en' ? 'en' : 'zh';
   const dict = await getDictionary(locale);
-  const meta = (dict.categoryMeta as Record<string, { title: string; desc: string; label?: string; quote?: string } | undefined>)?.[params.category];
+  const meta = (dict.categoryMeta as Record<string, { title: string; desc: string; label?: string; quote?: string } | undefined>)?.[category];
   if (!meta) notFound();
 
-  const depthFilter = searchParams.type || '';
+  const depthFilter = resolvedSearchParams.type || '';
   const articleType = depthFilter === 'deep' ? 'deep' : depthFilter === 'standard' ? 'standard' : undefined;
 
-  const articles = await getPublishedArticles(locale, 36, 0, params.category, undefined, articleType);
+  const articles = await getPublishedArticles(locale, 36, 0, category, undefined, articleType);
   const categories = await getCategoriesOrdered();
-  const isDerivatives = params.category === 'derivatives';
+  const isDerivatives = category === 'derivatives';
 
-  const countAll = await getArticleCountByType(params.category, undefined, locale);
-  const countStandard = await getArticleCountByType(params.category, 'standard', locale);
-  const countDeep = await getArticleCountByType(params.category, 'deep', locale);
+  const countAll = await getArticleCountByType(category, undefined, locale);
+  const countStandard = await getArticleCountByType(category, 'standard', locale);
+  const countDeep = await getArticleCountByType(category, 'deep', locale);
 
   const featured = articles[0];
   const secondary = articles.slice(1, 3);
@@ -78,7 +80,7 @@ export default async function CategoryPage({
     '@type': 'CollectionPage',
     name: meta.title,
     description: meta.desc,
-    url: `${siteConfig.siteUrl}/${locale}/news/${params.category}`,
+    url: `${siteConfig.siteUrl}/${locale}/news/${category}`,
     mainEntity: {
       '@type': 'ItemList',
       itemListElement: articles.slice(0, 20).map((a, i) => ({
@@ -93,7 +95,7 @@ export default async function CategoryPage({
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
     { name: dict.nav.home, url: `/${locale}` },
     { name: dict.nav.newsSection || dict.nav.news, url: `/${locale}/news` },
-    { name: meta.title, url: `/${locale}/news/${params.category}` },
+    { name: meta.title, url: `/${locale}/news/${category}` },
   ]);
 
   return (
@@ -120,7 +122,7 @@ export default async function CategoryPage({
             key={c.slug}
             href={`/news/${c.slug}`}
             className={`border px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] ${
-              c.slug === params.category
+              c.slug === category
                 ? 'border-[#14261f] bg-white text-[#14261f]'
                 : 'border-[#ddd5ca] bg-[#f7f4ee] text-[#667067] hover:text-[#14261f]'
             }`}
@@ -131,7 +133,7 @@ export default async function CategoryPage({
       </div>
 
       <DepthTabs
-        baseUrl={`/news/${params.category}`}
+        baseUrl={`/news/${category}`}
         current={depthFilter}
         counts={{ all: countAll, standard: countStandard, deep: countDeep }}
         lang={locale}

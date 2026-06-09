@@ -106,7 +106,6 @@ const nextConfig = {
   output: 'standalone',
   compress: true,
   poweredByHeader: false,
-  optimizeFonts: false,
 
   images: {
     formats: ['image/avif', 'image/webp'],

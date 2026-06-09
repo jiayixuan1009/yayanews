@@ -18,34 +18,36 @@ import SectionHeader from '@/components/editorial/SectionHeader';
 import { createMetadata, buildBreadcrumbJsonLd } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 
-export async function generateMetadata({ params, searchParams }: { params: { slug: string; lang: string }; searchParams: any }): Promise<Metadata> {
-  const decodedSlug = decodeURIComponent(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string; lang: string }> }): Promise<Metadata> {
+  const { slug, lang } = await params;
+  const decodedSlug = decodeURIComponent(slug);
   const tag = await getTagBySlug(decodedSlug);
   if (!tag) return {};
-  const isZh = params.lang !== 'en';
-  const articleCount = await getArticleCountByTagSlug(decodedSlug, params.lang);
+  const isZh = lang !== 'en';
+  const articleCount = await getArticleCountByTagSlug(decodedSlug, lang);
   return createMetadata({
     title: isZh ? `标签：${tag.name}` : `Tag: ${tag.name}`,
     description: isZh ? `浏览与「${tag.name}」相关的 YayaNews 资讯稿件` : `Browse YayaNews articles related to #${tag.name}`,
     url: `/tag/${decodedSlug}`,
-    lang: params.lang as 'zh' | 'en',
+    lang: lang as 'zh' | 'en',
     noIndex: articleCount < 3, // P1 SEO: thin tag pages (< 3 articles) excluded from index pool
   });
 }
 
 export const revalidate = 120;
 
-export default async function TagPage({ params }: { params: { slug: string; lang: string } }) {
-  const decodedSlug = decodeURIComponent(params.slug);
+export default async function TagPage({ params }: { params: Promise<{ slug: string; lang: string }> }) {
+  const { slug, lang } = await params;
+  const decodedSlug = decodeURIComponent(slug);
   const tag = await getTagBySlug(decodedSlug);
   if (!tag) notFound();
 
-  const dict = await getDictionary(params.lang);
-  const articles = await getPublishedArticlesByTagSlug(decodedSlug, 48, 0, params.lang);
-  const total = await getArticleCountByTagSlug(decodedSlug, params.lang);
+  const dict = await getDictionary(lang);
+  const articles = await getPublishedArticlesByTagSlug(decodedSlug, 48, 0, lang);
+  const total = await getArticleCountByTagSlug(decodedSlug, lang);
   const popularTags = await getPopularTags(12);
-  const flashMini = await getFlashNews(params.lang, 6);
-  const isEn = params.lang === 'en';
+  const flashMini = await getFlashNews(lang, 6);
+  const isEn = lang === 'en';
   const tagName = isEn ? (tag.name_en || tag.name) : tag.name;
   const featured = articles[0];
   const subFeatured = articles.slice(1, 3);
@@ -58,22 +60,22 @@ export default async function TagPage({ params }: { params: { slug: string; lang
     description: isEn
       ? `Browse YayaNews articles related to #${tagName}`
       : `浏览与「${tagName}」相关的 YayaNews 资讯稿件`,
-    url: `${siteConfig.siteUrl}/${params.lang}/tag/${decodedSlug}`,
+    url: `${siteConfig.siteUrl}/${lang}/tag/${decodedSlug}`,
     mainEntity: {
       '@type': 'ItemList',
       itemListElement: articles.slice(0, 20).map((a, i) => ({
         '@type': 'ListItem',
         position: i + 1,
         name: a.title,
-        url: `${siteConfig.siteUrl}/${params.lang}/article/${a.slug}`,
+        url: `${siteConfig.siteUrl}/${lang}/article/${a.slug}`,
       })),
     },
   };
 
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
-    { name: dict.nav.home, url: `/${params.lang}` },
-    { name: dict.nav.newsSection || dict.nav.news, url: `/${params.lang}/news` },
-    { name: `#${tagName}`, url: `/${params.lang}/tag/${decodedSlug}` },
+    { name: dict.nav.home, url: `/${lang}` },
+    { name: dict.nav.newsSection || dict.nav.news, url: `/${lang}/news` },
+    { name: `#${tagName}`, url: `/${lang}/tag/${decodedSlug}` },
   ]);
 
   return (
@@ -82,7 +84,7 @@ export default async function TagPage({ params }: { params: { slug: string; lang
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
     <div className="container-main py-6 sm:py-8">
       <ChannelHeader
-        lang={params.lang}
+        lang={lang}
         dict={dict}
         title={`#${tag.name}`}
         description={dict.tag.totalCount.replace("{count}", total.toString())}
