@@ -2,7 +2,6 @@ import { getDictionary } from '@/lib/dictionaries';
 import LocalizedLink from '@/components/LocalizedLink';
 import type { Metadata } from 'next';
 import { createMetadata, buildOrganizationJsonLd, buildWebSiteJsonLd, buildItemListJsonLd } from '@yayanews/seo';
-import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { getArticleCoverSrc } from '@/lib/article-image';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
@@ -18,7 +17,8 @@ import {
 } from '@/lib/queries';
 import { FLASH_ENTRY, AI_ENTRY } from '@/lib/constants';
 import ArticleCard from '@/components/ArticleCard';
-const SiteLiveSubscriber = dynamic(() => import('@/components/SiteLiveSubscriber'), { ssr: false });
+import SiteLiveSubscriber from '@/components/SiteLiveSubscriber';
+import LiveTicker from '@/components/LiveTicker';
 import CtaBanner from '@/components/CtaBanner';
 import HomeHeroEditorial from '@/components/editorial/HomeHeroEditorial';
 import BreakingStreamBlock from '@/components/editorial/BreakingStreamBlock';
@@ -28,7 +28,8 @@ import RightRailPanel from '@/components/editorial/RightRailPanel';
 import SectionHeader from '@/components/editorial/SectionHeader';
 import { siteConfig } from '@yayanews/types';
 
-export function generateMetadata({ params: { lang } }: { params: { lang: string } }): Metadata {
+export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
+  const { lang } = await params;
   const locale = lang === 'en' ? 'en' : 'zh';
   return createMetadata({
     title: locale === 'en'
@@ -43,23 +44,12 @@ export function generateMetadata({ params: { lang } }: { params: { lang: string 
   });
 }
 
-const LiveTicker = dynamic(() => import('@/components/LiveTicker'), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center gap-6 py-3">
-      <span className="flex-shrink-0 font-label text-xs font-semibold uppercase tracking-[0.14em] text-[#1d5c4f]">Live Ticker</span>
-      {[1, 2, 3, 4].map(i => (
-        <span key={i} className="h-4 w-28 flex-shrink-0 animate-pulse rounded bg-[#e5ddd2]" />
-      ))}
-    </div>
-  ),
-});
-
 // ISR: revalidate every 60s. Real-time freshness is delivered via SSE
 // (SiteLiveSubscriber / BreakingStreamBlock), so caching SSR is safe.
 export const revalidate = 60;
 
-export default async function HomePage({ params: { lang } }: { params: { lang: string } }) {
+export default async function HomePage({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang } = await params;
   const locale = lang === 'en' ? 'en' : 'zh';
   const dict = await getDictionary(locale);
 

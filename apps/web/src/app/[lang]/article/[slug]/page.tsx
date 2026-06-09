@@ -26,9 +26,10 @@ import { articleHasRealCover, getArticleCoverSrc } from '@/lib/article-image';
 
 import { createMetadata, buildNewsArticleJsonLd, buildBreadcrumbJsonLd } from '@yayanews/seo';
 
-export async function generateMetadata({ params }: { params: { slug: string; lang: string } }): Promise<Metadata> {
-  const article = await getArticleBySlug(params.slug) as (Article & { sibling_slug?: string }) | undefined;
-  if (!article || (article.lang && article.lang !== params.lang)) return {};
+export async function generateMetadata({ params }: { params: Promise<{ slug: string; lang: string }> }): Promise<Metadata> {
+  const { slug, lang } = await params;
+  const article = await getArticleBySlug(slug) as (Article & { sibling_slug?: string }) | undefined;
+  if (!article || (article.lang && article.lang !== lang)) return {};
   const descFallback = article.summary
     ? article.summary.slice(0, 155)
     : article.content
@@ -39,35 +40,35 @@ export async function generateMetadata({ params }: { params: { slug: string; lan
 
   // 仅当库里有 sibling 时成对输出 zh/en hreflang，避免捏造 `-en` 等 404
   let alternatesLanguages: Record<string, string>;
-  if (params.lang === 'zh' && sibling) {
+  if (lang === 'zh' && sibling) {
     alternatesLanguages = {
-      zh: `/zh/article/${params.slug}`,
+      zh: `/zh/article/${slug}`,
       en: `/en/article/${sibling}`,
     };
-  } else if (params.lang === 'en' && sibling) {
+  } else if (lang === 'en' && sibling) {
     alternatesLanguages = {
       zh: `/zh/article/${sibling}`,
-      en: `/en/article/${params.slug}`,
+      en: `/en/article/${slug}`,
     };
-  } else if (params.lang === 'zh') {
-    const p = `/zh/article/${params.slug}`;
+  } else if (lang === 'zh') {
+    const p = `/zh/article/${slug}`;
     alternatesLanguages = { zh: p, 'x-default': p };
   } else {
-    const p = `/en/article/${params.slug}`;
+    const p = `/en/article/${slug}`;
     alternatesLanguages = { en: p, 'x-default': p };
   }
 
   return createMetadata({
     title: article.title,
     description: descFallback,
-    url: `/article/${params.slug}`,
+    url: `/article/${slug}`,
     type: 'article',
     authors: [article.author],
     image: article.cover_image || undefined,
     publishedTime: article.published_at || undefined,
     modifiedTime: article.updated_at || undefined,
     section: article.category_name || undefined,
-    lang: params.lang as 'zh' | 'en',
+    lang: lang as 'zh' | 'en',
     alternatesLanguages,
     // short articles are thin content (< ~300 words) — exclude from index pool
     noIndex: article.article_type === 'short',
@@ -80,8 +81,9 @@ function formatDate(value?: string | null) {
   return value?.slice(0, 16) ?? '';
 }
 
-export default async function ArticlePage({ params }: { params: { slug: string; lang: string } }) {
-  const dict = await getDictionary(params.lang);
+export default async function ArticlePage({ params }: { params: Promise<{ slug: string; lang: string }> }) {
+  const { slug, lang } = await params;
+  const dict = await getDictionary(lang);
 
   function getSentimentLabel(sentiment?: string) {
     if (sentiment === 'bullish') return { label: dict.article.bullish, cls: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
@@ -90,18 +92,18 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
     return null;
   }
 
-  const article = await getArticleBySlug(params.slug);
-  if (!article || (article.lang && article.lang !== params.lang)) notFound();
+  const article = await getArticleBySlug(slug);
+  if (!article || (article.lang && article.lang !== lang)) notFound();
 
   const related = await getRelatedArticles(article.id, article.category_id, 5);
   const { prev, next } = await getAdjacentArticles(article.id);
-  const articleUrl = `${siteConfig.siteUrl}/${params.lang}/article/${article.slug}`;
+  const articleUrl = `${siteConfig.siteUrl}/${lang}/article/${article.slug}`;
   const hasCover = articleHasRealCover(article.cover_image, article.source);
-  const coverSrc = getArticleCoverSrc(article.cover_image, params.lang, article.source);
+  const coverSrc = getArticleCoverSrc(article.cover_image, lang, article.source);
   const coverOpt = hasCover ? isRemoteImageOptimizable(coverSrc) : false;
   const sameCategory =
     article.category_slug != null
-      ? (await getPublishedArticles(params.lang, 8, 0, article.category_slug)).filter((a: Article) => a.id !== article.id)
+      ? (await getPublishedArticles(lang, 8, 0, article.category_slug)).filter((a: Article) => a.id !== article.id)
       : [];
   const moreRead = sameCategory.slice(0, 4);
   // 从文章自己的 topic_id 获取所属专题（含同专题最新3篇文章）
@@ -155,7 +157,7 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
                 ) : null}
               </div>
 
-              <TopicEyebrow topic={articleTopic} lang={params.lang} />
+              <TopicEyebrow topic={articleTopic} lang={lang} />
               <h1 className="yn-display mt-4 text-balance">{article.title}</h1>
 
               {article.summary ? (
@@ -211,7 +213,7 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
               <section className="yn-panel mt-6 p-5 sm:p-6">
                 <div className="yn-section-rule mb-4 flex items-center justify-between">
                   <h2 className="yn-heading-sm">{dict.article.keyTakeaways}</h2>
-                  <span className="yn-meta">{params.lang === 'en' ? 'Key takeaways' : '核心提炼'}</span>
+                  <span className="yn-meta">{lang === 'en' ? 'Key takeaways' : '核心提炼'}</span>
                 </div>
                 <ul className="space-y-3">
                   {article.key_points
@@ -257,10 +259,10 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
               {article.article_type === 'deep' && (
                 <aside className="rounded-lg border border-amber-200 bg-amber-50 px-5 py-4">
                   <p className="mb-1 text-xs font-bold uppercase tracking-[0.15em] text-amber-700">
-                    {params.lang === 'en' ? 'Risk Disclosure' : '风险提示'}
+                    {lang === 'en' ? 'Risk Disclosure' : '风险提示'}
                   </p>
                   <p className="text-sm leading-6 text-amber-800">
-                    {params.lang === 'en'
+                    {lang === 'en'
                       ? 'This analysis reflects the author\'s views at time of publication and does not constitute investment advice. Financial markets involve significant risk; past performance is not indicative of future results. Always conduct your own research before making investment decisions.'
                       : '本文为作者发布时的个人观点，不构成任何投资建议。金融市场存在重大风险，历史表现不代表未来结果。在做出任何投资决策前，请务必进行独立研究与评估。'}
                   </p>
@@ -292,20 +294,20 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
                     )}
                   </div>
                   <div className="shrink-0">
-                    <ShareButtons title={article.title} url={articleUrl} lang={params.lang} />
+                    <ShareButtons title={article.title} url={articleUrl} lang={lang} />
                   </div>
                 </div>
               </div>
 
-              {articleTopic ? <TopicBridge topicTitle={params.lang === 'en' ? (articleTopic.name_en || articleTopic.title || '') : (articleTopic.name_zh || articleTopic.title || '')} href={`/topics/${articleTopic.slug}`} lang={params.lang} /> : null}
+              {articleTopic ? <TopicBridge topicTitle={lang === 'en' ? (articleTopic.name_en || articleTopic.title || '') : (articleTopic.name_zh || articleTopic.title || '')} href={`/topics/${articleTopic.slug}`} lang={lang} /> : null}
 
-              <TopicMoreArticles topic={articleTopic} currentArticleId={article.id} lang={params.lang} dict={dict} />
+              <TopicMoreArticles topic={articleTopic} currentArticleId={article.id} lang={lang} dict={dict} />
 
               {article.tags && article.tags.length > 0 ? (
                 <section>
                   <div className="yn-section-rule mb-3 flex items-center justify-between">
                     <h2 className="yn-heading-sm">{dict.article.tagsTitle}</h2>
-                    <span className="yn-meta">{params.lang === 'en' ? 'Topics & symbols' : '标签与标的'}</span>
+                    <span className="yn-meta">{lang === 'en' ? 'Topics & symbols' : '标签与标的'}</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {article.tags.map(tag => (
@@ -325,7 +327,7 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
                 <section>
                   <div className="yn-section-rule mb-4 flex items-center justify-between">
                     <h2 className="yn-heading-sm">{dict.article.continueReading}</h2>
-                    <span className="yn-meta">{params.lang === 'en' ? 'Previous & next' : '前篇后篇'}</span>
+                    <span className="yn-meta">{lang === 'en' ? 'Previous & next' : '前篇后篇'}</span>
                   </div>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {prev ? (
@@ -440,19 +442,19 @@ export default async function ArticlePage({ params }: { params: { slug: string; 
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(buildNewsArticleJsonLd(article, articleTopic, params.lang)),
+          __html: JSON.stringify(buildNewsArticleJsonLd(article, articleTopic, lang)),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(buildBreadcrumbJsonLd([
-            { name: dict.nav.home, url: `/${params.lang}` },
-            { name: dict.nav.newsSection, url: `/${params.lang}/news` },
+            { name: dict.nav.home, url: `/${lang}` },
+            { name: dict.nav.newsSection, url: `/${lang}/news` },
             ...(article.category_name && article.category_slug
-              ? [{ name: article.category_name, url: `/${params.lang}/news/${article.category_slug}` }]
+              ? [{ name: article.category_name, url: `/${lang}/news/${article.category_slug}` }]
               : []),
-            { name: article.title, url: `/${params.lang}/article/${article.slug}` },
+            { name: article.title, url: `/${lang}/article/${article.slug}` },
           ])),
         }}
       />

@@ -4,7 +4,8 @@ import MarketsClient from './MarketsClient';
 
 export const revalidate = 60;
 
-export function generateMetadata({ params: { lang } }: { params: { lang: 'zh' | 'en' } }): Metadata {
+export async function generateMetadata({ params }: { params: Promise<{ lang: 'zh' | 'en' }> }): Promise<Metadata> {
+  const { lang } = await params;
   return createMetadata({
     title: lang === 'en' ? 'Global Markets Live | US Stocks, Crypto, Gold & Oil' : '全球市场实时行情看板 | 美股·港股·加密·大宗商品',
     description: lang === 'en'

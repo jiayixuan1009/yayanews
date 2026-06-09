@@ -7,18 +7,19 @@ import CtaBanner from '@/components/CtaBanner';
 import { sanitizeHtml } from '@/lib/sanitize';
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ lang: string; slug: string }>;
 }
 
 import { createMetadata } from '@yayanews/seo';
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const guide = await getGuideBySlug(params.slug);
+  const { slug } = await params;
+  const guide = await getGuideBySlug(slug);
   if (!guide) return createMetadata({ title: '指南未找到' });
   return createMetadata({
     title: guide.title,
     description: guide.summary || `${guide.title} - ${siteConfig.siteName}新手指南`,
-    url: `/guide/${params.slug}`,
+    url: `/guide/${slug}`,
   });
 }
 
@@ -34,7 +35,8 @@ export async function generateStaticParams() {
 export const revalidate = 600;
 
 export default async function GuideDetailPage({ params }: Props) {
-  const guide = await getGuideBySlug(params.slug);
+  const { slug } = await params;
+  const guide = await getGuideBySlug(slug);
   if (!guide) notFound();
 
   return (

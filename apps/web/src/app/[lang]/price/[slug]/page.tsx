@@ -17,21 +17,23 @@ async function fetchCoinMeta(slug: string) {
 
 import { createMetadata } from '@yayanews/seo';
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const j = await fetchCoinMeta(params.slug);
-  const name = j?.name ?? params.slug;
+export async function generateMetadata({ params }: { params: Promise<{ lang: string; slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const j = await fetchCoinMeta(slug);
+  const name = j?.name ?? slug;
   const sym = j?.symbol?.toUpperCase() ?? '';
   const title = sym ? `${name} (${sym}) 价格行情` : `${name} 价格行情`;
   return createMetadata({
     title,
     description: `${name} 实时价格、市值与 24 小时涨跌 · YayaNews 行情`,
-    url: `/price/${params.slug}`,
+    url: `/price/${slug}`,
   });
 }
 
 export const revalidate = 120;
 
-export default function PricePage({ params }: { params: { slug: string } }) {
+export default async function PricePage({ params }: { params: Promise<{ lang: string; slug: string }> }) {
+  const { slug } = await params;
   return (
     <div className="container-main py-6 sm:py-8">
       <nav className="yn-meta mb-6 flex flex-wrap gap-x-2 gap-y-1 text-slate-500">
@@ -43,9 +45,9 @@ export default function PricePage({ params }: { params: { slug: string } }) {
           行情
         </LocalizedLink>
         <span aria-hidden>/</span>
-        <span className="text-slate-400">{params.slug}</span>
+        <span className="text-slate-400">{slug}</span>
       </nav>
-      <PriceDetailClient slug={params.slug} />
+      <PriceDetailClient slug={slug} />
     </div>
   );
 }

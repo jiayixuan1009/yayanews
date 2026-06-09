@@ -16,8 +16,9 @@ const HOT_SEARCHES_EN = [
   'Tesla', 'Rate Cut', 'ETF', 'Crude Oil',
 ];
 
-export function generateMetadata({ params }: { params: { lang: string } }): Metadata {
-  const isZh = params.lang !== 'en';
+export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
+  const { lang } = await params;
+  const isZh = lang !== 'en';
   return createMetadata({
     title: isZh ? '搜索' : 'Search',
     description: isZh
@@ -25,16 +26,17 @@ export function generateMetadata({ params }: { params: { lang: string } }): Meta
       : 'Search YayaNews financial news covering US stocks, HK stocks, crypto and derivatives.',
     url: '/search',
     noIndex: true,
-    lang: params.lang as 'zh' | 'en',
+    lang: lang as 'zh' | 'en',
   });
 }
 
-export default async function SearchPage({ searchParams, params }: { searchParams: { q?: string }; params: { lang: string } }) {
-  const dict = await getDictionary(params.lang);
-  const query = searchParams.q?.trim() || '';
+export default async function SearchPage({ searchParams, params }: { searchParams: Promise<{ q?: string }>; params: Promise<{ lang: string }> }) {
+  const [{ lang }, resolvedSearchParams] = await Promise.all([params, searchParams]);
+  const dict = await getDictionary(lang);
+  const query = resolvedSearchParams.q?.trim() || '';
   const results = query ? await searchArticles(query) : [];
   const popularTags = !query ? await getPopularTags(20) : [];
-  const hotSearches = params.lang === 'en' ? HOT_SEARCHES_EN : HOT_SEARCHES_ZH;
+  const hotSearches = lang === 'en' ? HOT_SEARCHES_EN : HOT_SEARCHES_ZH;
 
   return (
     <div className="container-main py-6 sm:py-8">
@@ -43,7 +45,7 @@ export default async function SearchPage({ searchParams, params }: { searchParam
         <p className="mt-2 text-sm text-slate-400">{dict.search.subtitle}</p>
       </header>
 
-      <form action={`/${params.lang}/search`} method="GET" className="mb-8">
+      <form action={`/${lang}/search`} method="GET" className="mb-8">
         <div className="flex flex-col gap-2 sm:flex-row">
           <div className="relative flex-1">
             <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

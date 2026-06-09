@@ -5,11 +5,12 @@ import { requireAuth } from '@/lib/admin-auth';
 export const dynamic = 'force-dynamic';
 
 /** PUT /api/topics/[id]/featured - 更新精选文章列表（替换式写入，最多 6 篇） */
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const denied = requireAuth(req);
   if (denied) return denied;
 
-  const topicId = parseInt(params.id, 10);
+  const { id } = await params;
+  const topicId = parseInt(id, 10);
   if (isNaN(topicId)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
 
   try {

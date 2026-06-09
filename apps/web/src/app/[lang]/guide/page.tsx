@@ -3,23 +3,25 @@ import LocalizedLink from '@/components/LocalizedLink';
 import { getGuides } from '@/lib/queries';
 import { createMetadata } from '@yayanews/seo';
 
-export function generateMetadata({ params }: { params: { lang: string } }): Metadata {
-  const isZh = params.lang !== 'en';
+export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
+  const { lang } = await params;
+  const isZh = lang !== 'en';
   return createMetadata({
     title: isZh ? '新手指南 | 金融投资入门教程' : 'Beginner\'s Guide | Financial Investment Tutorials',
     description: isZh
       ? '金融投资新手入门指南，涵盖美股港股开户、加密货币交易、衍生品入门等实用教程，帮助投资者从零开始系统学习。'
       : 'Financial investment beginner guides covering US & HK stock accounts, crypto trading, derivatives basics, and practical tutorials for investors starting from scratch.',
     url: '/guide',
-    lang: params.lang as 'zh' | 'en',
+    lang: lang as 'zh' | 'en',
     type: 'website',
   });
 }
 
 export const revalidate = 600;
 
-export default async function GuidesPage({ params }: { params: { lang: string } }) {
-  const isZh = params.lang !== 'en';
+export default async function GuidesPage({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang } = await params;
+  const isZh = lang !== 'en';
   const guides = await getGuides(50);
 
   const headingText = isZh ? '新手指南' : "Beginner's Guide";

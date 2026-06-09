@@ -12,20 +12,21 @@ function isIndexable(importance: string | undefined): boolean {
   return importance === 'high' || importance === 'urgent';
 }
 
-export async function generateMetadata({ params }: { params: { slug: string; lang: string } }): Promise<Metadata> {
-  const flashId = decodeFlashSlug(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string; lang: string }> }): Promise<Metadata> {
+  const { slug, lang } = await params;
+  const flashId = decodeFlashSlug(slug);
   if (!flashId) return {};
   const flash = await getFlashNewsById(flashId);
-  if (!flash || (flash.lang && flash.lang !== params.lang)) return {};
+  if (!flash || (flash.lang && flash.lang !== lang)) return {};
   return createMetadata({
     title: flash.title, // brand suffix auto-appended by title template
     description: (flash.content || flash.title).slice(0, 155),
-    url: `/flash/${params.slug}`,
+    url: `/flash/${slug}`,
     type: 'article',
     publishedTime: flash.published_at || undefined,
     modifiedTime: flash.published_at || undefined,
     section: flash.category_name || undefined,
-    lang: params.lang as 'zh' | 'en',
+    lang: lang as 'zh' | 'en',
     // high/urgent = substantive breaking news worth indexing; low/normal = thin, keep noindex
     noIndex: !isIndexable(flash.importance),
   });
@@ -33,15 +34,16 @@ export async function generateMetadata({ params }: { params: { slug: string; lan
 
 export const revalidate = 60;
 
-export default async function FlashDetailPage({ params }: { params: { slug: string; lang: string } }) {
-  const dict = await getDictionary(params.lang);
-  const flashId = decodeFlashSlug(params.slug);
+export default async function FlashDetailPage({ params }: { params: Promise<{ slug: string; lang: string }> }) {
+  const { slug, lang } = await params;
+  const dict = await getDictionary(lang);
+  const flashId = decodeFlashSlug(slug);
   if (!flashId) notFound();
 
   const flash = await getFlashNewsById(flashId);
-  if (!flash || (flash.lang && flash.lang !== params.lang)) notFound();
+  if (!flash || (flash.lang && flash.lang !== lang)) notFound();
 
-  const loc = params.lang === 'en' ? '/en' : '/zh';
+  const loc = lang === 'en' ? '/en' : '/zh';
   const flashJsonLd = isIndexable(flash.importance) ? {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
@@ -49,7 +51,7 @@ export default async function FlashDetailPage({ params }: { params: { slug: stri
     description: (flash.content || flash.title).slice(0, 200),
     datePublished: new Date(flash.published_at).toISOString(),
     dateModified: new Date(flash.published_at).toISOString(),
-    inLanguage: params.lang === 'en' ? 'en' : 'zh-CN',
+    inLanguage: lang === 'en' ? 'en' : 'zh-CN',
     isAccessibleForFree: true,
     ...(flash.source_url ? { citation: { '@type': 'CreativeWork', url: flash.source_url, ...(flash.source ? { name: flash.source } : {}) } } : {}),
     publisher: {
@@ -59,7 +61,7 @@ export default async function FlashDetailPage({ params }: { params: { slug: stri
       logo: { '@type': 'ImageObject', url: `${siteConfig.siteUrl}/brand/logo-square.png`, width: 512, height: 512 },
       sameAs: Object.values(siteConfig.socialLinks),
     },
-    mainEntityOfPage: { '@type': 'WebPage', '@id': `${siteConfig.siteUrl}${loc}/flash/${params.slug}` },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `${siteConfig.siteUrl}${loc}/flash/${slug}` },
   } : null;
 
   return (

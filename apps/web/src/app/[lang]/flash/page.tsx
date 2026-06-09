@@ -5,7 +5,8 @@ import FlashPageClient from './FlashPageClient';
 
 export const revalidate = 30;
 
-export function generateMetadata({ params: { lang } }: { params: { lang: 'zh' | 'en' } }): Metadata {
+export async function generateMetadata({ params }: { params: Promise<{ lang: 'zh' | 'en' }> }): Promise<Metadata> {
+  const { lang } = await params;
   return createMetadata({
     title: lang === 'en' ? 'Live Financial Flash News 24/7' : '财经快讯 · 实时滚动播报',
     description: lang === 'en'
@@ -17,7 +18,8 @@ export function generateMetadata({ params: { lang } }: { params: { lang: 'zh' | 
   });
 }
 
-export default async function FlashPage({ params, searchParams }: { params: { lang: 'zh' | 'en' }, searchParams: { cat?: string } }) {
-  const dict = await getDictionary(params.lang);
-  return <FlashPageClient initialCat={searchParams.cat || ''} lang={params.lang} flashDict={dict.flash} />;
+export default async function FlashPage({ params, searchParams }: { params: Promise<{ lang: 'zh' | 'en' }>, searchParams: Promise<{ cat?: string }> }) {
+  const [{ lang }, resolvedSearchParams] = await Promise.all([params, searchParams]);
+  const dict = await getDictionary(lang);
+  return <FlashPageClient initialCat={resolvedSearchParams.cat || ''} lang={lang} flashDict={dict.flash} />;
 }
