@@ -105,6 +105,33 @@ assert_pipeline_enabled() {
     fi
 }
 
+resolve_python_bin() {
+    local configured
+    configured="$(read_env_value PYTHON_BIN 2>/dev/null || true)"
+
+    if [ -n "$configured" ]; then
+        if [ ! -x "$configured" ]; then
+            log "${RED}Configured PYTHON_BIN is not executable${NC}: $configured"
+            exit 1
+        fi
+        printf '%s' "$configured"
+        return 0
+    fi
+
+    if [ -x "$APP_DIR/apps/pipeline/.venv/bin/python" ]; then
+        printf '%s' "$APP_DIR/apps/pipeline/.venv/bin/python"
+        return 0
+    fi
+
+    if command -v python3 >/dev/null 2>&1; then
+        command -v python3
+        return 0
+    fi
+
+    log "${RED}No Python interpreter found; set PYTHON_BIN or create apps/pipeline/.venv${NC}"
+    exit 1
+}
+
 assert_recent_heartbeat() {
     local previous_ts="$1"
     local current_ts
@@ -223,7 +250,8 @@ if [ ! -f apps/pipeline/requirements.txt ]; then
     log "${RED}Missing apps/pipeline/requirements.txt${NC}"
     exit 1
 fi
-python3 -m pip install -q -r apps/pipeline/requirements.txt
+PYTHON_BIN="$(resolve_python_bin)"
+"$PYTHON_BIN" -m pip install -q -r apps/pipeline/requirements.txt
 log "   ${GREEN}Dependencies ready${NC}"
 
 log "Running database init..."
@@ -248,7 +276,7 @@ log "   ${GREEN}Build complete${NC}"
 log "Running schema repair preflight..."
 export PYTHONPATH="$APP_DIR/apps/pipeline"
 if [ -f apps/pipeline/scripts/fix_schema.py ]; then
-    python3 apps/pipeline/scripts/fix_schema.py
+    "$PYTHON_BIN" apps/pipeline/scripts/fix_schema.py
 else
     log "${YELLOW}   fix_schema.py not found; skipping${NC}"
 fi
