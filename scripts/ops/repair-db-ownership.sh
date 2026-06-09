@@ -85,6 +85,15 @@ FROM pg_class c
 JOIN pg_namespace n ON n.oid = c.relnamespace
 WHERE n.nspname = :'schema'
   AND c.relkind IN ('r', 'p', 'S', 'v', 'm', 'f')
+  AND NOT (
+    c.relkind = 'S'
+    AND EXISTS (
+      SELECT 1
+      FROM pg_depend d
+      WHERE d.objid = c.oid
+        AND d.deptype = 'a'
+    )
+  )
 ORDER BY c.relkind, c.relname
 \gexec
 
