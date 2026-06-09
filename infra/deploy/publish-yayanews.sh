@@ -228,6 +228,8 @@ log "   ${GREEN}Dependencies ready${NC}"
 
 log "Running database init..."
 npm run db:init
+log "Running database migrations..."
+npm run db:migrate
 
 log "Building workspaces..."
 export NODE_ENV=production

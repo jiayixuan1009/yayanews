@@ -8,10 +8,10 @@ ALTER SEQUENCE topics_id_seq RESTART WITH 1;
 
 -- Insert 26 Entities
 INSERT INTO topics (slug, title, name_zh, name_en, cover_image) VALUES
-('nvidia', '英伟达', '英伟达', 'NVIDIA', '/images/topics/nvidia.png'),
-('apple', '苹果', '苹果', 'Apple', '/images/topics/apple.png'),
-('tesla', '特斯拉', '特斯拉', 'Tesla', '/images/topics/tesla.png'),
-('microsoft', '微软', '微软', 'Microsoft', '/images/topics/microsoft-openai.png'),
+('nvidia', '英伟达', '英伟达', 'NVIDIA', '/images/topics/nvidia.jpg'),
+('apple', '苹果', '苹果', 'Apple', '/images/topics/apple.jpg'),
+('tesla', '特斯拉', '特斯拉', 'Tesla', '/images/topics/tesla.jpg'),
+('microsoft', '微软', '微软', 'Microsoft', '/images/topics/microsoft-openai.jpg'),
 ('amd', 'AMD', 'AMD', 'AMD', NULL),
 ('google', '谷歌', '谷歌', 'Google', NULL),
 ('meta', 'Meta', 'Meta', 'Meta', NULL),
@@ -28,14 +28,14 @@ INSERT INTO topics (slug, title, name_zh, name_en, cover_image) VALUES
 
 ('chatgpt', 'ChatGPT', 'ChatGPT', 'ChatGPT', NULL),
 ('sora', 'Sora', 'Sora', 'Sora', NULL),
-('llm', '大模型', '大模型', 'LLMs', '/images/topics/artificial-intelligence-boom.png'),
+('llm', '大模型', '大模型', 'LLMs', '/images/topics/artificial-intelligence-boom.jpg'),
 ('defi', 'DeFi', 'DeFi', 'DeFi', NULL),
 ('layer2', 'Layer2', 'Layer2', 'Layer 2', NULL),
 
-('fed', '美联储', '美联储', 'Fed', '/images/topics/fed-interest-rates.png'),
+('fed', '美联储', '美联储', 'Fed', '/images/topics/fed-interest-rates.jpg'),
 ('cpi', '非农与CPI', '非农与CPI', 'CPI & Non-Farm', NULL),
-('earnings', '财报', '财报', 'Earnings', '/images/topics/earnings-season.png'),
-('btc', '比特币', '比特币', 'Bitcoin', '/images/topics/bitcoin-etf.png'),
+('earnings', '财报', '财报', 'Earnings', '/images/topics/earnings-season.jpg'),
+('btc', '比特币', '比特币', 'Bitcoin', '/images/topics/bitcoin-etf.jpg'),
 ('eth', '以太坊', '以太坊', 'Ethereum', NULL);
 
 

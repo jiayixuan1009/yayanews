@@ -1,1 +1,1 @@
-UPDATE topics SET cover_image = '/images/topics/' || slug || '.png' WHERE cover_image IS NULL OR cover_image = '';
+UPDATE topics SET cover_image = '/images/topics/' || slug || '.jpg' WHERE cover_image IS NULL OR cover_image = '';

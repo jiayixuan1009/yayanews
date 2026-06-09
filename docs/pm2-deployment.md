@@ -23,6 +23,7 @@
 5. `deploy/publish-yayanews.sh` 会转调 `infra/deploy/publish-yayanews.sh`，并执行：
    - 依赖安装
    - `npm run db:init`
+   - `npm run db:migrate`
    - `npm run build`
    - `pm2 restart ecosystem.config.cjs --update-env`
    - Web / Admin / Pipeline 健康检查
