@@ -37,9 +37,19 @@ _WS_SYMBOLS = [
 
 _running = True
 _rate_limited_until = 0.0
+_opened_at = 0.0
+_connection_opened = False
 
 _MIN_RETRY_DELAY = max(1, int(os.environ.get("FINNHUB_WS_MIN_RETRY_SECONDS", "5")))
 _MAX_RETRY_DELAY = max(_MIN_RETRY_DELAY, int(os.environ.get("FINNHUB_WS_MAX_RETRY_SECONDS", "900")))
+_STABLE_CONNECTION_SECONDS = max(
+    _MIN_RETRY_DELAY,
+    int(os.environ.get("FINNHUB_WS_STABLE_CONNECTION_SECONDS", "60")),
+)
+_SHORT_CONNECTION_RETRY_SECONDS = max(
+    _MIN_RETRY_DELAY,
+    int(os.environ.get("FINNHUB_WS_SHORT_CONNECTION_RETRY_SECONDS", "60")),
+)
 _RATE_LIMIT_FALLBACK_DELAY = max(
     _MIN_RETRY_DELAY,
     int(os.environ.get("FINNHUB_WS_RATE_LIMIT_RETRY_SECONDS", "300")),
@@ -80,6 +90,9 @@ def _next_retry_seconds():
     now = time.time()
     if _rate_limited_until > now:
         return min(_MAX_RETRY_DELAY, max(_MIN_RETRY_DELAY, _rate_limited_until - now))
+
+    if _connection_opened and _opened_at and now - _opened_at < _STABLE_CONNECTION_SECONDS:
+        return min(_MAX_RETRY_DELAY, _SHORT_CONNECTION_RETRY_SECONDS)
 
     delay = _retry_delay
     _retry_delay = min(_MAX_RETRY_DELAY, max(_MIN_RETRY_DELAY, _retry_delay * 2))
@@ -140,8 +153,9 @@ def _on_close(ws, code, msg):
 
 
 def _on_open(ws):
-    global _retry_delay
-    _retry_delay = float(_MIN_RETRY_DELAY)
+    global _connection_opened, _opened_at
+    _connection_opened = True
+    _opened_at = time.time()
     log.info("WS connected, subscribing news symbols...")
     # Finnhub: {"type":"subscribe","news":["AAPL","MSFT",...]}
     chunk = 8
@@ -155,7 +169,7 @@ def _on_open(ws):
 
 
 def main():
-    global _running
+    global _connection_opened, _opened_at, _retry_delay, _running
     ch = FLASH_CHANNELS.get("finnhub", {})
     token = ch.get("api_key") or ""
     if not token:
@@ -171,6 +185,8 @@ def main():
 
     url = f"wss://ws.finnhub.io?token={token}"
     while _running:
+        _connection_opened = False
+        _opened_at = 0.0
         try:
             ws = websocket.WebSocketApp(
                 url,
@@ -180,6 +196,8 @@ def main():
                 on_open=_on_open,
             )
             ws.run_forever(ping_interval=30, ping_timeout=10)
+            if _connection_opened and time.time() - _opened_at >= _STABLE_CONNECTION_SECONDS:
+                _retry_delay = float(_MIN_RETRY_DELAY)
         except Exception as e:
             log.error(f"run_forever: {e}")
         if _running:
