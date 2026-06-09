@@ -175,7 +175,7 @@ backup_database() {
         return 1
     fi
 
-    if pg_dump "$database_url" 2>/dev/null | gzip > "$backup_file"; then
+    if pg_dump --no-owner --no-acl "$database_url" 2>/dev/null | gzip > "$backup_file"; then
         log "   ${GREEN}Backup complete${NC}: $(basename "$backup_file") ($(du -h "$backup_file" | cut -f1))"
         return 0
     fi

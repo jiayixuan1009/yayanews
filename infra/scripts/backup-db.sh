@@ -59,7 +59,7 @@ BACKUP_FILE="$BACKUP_DIR/${TIMESTAMP}_${DB_NAME}.sql.gz"
 
 echo "[$(date)] Starting database backup: $DB_NAME"
 
-if pg_dump "$DB_CONN" | gzip > "$BACKUP_FILE"; then
+if pg_dump --no-owner --no-acl "$DB_CONN" | gzip > "$BACKUP_FILE"; then
     SIZE="$(du -h "$BACKUP_FILE" | cut -f1)"
     echo "[$(date)] Backup complete: $(basename "$BACKUP_FILE") ($SIZE)"
 else
