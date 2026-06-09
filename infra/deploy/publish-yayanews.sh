@@ -14,6 +14,7 @@ BACKUP_KEEP_LATEST="${BACKUP_KEEP_LATEST:-5}"
 REQUIRE_DB_BACKUP="${REQUIRE_DB_BACKUP:-1}"
 CLEAN_NEXT_CACHE_BEFORE_DEPLOY="${CLEAN_NEXT_CACHE_BEFORE_DEPLOY:-1}"
 MIN_FREE_MB="${MIN_FREE_MB:-3072}"
+ALLOW_DIRTY_DEPLOY="${ALLOW_DIRTY_DEPLOY:-0}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -134,6 +135,22 @@ assert_disk_space() {
     log "   ${GREEN}Disk preflight OK${NC}: ${free_mb}MB free"
 }
 
+assert_clean_worktree() {
+    if [ "$ALLOW_DIRTY_DEPLOY" = "1" ]; then
+        log "${YELLOW}ALLOW_DIRTY_DEPLOY=1; skipping worktree cleanliness check${NC}"
+        return 0
+    fi
+
+    if [ -n "$(git status --porcelain)" ]; then
+        local snapshot_dir
+        snapshot_dir="$(bash "$APP_DIR/infra/scripts/snapshot-worktree.sh")"
+        log "${RED}Git worktree is dirty; aborting deploy to avoid overwriting production changes${NC}"
+        log "${YELLOW}Snapshot saved to: $snapshot_dir${NC}"
+        log "${YELLOW}Review and commit/stash those changes, or rerun with ALLOW_DIRTY_DEPLOY=1 if intentional.${NC}"
+        exit 1
+    fi
+}
+
 prune_backups() {
     local dir="$1"
     [ -d "$dir" ] || return 0
@@ -178,6 +195,7 @@ CORE_PM2_APPS=(yayanews yaya-admin yaya-ws-gateway)
 PYTHON_PM2_APPS=(yaya-finnhub-ws yaya-pipeline-daemon yaya-worker-flash yaya-worker-articles)
 
 log "${GREEN}Starting deploy${NC} commit=$CURRENT_COMMIT"
+assert_clean_worktree
 assert_disk_space
 
 log "Backing up database..."
