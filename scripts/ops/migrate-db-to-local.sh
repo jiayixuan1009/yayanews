@@ -165,27 +165,8 @@ done
 log "Restoring dump into local PostgreSQL as postgres..."
 gunzip -c "$SOURCE_BACKUP" | sudo -u postgres psql -d "$DB_NAME" -v ON_ERROR_STOP=1 >/dev/null
 
-log "Granting restored database objects to $DB_USER"
-grant_sql="$(
-  DB_NAME="$DB_NAME" DB_USER="$DB_USER" python3 - <<'PY'
-import os
-
-def ident(value: str) -> str:
-    return '"' + value.replace('"', '""') + '"'
-
-db = ident(os.environ["DB_NAME"])
-user = ident(os.environ["DB_USER"])
-print(f"ALTER SCHEMA public OWNER TO {user};")
-print(f"GRANT ALL PRIVILEGES ON DATABASE {db} TO {user};")
-print(f"GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO {user};")
-print(f"GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO {user};")
-print(f"GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO {user};")
-print(f"ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO {user};")
-print(f"ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO {user};")
-print(f"ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON FUNCTIONS TO {user};")
-PY
-)"
-printf '%s\n' "$grant_sql" | sudo -u postgres psql -v ON_ERROR_STOP=1 -d "$DB_NAME" >/dev/null
+log "Repairing restored database object ownership for $DB_USER"
+DB_NAME="$DB_NAME" DB_OWNER="$DB_USER" APP_DIR="$APP_DIR" bash "$APP_DIR/scripts/ops/repair-db-ownership.sh"
 
 log "Verifying local database counts..."
 SOURCE_COUNTS="$(psql "$CURRENT_URL" -v ON_ERROR_STOP=1 -Atc "select (select count(*) from articles)||','||(select count(*) from flash_news)||','||(select count(*) from topics)")"
