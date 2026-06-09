@@ -5,22 +5,29 @@ import { requireAuth } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
-// Because Next.js standalone mode heavily modifies __dirname and process.cwd(), 
-// the safest way to find the apps/pipeline/data dir in production is to hardcode or 
-// safely resolve based on the known VPS deployment structure:
-let PIPELINE_DATA = '/var/www/yayanews/apps/pipeline/data';
+function resolvePipelineDataDir() {
+  const configured = process.env.PIPELINE_DATA_DIR?.trim();
+  if (configured) {
+    return path.isAbsolute(configured) ? configured : path.resolve(process.cwd(), configured);
+  }
 
-// Fallback for local development Windows environment
-if (process.cwd().includes('d:\\news')) {
-  PIPELINE_DATA = path.join('d:\\news', 'yayanews-production', 'apps', 'pipeline', 'data');
-} else if (!fs.existsSync(PIPELINE_DATA)) {
-  // If we are in local dev on other machines, try to walk up
+  const productionDefault = '/var/www/yayanews/apps/pipeline/data';
+  if (fs.existsSync(productionDefault)) {
+    return productionDefault;
+  }
+
+  if (process.cwd().toLowerCase().includes('d:\\news')) {
+    return path.join('d:\\news', 'yayanews-production', 'apps', 'pipeline', 'data');
+  }
+
   let current = process.cwd();
   while (current.length > 5 && !fs.existsSync(path.join(current, 'apps', 'pipeline'))) {
-    current = path.join(current, '..');
+    current = path.dirname(current);
   }
-  PIPELINE_DATA = path.join(current, 'apps', 'pipeline', 'data');
+  return path.join(current, 'apps', 'pipeline', 'data');
 }
+
+const PIPELINE_DATA = resolvePipelineDataDir();
 
 const STATUS_FILE = path.join(PIPELINE_DATA, 'daemon_status.txt');
 const HEARTBEAT_FILE = path.join(PIPELINE_DATA, 'daemon_heartbeat.txt');

@@ -31,6 +31,7 @@ const mergedEnv = {
   http_proxy: '',
   https_proxy: '',
 };
+mergedEnv.PIPELINE_DATA_DIR = mergedEnv.PIPELINE_DATA_DIR || path.join(root, "apps", "pipeline", "data");
 let pythonBin = mergedEnv.PYTHON_BIN || "python3";
 try {
   if (!path.isAbsolute(pythonBin)) {

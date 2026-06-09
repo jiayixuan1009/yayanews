@@ -2,11 +2,10 @@
 import json
 import os
 import threading
-from pathlib import Path
 
-from pipeline.config.settings import PROJECT_ROOT
+from pipeline.utils.runtime_paths import pipeline_runtime_file
 
-BUFFER_PATH = PROJECT_ROOT / "data" / "ws_flash_queue.jsonl"
+BUFFER_PATH = pipeline_runtime_file("ws_flash_queue.jsonl")
 _LOCK = threading.Lock()
 _MAX_FILE_LINES = 5000
 

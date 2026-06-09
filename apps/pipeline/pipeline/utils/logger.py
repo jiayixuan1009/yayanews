@@ -12,6 +12,7 @@ import logging
 import os
 import sys
 from datetime import datetime, timezone
+from pipeline.utils.runtime_paths import pipeline_runtime_file
 
 if sys.platform == "win32" and not isinstance(sys.stdout, io.TextIOWrapper):
     try:
@@ -83,11 +84,9 @@ def get_logger(name: str) -> logging.Logger:
         
         try:
             from logging.handlers import RotatingFileHandler
-            from pathlib import Path
-            data_dir = Path("data")
-            data_dir.mkdir(exist_ok=True)
+            log_file = pipeline_runtime_file("pipeline_run.log")
             file_handler = RotatingFileHandler(
-                "data/pipeline_run.log", maxBytes=1024 * 1024 * 5, backupCount=2, encoding="utf-8"
+                str(log_file), maxBytes=1024 * 1024 * 5, backupCount=2, encoding="utf-8"
             )
             file_handler.setLevel(logging.INFO)
             file_handler.setFormatter(fmt)
@@ -109,8 +108,7 @@ def step_print(step: str, msg: str):
     )
     print(out, end="")
     try:
-        from pathlib import Path
-        with open("data/pipeline_run.log", "a", encoding="utf-8") as f:
+        with pipeline_runtime_file("pipeline_run.log").open("a", encoding="utf-8") as f:
             f.write(out)
     except Exception:
         pass
