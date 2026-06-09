@@ -208,6 +208,9 @@ ARTICLE_STANDARD_MAX_TOKENS = int(os.environ.get("ARTICLE_STANDARD_MAX_TOKENS", 
 ARTICLE_DEEP_MAX_TOKENS = int(os.environ.get("ARTICLE_DEEP_MAX_TOKENS", "4096"))
 ARTICLE_DEEP_RATIO = float(os.environ.get("ARTICLE_DEEP_RATIO", "0.15"))
 ENABLE_FLASH_EMBEDDING = os.environ.get("ENABLE_FLASH_EMBEDDING", "1") == "1"
+EMBEDDING_API_KEY = os.environ.get("EMBEDDING_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
+EMBEDDING_BASE_URL = os.environ.get("EMBEDDING_BASE_URL") or os.environ.get("OPENAI_API_BASE", "https://api.openai.com/v1")
+EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small")
 
 # ── Agent 6 英文翻译控制（按需翻译，节省 ~17% Token）──
 ENABLE_REALTIME_TRANSLATION = os.environ.get("ENABLE_REALTIME_TRANSLATION", "0") == "1"
