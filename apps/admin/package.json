@@ -6,7 +6,7 @@
     "dev": "next dev -H 0.0.0.0 -p 3003",
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3003",
-    "lint": "next lint"
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
   },
   "dependencies": {
     "@google-analytics/data": "^5.2.1",

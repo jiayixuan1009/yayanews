@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import LocalizedLink from '@/components/LocalizedLink';
 import { siteConfig } from '@yayanews/types';
+import { getMetadataBase } from '@/lib/metadata-base';
 
 export const metadata: Metadata = {
+  metadataBase: getMetadataBase(),
   title: '隐私政策',
   description: `${siteConfig.siteName} 隐私政策与用户数据说明。`,
   alternates: { canonical: '/privacy' },

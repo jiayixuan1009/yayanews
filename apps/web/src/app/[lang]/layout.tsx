@@ -1,5 +1,5 @@
-import type { Viewport } from 'next';
 import type { Metadata } from 'next';
+import type { Viewport } from 'next';
 import { siteConfig } from '@yayanews/types';
 import { createMetadata, getSiteVerificationMeta } from '@yayanews/seo';
 import Header from '@/components/Header';
@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
       ? `${siteConfig.siteName} - Professional Financial News Platform`
       : `${siteConfig.siteName} - 专业金融新闻资讯平台`,
     description: isEn
-      ? 'YayaNews — The Fastest Financial News. 24/7 coverage of US stocks, HK markets, crypto and derivatives.'
+      ? 'YayaNews - The fastest financial news. 24/7 coverage of US stocks, HK markets, crypto and derivatives.'
       : siteConfig.description,
     type: 'website',
     url: '/',
@@ -54,15 +54,10 @@ export default async function RootLayout({
   return (
     <html lang={locale} className={`${inter.variable} ${publicSans.variable} ${interTight.variable} ${notoSansSC.variable}`}>
       <head>
-        {/* Preconnect to external origins hit during critical path:
-            - assets.coingecko.com: coin logos rendered in LiveTicker (above the fold)
-            - api.coingecko.com: proxied market data (warm TLS before client fetch)
-            dns-prefetch for gtag only (loaded lazyOnload, so TLS warmup is lower priority) */}
         <link rel="preconnect" href="https://assets.coingecko.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://api.coingecko.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
-        {/* RSS autodiscovery — advertises the news feed to browsers and crawlers */}
-        <link rel="alternate" type="application/rss+xml" title={`${siteConfig.siteName} — News Feed`} href="/feed-news.xml" />
+        <link rel="alternate" type="application/rss+xml" title={`${siteConfig.siteName} - News Feed`} href="/feed-news.xml" />
       </head>
       <body className="flex min-h-screen flex-col bg-[#f6f3ee] font-body text-slate-900 overflow-x-hidden w-full">
         <Analytics />
