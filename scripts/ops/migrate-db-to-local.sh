@@ -224,10 +224,9 @@ fs.writeFileSync(path, next.join('\n'));
 NODE
 ENV_UPDATED=1
 
-log "Restarting application processes with local DATABASE_URL..."
-for app in "${APPS[@]}"; do
-  pm2 restart "$app" --update-env >/dev/null
-done
+log "Reloading PM2 ecosystem with local DATABASE_URL..."
+pm2 start ecosystem.config.cjs --update-env >/dev/null
+pm2 save >/dev/null
 
 log "New DATABASE_URL target:"
 node - <<'NODE'
