@@ -1,6 +1,6 @@
 /**
- * 与 next.config 中 images.remotePatterns 保持一致。
- * 仅在这些域名上使用 next/image 优化（WebP/AVIF、按需尺寸）；其余仍用 unoptimized 避免运行时报错。
+ * Keep this in sync with the first 50 entries produced by next.config.mjs.
+ * Return true only for hosts that Next's image optimizer is configured to accept.
  */
 const HOST_SUFFIXES = [
   'coingecko.com',
@@ -14,8 +14,6 @@ const HOST_SUFFIXES = [
   'medium.com',
   'substack.com',
   'redditmedia.com',
-  'redd.it',
-  'reddit.com',
   'unsplash.com',
   'pexels.com',
   'pixabay.com',
@@ -43,27 +41,21 @@ const HOST_SUFFIXES = [
   'wsj.com',
   'investopedia.com',
   'forbes.com',
-  'techcrunch.com',
-  'decrypt.co',
-  'blockworks.co',
-  'finbold.com',
-  'u.today',
-  'zycrypto.com',
-  'dailyhodl.com',
-  'benzinga.com',
-  'marketwatch.com',
-  'investing.com',
-  'fxstreet.com',
-  'tradingview.com',
 ];
 
 const EXACT_HOSTS = new Set([
   'yayanews.cryptooptiontool.com',
+  'cryptooptiontool.com',
+  'assets.coingecko.com',
+  'coin-images.coingecko.com',
   'images.unsplash.com',
   'plus.unsplash.com',
   'images.pexels.com',
+  'cdn.pixabay.com',
   'static.seekingalpha.com',
   'i.imgur.com',
+  'i.redd.it',
+  'preview.redd.it',
 ]);
 
 export function isRemoteImageOptimizable(src: string | null | undefined): boolean {
