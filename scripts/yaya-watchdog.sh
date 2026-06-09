@@ -59,7 +59,7 @@ cd "$APP_DIR" || exit 1
 
 if ! pm2 ping >/dev/null 2>&1; then
     log "[PM2] Daemon not responding. Resurrecting..."
-    pm2 resurrect >> "$LOG_FILE" 2>&1 || pm2 startOrRestart ecosystem.config.cjs --update-env >> "$LOG_FILE" 2>&1
+    pm2 resurrect >> "$LOG_FILE" 2>&1 || pm2 start ecosystem.config.cjs --update-env >> "$LOG_FILE" 2>&1
     sleep 5
 fi
 
@@ -80,23 +80,23 @@ process.stdout.write(app?.pm2_env?.status || 'missing');
 done
 
 if [ "$NEEDS_RESTART" -eq 1 ]; then
-    pm2 startOrRestart ecosystem.config.cjs --update-env >> "$LOG_FILE" 2>&1
+    pm2 start ecosystem.config.cjs --update-env >> "$LOG_FILE" 2>&1
     pm2 save >> "$LOG_FILE" 2>&1 || true
-    log "[PM2] >> Ecosystem startOrRestart completed."
+    log "[PM2] >> Ecosystem reload completed."
 fi
 
 # --- 3. HTTP/TCP health checks ---
 if ! curl -fsS --max-time 8 http://127.0.0.1:3002/zh >/dev/null; then
     log "[HTTP] Web app failed health check. Restarting yayanews..."
-    pm2 restart yayanews >> "$LOG_FILE" 2>&1 || pm2 startOrRestart ecosystem.config.cjs --only yayanews --update-env >> "$LOG_FILE" 2>&1
+    pm2 restart yayanews >> "$LOG_FILE" 2>&1 || pm2 start ecosystem.config.cjs --only yayanews --update-env >> "$LOG_FILE" 2>&1
 fi
 
 if ! curl -fsS --max-time 8 http://127.0.0.1:3003/admin >/dev/null; then
     log "[HTTP] Admin app failed health check. Restarting yaya-admin..."
-    pm2 restart yaya-admin >> "$LOG_FILE" 2>&1 || pm2 startOrRestart ecosystem.config.cjs --only yaya-admin --update-env >> "$LOG_FILE" 2>&1
+    pm2 restart yaya-admin >> "$LOG_FILE" 2>&1 || pm2 start ecosystem.config.cjs --only yaya-admin --update-env >> "$LOG_FILE" 2>&1
 fi
 
 if ! (echo > /dev/tcp/127.0.0.1/3001) >/dev/null 2>&1; then
     log "[TCP] WS gateway port 3001 failed health check. Restarting yaya-ws-gateway..."
-    pm2 restart yaya-ws-gateway >> "$LOG_FILE" 2>&1 || pm2 startOrRestart ecosystem.config.cjs --only yaya-ws-gateway --update-env >> "$LOG_FILE" 2>&1
+    pm2 restart yaya-ws-gateway >> "$LOG_FILE" 2>&1 || pm2 start ecosystem.config.cjs --only yaya-ws-gateway --update-env >> "$LOG_FILE" 2>&1
 fi

@@ -24,6 +24,7 @@ const ALLOWED_ORIGINS = (process.env.WS_ALLOWED_ORIGINS || '')
   .map((s) => s.trim())
   .filter(Boolean);
 const REQUIRED_TOKEN = process.env.WS_AUTH_TOKEN || '';
+const HOST = process.env.WS_HOST || '127.0.0.1';
 
 function verifyClient(
   info: { origin: string; req: IncomingMessage; secure: boolean },
@@ -57,7 +58,7 @@ function verifyClient(
   cb(true);
 }
 
-const wss = new WebSocketServer({ port: PORT, verifyClient });
+const wss = new WebSocketServer({ host: HOST, port: PORT, verifyClient });
 
 // Utilize process.env.REDIS_URL, fallback to localhost
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
@@ -135,6 +136,7 @@ wss.on('close', () => clearInterval(interval));
 
 log.info(
   {
+    host: HOST,
     port: PORT,
     originCheck: ALLOWED_ORIGINS.length > 0,
     tokenCheck: Boolean(REQUIRED_TOKEN),
