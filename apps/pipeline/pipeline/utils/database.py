@@ -217,31 +217,72 @@ def update_article_status(article_id: int, status: str, title: str = None) -> bo
 def insert_tags(article_id: int, tag_names: list[str]):
     if not tag_names or article_id <= 0:
         return
+    from slugify import slugify
+    import hashlib
+
+    normalized_tags: list[tuple[str, str]] = []
+    seen_names: set[str] = set()
+    for raw_name in tag_names:
+        name = str(raw_name or "").strip()
+        if not name:
+            continue
+        name_key = name.casefold()
+        if name_key in seen_names:
+            continue
+        seen_names.add(name_key)
+
+        slug = slugify(name, max_length=50).strip("-")
+        if not slug:
+            digest = hashlib.sha1(name.encode("utf-8")).hexdigest()[:12]
+            slug = f"tag-{digest}"
+        normalized_tags.append((name, slug))
+
+    if not normalized_tags:
+        return
+
     conn = get_conn()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            for name in tag_names:
-                from slugify import slugify
-                slug = slugify(name, max_length=50)
-                # Upsert: handle both name and slug conflicts
+            for name, slug in normalized_tags:
                 cur.execute(
-                    "INSERT INTO tags (name, slug) VALUES (%s, %s) ON CONFLICT (slug) DO NOTHING",
-                    (name, slug)
+                    """
+                    SELECT id FROM tags
+                    WHERE name = %s OR slug = %s
+                    ORDER BY CASE WHEN name = %s THEN 0 ELSE 1 END
+                    LIMIT 1
+                    """,
+                    (name, slug, name)
                 )
-                # Look up by slug first (more reliable than name which may have conflicts)
-                cur.execute("SELECT id FROM tags WHERE slug = %s", (slug,))
                 row = cur.fetchone()
                 if not row:
-                    # Fallback: maybe inserted with different slug but same name
-                    cur.execute("SELECT id FROM tags WHERE name = %s", (name,))
-                    row = cur.fetchone()
+                    cur.execute("SAVEPOINT tag_insert")
+                    try:
+                        cur.execute(
+                            "INSERT INTO tags (name, slug) VALUES (%s, %s) RETURNING id",
+                            (name, slug)
+                        )
+                        row = cur.fetchone()
+                        cur.execute("RELEASE SAVEPOINT tag_insert")
+                    except psycopg2.IntegrityError:
+                        cur.execute("ROLLBACK TO SAVEPOINT tag_insert")
+                        cur.execute("RELEASE SAVEPOINT tag_insert")
+                        cur.execute(
+                            """
+                            SELECT id FROM tags
+                            WHERE name = %s OR slug = %s
+                            ORDER BY CASE WHEN name = %s THEN 0 ELSE 1 END
+                            LIMIT 1
+                            """,
+                            (name, slug, name)
+                        )
+                        row = cur.fetchone()
                 if row:
                     cur.execute(
                         "INSERT INTO article_tags (article_id, tag_id) VALUES (%s, %s) ON CONFLICT (article_id, tag_id) DO NOTHING",
                         (article_id, row["id"])
                     )
         conn.commit()
-        log.info(f"Tags linked to article {article_id}: {tag_names}")
+        log.info(f"Tags linked to article {article_id}: {[name for name, _ in normalized_tags]}")
     except Exception as e:
         conn.rollback()
         log.error(f"Tags insert failed: {e}")
