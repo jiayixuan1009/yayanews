@@ -17,7 +17,7 @@ import os
 import sys
 import time
 import json
-from redis import Redis
+from datetime import datetime, timedelta, timezone
 from rq import Queue
 from pipeline.tasks import task_collect_and_enqueue_articles, task_run_flash
 from pipeline.utils.redis_conn import get_redis_connection
@@ -39,6 +39,13 @@ def main():
         redis_conn = get_redis_connection()
         q_flash = Queue('yayanews:flash', connection=redis_conn)
         q_articles = Queue('yayanews:articles', connection=redis_conn)
+        tracked_queues = [
+            q_flash,
+            q_articles,
+            Queue('yayanews:articles:high', connection=redis_conn),
+            Queue('yayanews:articles:default', connection=redis_conn),
+            Queue('yayanews:articles:low', connection=redis_conn),
+        ]
     except Exception as e:
         print(f"[run_daemon] Redis connection failed: {e}", file=sys.stderr)
         sys.exit(1)
@@ -62,15 +69,45 @@ def main():
     if not status_file.exists():
         status_file.write_text("running", encoding="utf-8")
 
+    def _as_naive_utc(dt):
+        if dt is None:
+            return None
+        if dt.tzinfo is not None:
+            return dt.astimezone(timezone.utc).replace(tzinfo=None)
+        return dt
+
+    def _recent_failed_count(queue, since):
+        count = 0
+        for job_id in queue.failed_job_registry.get_job_ids():
+            try:
+                job = queue.fetch_job(job_id)
+            except Exception:
+                continue
+            if not job:
+                continue
+            failed_at = _as_naive_utc(
+                job.ended_at
+                or getattr(job, "last_heartbeat", None)
+                or job.enqueued_at
+                or job.created_at
+            )
+            if failed_at and failed_at >= since:
+                count += 1
+        return count
+
     def write_heartbeat(msg="idle"):
         try:
+            failed_total = sum(q.failed_job_registry.count for q in tracked_queues)
+            failed_since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=24)
             state = {
                 "ts": time.time(),
                 "msg": msg,
-                "queued": len(q_flash) + len(q_articles),
-                "started": q_flash.started_job_registry.count + q_articles.started_job_registry.count,
-                "failed": q_flash.failed_job_registry.count + q_articles.failed_job_registry.count,
-                "finished": q_flash.finished_job_registry.count + q_articles.finished_job_registry.count
+                "queued": sum(len(q) for q in tracked_queues),
+                "started": sum(q.started_job_registry.count for q in tracked_queues),
+                "failed": failed_total,
+                "failed_total": failed_total,
+                "failed_recent": sum(_recent_failed_count(q, failed_since) for q in tracked_queues),
+                "finished": sum(q.finished_job_registry.count for q in tracked_queues),
             }
             heartbeat_file.write_text(json.dumps(state), encoding="utf-8")
         except Exception:
