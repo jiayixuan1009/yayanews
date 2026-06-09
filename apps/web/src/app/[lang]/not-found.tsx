@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import LocalizedLink from '@/components/LocalizedLink';
+import { getMetadataBase } from '@/lib/metadata-base';
 
 export const metadata: Metadata = {
+  metadataBase: getMetadataBase(),
   title: '页面未找到',
   description: '您访问的页面不存在，请返回首页浏览更多内容',
   robots: { index: false, follow: true },
