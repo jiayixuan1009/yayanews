@@ -1,38 +1,22 @@
 # YayaNews PM2 Deployment Guide
 
-本文件描述当前生产环境的标准部署方式：`Ubuntu + PM2 + Native PostgreSQL + Redis`。
+本文档描述生产环境的标准部署方式：Ubuntu + PM2 + PostgreSQL + Redis。
 
-## 服务拓扑
+## Services
 
-- `@yayanews/web`: `127.0.0.1:3002`
-- `@yayanews/admin`: `127.0.0.1:3003`，通过 `/admin` 提供后台页面
-- `@yayanews/ws-server`: WebSocket 网关
-- `yaya-pipeline-daemon`: 内容调度进程
-- `yaya-worker-flash`: 快讯 worker
-- `yaya-worker-articles`: 文章 worker
-- `yaya-finnhub-ws`: 行情/快讯采集进程
+- `yayanews`: Web app, bound to `127.0.0.1:3002`
+- `yaya-admin`: Admin app, bound to `127.0.0.1:3003` and served under `/admin`
+- `yaya-ws-gateway`: WebSocket gateway, bound to `127.0.0.1:3001`
+- `yaya-pipeline-daemon`: content scheduler
+- `yaya-worker-flash`: flash news worker
+- `yaya-worker-articles`: article worker
+- `yaya-finnhub-ws`: market and flash-news stream collector
 
-生产机上的 Nginx 负责把外部流量转发到 `3002` 和 `3003`。
+Nginx should be the only public `80/443` entry point. App services should bind to loopback only.
 
-## GitHub 发布流程
+## Required Env
 
-1. 在本地完成修改并提交。
-2. 打上以 `v` 开头的 tag，例如 `v1.3.0`。
-3. 推送 `main` 和对应 tag。
-4. GitHub Actions 会登录 VPS，执行 `deploy/publish-yayanews.sh`。
-5. `deploy/publish-yayanews.sh` 会转调 `infra/deploy/publish-yayanews.sh`，并执行：
-   - 依赖安装
-   - `npm run db:init`
-   - `npm run db:migrate`
-   - `npm run build`
-   - `pm2 restart ecosystem.config.cjs --update-env`
-   - Web / Admin / Pipeline 健康检查
-
-只要任一步失败，部署就应该失败，而不是静默显示成功。
-
-## 生产环境变量
-
-服务器根目录的 `.env` 至少需要包含：
+The production `.env` in `/var/www/yayanews` must include at least:
 
 ```dotenv
 DATABASE_URL=postgresql://...
@@ -41,37 +25,73 @@ ADMIN_API_TOKEN=<set-a-long-random-token>
 INDEXING_WEBHOOK_SECRET=<set-a-long-random-token>
 ENABLE_PYTHON_WORKERS=true
 PYTHON_BIN=/var/www/yayanews/apps/pipeline/.venv/bin/python
+
+LLM_BASE_URL=https://...
+LLM_API_KEY=<secret>
+LLM_MODEL=...
 ```
 
-注意：
+Notes:
 
-- `ADMIN_API_TOKEN` 必须是长随机串，不能使用固定示例值。
-- `INDEXING_WEBHOOK_SECRET` 未配置时，索引 webhook 会直接拒绝请求。
-- `ENABLE_PYTHON_WORKERS=true` 是生产内容流水线必需项；未开启时，Web 可能正常，但内容生产会停滞。
+- `ADMIN_API_TOKEN` must be a long random secret.
+- `ENABLE_PYTHON_WORKERS=true` is required for production content generation.
+- API keys should never be printed in logs or copied into chat.
 
-## 常用排障
+## Deploy
+
+The production deploy logic lives in:
+
+```bash
+infra/deploy/publish-yayanews.sh
+```
+
+It performs:
+
+- database backup
+- dependency installation
+- `npm run db:init`
+- `npm run db:migrate`
+- `npm run build`
+- `pm2 start ecosystem.config.cjs --update-env`
+- web/admin/pipeline health checks
+
+For the compatibility wrapper:
+
+```bash
+scripts/safe-deploy.sh
+```
+
+## Health Check
+
+Run the read-only health report before and after deploys:
+
+```bash
+cd /var/www/yayanews
+npm run ops:health
+```
+
+The report checks `.env` presence, PM2 status, pipeline heartbeat, RQ queues, and draft/review article counts. It reports only safe secret metadata such as `set` and value length, never plaintext secrets.
+
+## Common Troubleshooting
 
 ```bash
 pm2 list
 pm2 logs yayanews --lines 100
 pm2 logs yaya-admin --lines 100
 pm2 logs yaya-pipeline-daemon --lines 100
-curl -I http://127.0.0.1:3002
+pm2 logs yaya-worker-articles --lines 100
+python3 apps/pipeline/scripts/inspect_rq.py --limit 5
+curl -I http://127.0.0.1:3002/zh
 curl -I http://127.0.0.1:3003/admin
 cat apps/pipeline/data/daemon_heartbeat.txt
 ```
 
-## Loopback binding
+If the public site works but news is no longer updating, check in this order:
 
-Production should expose only Nginx on public `80/443`. Web, Admin, and
-WebSocket services bind to loopback by default:
-
-```dotenv
-WEB_HOSTNAME=127.0.0.1
-ADMIN_HOSTNAME=127.0.0.1
-WS_HOST=127.0.0.1
-WS_PORT=3001
-```
+1. `.env` has `ENABLE_PYTHON_WORKERS=true`.
+2. `pm2 list` shows `yaya-pipeline-daemon`, `yaya-worker-flash`, and `yaya-worker-articles` as `online`.
+3. `apps/pipeline/data/daemon_heartbeat.txt` is refreshing.
+4. `npm run ops:health` shows RQ queues are not stuck and `LLM_API_KEY` is set.
 
 When `.env` or `ecosystem.config.cjs` changes, reload PM2 with:
 
@@ -79,11 +99,3 @@ When `.env` or `ecosystem.config.cjs` changes, reload PM2 with:
 pm2 start ecosystem.config.cjs --update-env
 pm2 save
 ```
-
-This reloads the ecosystem file itself and avoids stale PM2 environment values.
-
-如果出现“前台可访问，但新闻不再更新”，优先检查：
-
-1. `.env` 中是否存在 `ENABLE_PYTHON_WORKERS=true`
-2. `pm2 list` 里 `yaya-pipeline-daemon`、`yaya-worker-flash`、`yaya-worker-articles` 是否为 `online`
-3. `apps/pipeline/data/daemon_heartbeat.txt` 是否持续刷新

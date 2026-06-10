@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
-import { createMetadata } from '@yayanews/seo';
+import { buildBreadcrumbJsonLd, createMetadata } from '@yayanews/seo';
+import { siteConfig } from '@yayanews/types';
 import { getDictionary } from '@/lib/dictionaries';
+import { getFlashNews } from '@/lib/queries';
+import { encodeFlashSlug } from '@/lib/ui-utils';
 import FlashPageClient from './FlashPageClient';
 
 export const revalidate = 30;
@@ -20,6 +23,39 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: 'zh
 
 export default async function FlashPage({ params, searchParams }: { params: Promise<{ lang: 'zh' | 'en' }>, searchParams: Promise<{ cat?: string }> }) {
   const [{ lang }, resolvedSearchParams] = await Promise.all([params, searchParams]);
-  const dict = await getDictionary(lang);
-  return <FlashPageClient initialCat={resolvedSearchParams.cat || ''} lang={lang} flashDict={dict.flash} />;
+  const [dict, flashItems] = await Promise.all([
+    getDictionary(lang),
+    getFlashNews(lang, 30, resolvedSearchParams.cat || undefined),
+  ]);
+  const collectionJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: dict.flash.pageTitle,
+    description: dict.flash.pageSubtitle,
+    url: `${siteConfig.siteUrl}/${lang}/flash`,
+    inLanguage: lang === 'en' ? 'en' : 'zh-CN',
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListOrder: 'https://schema.org/ItemListOrderDescending',
+      numberOfItems: flashItems.length,
+      itemListElement: flashItems.map((item, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: item.title,
+        url: `${siteConfig.siteUrl}/${lang}/flash/${encodeFlashSlug(item)}`,
+      })),
+    },
+  };
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: dict.nav.home, url: `/${lang}` },
+    { name: dict.nav.flash, url: `/${lang}/flash` },
+  ]);
+
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <FlashPageClient initialCat={resolvedSearchParams.cat || ''} lang={lang} flashDict={dict.flash} />
+    </>
+  );
 }

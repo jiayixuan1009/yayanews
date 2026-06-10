@@ -562,6 +562,16 @@ export interface PipelineQueueItem {
   slug?: string;
   updated_at?: string;
   published_at?: string | null;
+  age_seconds?: number | null;
+}
+
+export interface PipelinePendingSummary {
+  total: number;
+  draft: number;
+  review: number;
+  stale: number;
+  staleHours: number;
+  oldest_updated_at: string | null;
 }
 
 export interface PipelineSourceActivity {
@@ -572,14 +582,45 @@ export interface PipelineSourceActivity {
 
 export async function getPipelineQueues(): Promise<{ 
   pending: PipelineQueueItem[]; 
+  pendingSummary: PipelinePendingSummary;
   pendingFlashCount: number;
   published: PipelineQueueItem[];
   sources: PipelineSourceActivity[];
 }> {
+  const staleHours = 2;
   const pending = await db.queryAll<PipelineQueueItem>(
-    `SELECT id, title, status, updated_at FROM articles
+    `SELECT id, title, status, updated_at,
+      EXTRACT(EPOCH FROM (NOW() - updated_at))::int as age_seconds
+     FROM articles
      WHERE status IN ('draft','review') ORDER BY updated_at DESC LIMIT 40`
   );
+
+  const [summaryRow] = await db.queryAll<{
+    total: number;
+    draft: number;
+    review: number;
+    stale: number;
+    oldest_updated_at: string | null;
+  }>(
+    `SELECT
+      COUNT(*)::int as total,
+      COUNT(*) FILTER (WHERE status = 'draft')::int as draft,
+      COUNT(*) FILTER (WHERE status = 'review')::int as review,
+      COUNT(*) FILTER (WHERE updated_at < NOW() - ($1::int * INTERVAL '1 hour'))::int as stale,
+      MIN(updated_at) as oldest_updated_at
+     FROM articles
+     WHERE status IN ('draft','review')`,
+    [staleHours]
+  );
+
+  const pendingSummary: PipelinePendingSummary = {
+    total: summaryRow?.total ?? 0,
+    draft: summaryRow?.draft ?? 0,
+    review: summaryRow?.review ?? 0,
+    stale: summaryRow?.stale ?? 0,
+    staleHours,
+    oldest_updated_at: summaryRow?.oldest_updated_at ?? null,
+  };
 
   // 已投递 = 已发布文章列表
   const published = await db.queryAll<PipelineQueueItem>(
@@ -607,7 +648,21 @@ export async function getPipelineQueues(): Promise<{
      WHERE published_at >= NOW() - INTERVAL '10 minutes'`
   );
 
-  return { pending, pendingFlashCount: pendingFlashCount ?? 0, published, sources };
+  return { pending, pendingSummary, pendingFlashCount: pendingFlashCount ?? 0, published, sources };
+}
+
+export async function archiveStalePipelineDrafts(hours = 2): Promise<{ archived: number; ids: number[]; hours: number }> {
+  const safeHours = Number.isFinite(hours) ? Math.min(168, Math.max(1, Math.floor(hours))) : 2;
+  const rows = await db.queryAll<{ id: number }>(
+    `UPDATE articles
+     SET status = 'archived', updated_at = NOW()
+     WHERE status IN ('draft','review')
+       AND updated_at < NOW() - ($1::int * INTERVAL '1 hour')
+     RETURNING id`,
+    [safeHours]
+  );
+
+  return { archived: rows.length, ids: rows.map(row => row.id), hours: safeHours };
 }
 
 export async function getBenchmarks(limit = 50, offset = 0): Promise<BenchmarkSummary> {

@@ -4,6 +4,26 @@ function localePrefix(lang?: string): '/zh' | '/en' {
   return lang === 'en' ? '/en' : '/zh';
 }
 
+export function buildAuthorSlug(author?: string | null): string {
+  const raw = (author || 'YayaNews').trim() || 'YayaNews';
+  const lower = raw.toLowerCase();
+  if (lower === 'yayanews' || lower === 'yaya financial news' || lower.includes('editorial')) {
+    return 'yayanews-editorial';
+  }
+
+  const slug = lower
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af\u00c0-\u024f]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+
+  return slug || 'yayanews-editorial';
+}
+
+export function buildAuthorUrl(author?: string | null, lang?: string): string {
+  return `${siteConfig.siteUrl}${localePrefix(lang)}/authors/${buildAuthorSlug(author)}`;
+}
+
 /** Strip HTML tags and count words for wordCount schema field */
 function estimateWordCount(content?: string | null): number | undefined {
   if (!content) return undefined;
@@ -52,7 +72,7 @@ export function buildNewsArticleJsonLd(article: Article, topic?: any, lang?: str
     author: {
       '@type': 'Person',
       name: article.author || 'YayaNews',
-      url: `${siteConfig.siteUrl}${loc}/about`,
+      url: buildAuthorUrl(article.author, lang),
     },
     publisher: {
       '@type': 'NewsMediaOrganization',

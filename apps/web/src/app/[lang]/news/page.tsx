@@ -1,6 +1,7 @@
 import { getDictionary } from '@/lib/dictionaries';
 import type { Metadata } from 'next';
-import { createMetadata } from '@yayanews/seo';
+import { buildBreadcrumbJsonLd, createMetadata } from '@yayanews/seo';
+import { siteConfig } from '@yayanews/types';
 import LocalizedLink from '@/components/LocalizedLink';
 import {
   getPublishedArticles,
@@ -71,14 +72,42 @@ export default async function NewsPage({
   const featured = articles[0];
   const subFeatured = articles.slice(1, 3);
   const feed = articles.slice(3);
+  const pageTitle = locale === 'zh' ? dict.news.pageTitle : 'Latest News';
+  const pageDescription = dict.news.pageDescription || 'All articles overview; filter by depth and category.';
+  const collectionJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: pageTitle,
+    description: pageDescription,
+    url: `${siteConfig.siteUrl}/${locale}/news`,
+    inLanguage: locale === 'en' ? 'en' : 'zh-CN',
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListOrder: 'https://schema.org/ItemListOrderDescending',
+      numberOfItems: articles.length,
+      itemListElement: articles.slice(0, 20).map((a, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: a.title,
+        url: `${siteConfig.siteUrl}/${locale}/article/${a.slug}`,
+      })),
+    },
+  };
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: dict.nav.home, url: `/${locale}` },
+    { name: dict.nav.newsSection || dict.nav.news || pageTitle, url: `/${locale}/news` },
+  ]);
 
   return (
-    <div className="container-main py-6 sm:py-8">
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <div className="container-main py-6 sm:py-8">
       <ChannelHeader
         lang={locale}
         dict={dict}
-        title={locale === 'zh' ? '最新资讯' : 'Latest News'}
-        description={locale === 'zh' ? '全站稿件总览；按深度与栏目筛选，与单频道页共用同一套编辑组件语言。' : 'All articles overview; filter by depth and category.'}
+        title={pageTitle}
+        description={pageDescription}
       />
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
@@ -206,6 +235,7 @@ export default async function NewsPage({
           </aside>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
