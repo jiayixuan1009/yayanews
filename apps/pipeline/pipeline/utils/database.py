@@ -82,6 +82,12 @@ def insert_article(
     cover_image: str = "",
     parent_id: Optional[int] = None,
     audit_status: Optional[str] = None,
+    source_type: str = "original",
+    original_url: Optional[str] = None,
+    license_type: Optional[str] = None,
+    author_id: Optional[int] = None,
+    is_indexable: bool = True,
+    canonical_url: Optional[str] = None,
 ) -> int:
     ts = now_cn()
     resolved_audit = audit_status or ("approved" if status == "published" else "pending")
@@ -102,13 +108,16 @@ def insert_article(
                 """INSERT INTO articles
                 (title, slug, summary, content, category_id, author, status, article_type,
                  sentiment, tickers, key_points, source, source_url, subcategory,
-                 collected_at, published_at, created_at, updated_at, lang, cover_image, parent_id, audit_status)
+                 collected_at, published_at, created_at, updated_at, lang, cover_image, parent_id, audit_status,
+                 source_type, original_url, license_type, author_id, is_indexable, canonical_url)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s,
-                        %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+                        %s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s, %s) RETURNING id""",
                 (title, slug, summary, content, category_id, author, status, article_type,
                  sentiment, tickers, key_points, source, source_url, subcategory,
-                 collected_at or ts, published_at or ts, ts, ts, lang, cover_image, parent_id, resolved_audit)
+                 collected_at or ts, published_at or ts, ts, ts, lang, cover_image, parent_id, resolved_audit,
+                 source_type, original_url, license_type, author_id, is_indexable, canonical_url)
             )
             article_id = cur.fetchone()[0]
         conn.commit()
@@ -157,7 +166,13 @@ def update_article_full(
     lang: str = "zh",
     embedding: Optional[list[float]] = None,
     cover_image: str = "",
-    parent_id: Optional[int] = None
+    parent_id: Optional[int] = None,
+    source_type: str = "original",
+    original_url: Optional[str] = None,
+    license_type: Optional[str] = None,
+    author_id: Optional[int] = None,
+    is_indexable: bool = True,
+    canonical_url: Optional[str] = None,
 ) -> bool:
     ts = now_cn()
     conn = get_conn()
@@ -169,13 +184,17 @@ def update_article_full(
                     author=%s, status=%s, article_type=%s, sentiment=%s,
                     tickers=%s, key_points=%s, source=%s, source_url=%s,
                     subcategory=%s, published_at=%s, updated_at=%s,
-                    lang=%s, cover_image=%s, parent_id=%s
+                    lang=%s, cover_image=%s, parent_id=%s,
+                    source_type=%s, original_url=%s, license_type=%s,
+                    author_id=COALESCE(%s, author_id), is_indexable=%s, canonical_url=%s
                 WHERE id=%s
             """, (title, slug, summary, content, category_id,
                   author, status, article_type, sentiment,
                   tickers, key_points, source, source_url,
                   subcategory, published_at or ts, ts,
-                  lang, cover_image, parent_id, article_id))
+                  lang, cover_image, parent_id,
+                  source_type, original_url, license_type,
+                  author_id, is_indexable, canonical_url, article_id))
         conn.commit()
         log.info(f"Article updated: id={article_id}, slug={slug}")
         

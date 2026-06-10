@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getArticleSitemapCount, getAuthorsForSitemap, getCategories, getTagsForSitemap, getTopicsForSitemap } from '@/lib/queries';
 import { buildSitemapIndex, type SitemapIndexEntry } from '@/lib/sitemap-xml';
+import { CATEGORY_DISPLAY_ORDER } from '@/lib/constants';
 import { siteConfig } from '@yayanews/types';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
 
 const CHUNK_SIZE = 1000;
+const INDEXABLE_CATEGORY_SLUGS = new Set(CATEGORY_DISPLAY_ORDER);
 
 function baseUrl(): string {
   return (siteConfig.siteUrl || '').replace(/\/$/, '');
@@ -34,7 +36,9 @@ export async function GET() {
     { loc: chunkUrl('static', 0), lastmod: now },
   ];
 
-  if (categories.length > 0) entries.push({ loc: chunkUrl('categories', 0), lastmod: now });
+  if (categories.some(category => INDEXABLE_CATEGORY_SLUGS.has(category.slug))) {
+    entries.push({ loc: chunkUrl('categories', 0), lastmod: now });
+  }
   if (authors.length > 0) entries.push({ loc: chunkUrl('authors', 0), lastmod: now });
 
   for (let page = 0; page < chunkCount(articleCount); page += 1) {

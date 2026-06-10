@@ -24,6 +24,21 @@ export function buildAuthorUrl(author?: string | null, lang?: string): string {
   return `${siteConfig.siteUrl}${localePrefix(lang)}/authors/${buildAuthorSlug(author)}`;
 }
 
+export function buildAuthorProfileUrl(author: Pick<NonNullable<Article['author_profile']>, 'slug'> | undefined | null, lang?: string): string | undefined {
+  if (!author?.slug) return undefined;
+  return `${siteConfig.siteUrl}${localePrefix(lang)}/authors/${author.slug}`;
+}
+
+function buildAuthorEntity(author: Article['author_profile'] | undefined | null, fallbackName: string, lang?: string): Record<string, any> {
+  return {
+    '@type': author?.is_external_source ? 'Organization' : 'Person',
+    name: author?.display_name || fallbackName,
+    url: buildAuthorProfileUrl(author, lang) || buildAuthorUrl(fallbackName, lang),
+    ...(author?.bio ? { description: author.bio } : {}),
+    ...(author?.external_source_url ? { sameAs: [author.external_source_url] } : {}),
+  };
+}
+
 /** Strip HTML tags and count words for wordCount schema field */
 function estimateWordCount(content?: string | null): number | undefined {
   if (!content) return undefined;
@@ -61,7 +76,11 @@ export function buildNewsArticleJsonLd(article: Article, topic?: any, lang?: str
     image: article.cover_image || undefined,
     inLanguage,
     datePublished: article.published_at ? new Date(article.published_at).toISOString() : undefined,
-    dateModified: article.updated_at ? new Date(article.updated_at).toISOString() : undefined,
+    dateModified: article.reviewed_at
+      ? new Date(article.reviewed_at).toISOString()
+      : article.updated_at
+        ? new Date(article.updated_at).toISOString()
+        : undefined,
     wordCount: estimateWordCount(article.content),
     ...(allKeywords.length > 0 ? { keywords: allKeywords.join(', ') } : {}),
     // speakable: helps Google Assistant and AI engines extract key content for voice / citations
@@ -69,11 +88,13 @@ export function buildNewsArticleJsonLd(article: Article, topic?: any, lang?: str
       '@type': 'SpeakableSpecification',
       cssSelector: ['h1', '.article-summary', '.article-key-points'],
     },
-    author: {
-      '@type': 'Person',
-      name: article.author || 'YayaNews',
-      url: buildAuthorUrl(article.author, lang),
-    },
+    author: buildAuthorEntity(article.author_profile, article.author || 'YayaNews', lang),
+    ...(article.editor_profile ? {
+      editor: buildAuthorEntity(article.editor_profile, article.editor_profile.display_name, lang),
+    } : {}),
+    ...(article.reviewer_profile ? {
+      reviewedBy: buildAuthorEntity(article.reviewer_profile, article.reviewer_profile.display_name, lang),
+    } : {}),
     publisher: {
       '@type': 'NewsMediaOrganization',
       name: siteConfig.siteName,
@@ -94,10 +115,10 @@ export function buildNewsArticleJsonLd(article: Article, topic?: any, lang?: str
     isAccessibleForFree: true,
     articleSection: article.category_name ? [article.category_name] : undefined,
     // citation: if article cites an original source, expose it for AI engines
-    ...(article.source_url ? {
+    ...((article.original_url || article.source_url) ? {
       citation: {
         '@type': 'CreativeWork',
-        url: article.source_url,
+        url: article.original_url || article.source_url,
         ...(article.source ? { name: article.source } : {}),
       },
     } : {}),

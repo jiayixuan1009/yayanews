@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthorsForSitemap, getCategories, getRecentArticlesForSitemap, getTagsForSitemap, getTopicsForSitemap } from '@/lib/queries';
 import { buildUrlset, type SitemapUrlEntry } from '@/lib/sitemap-xml';
+import { CATEGORY_DISPLAY_ORDER } from '@/lib/constants';
 import { siteConfig } from '@yayanews/types';
 
 export const dynamic = 'force-dynamic';
@@ -8,6 +9,7 @@ export const revalidate = 3600;
 
 const CHUNK_SIZE = 1000;
 const VALID_KINDS = new Set(['static', 'categories', 'articles', 'authors', 'topics', 'tags']);
+const INDEXABLE_CATEGORY_SLUGS = new Set(CATEGORY_DISPLAY_ORDER);
 
 function baseUrl(): string {
   return (siteConfig.siteUrl || '').replace(/\/$/, '');
@@ -90,7 +92,9 @@ async function entriesFor(kind: string, page: number): Promise<SitemapUrlEntry[]
     case 'categories': {
       if (page !== 0) return [];
       const categories = await getCategories().catch(() => []);
-      return categories.flatMap(category => localize(`/news/${category.slug}`, new Date(), 'hourly', 0.8));
+      return categories
+        .filter(category => INDEXABLE_CATEGORY_SLUGS.has(category.slug))
+        .flatMap(category => localize(`/news/${category.slug}`, new Date(), 'hourly', 0.8));
     }
     case 'articles': {
       const articles = await getRecentArticlesForSitemap(CHUNK_SIZE, offset).catch(() => []);
