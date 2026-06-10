@@ -9,6 +9,7 @@ ADMIN_HEALTH_URL="http://127.0.0.1:3003/admin"
 HEARTBEAT_FILE="$APP_DIR/apps/pipeline/data/daemon_heartbeat.txt"
 HEALTH_RETRIES=10
 HEALTH_INTERVAL=3
+DEPLOY_SMOKE_PORT="${DEPLOY_SMOKE_PORT:-39102}"
 BACKUP_RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-7}"
 BACKUP_KEEP_LATEST="${BACKUP_KEEP_LATEST:-5}"
 REQUIRE_DB_BACKUP="${REQUIRE_DB_BACKUP:-1}"
@@ -71,6 +72,28 @@ assert_http_ready() {
     return 1
 }
 
+assert_http_body_ready() {
+    local name="$1"
+    local url="$2"
+    local code
+
+    for i in $(seq 1 "$HEALTH_RETRIES"); do
+        sleep "$HEALTH_INTERVAL"
+        code="$(curl -sSL -o /dev/null -w "%{http_code}" "$url" || true)"
+        code="${code: -3}"
+        case "$code" in
+            200|301|302|307|308)
+                log "   ${GREEN}${name} ready${NC} (HTTP $code, attempt $i/$HEALTH_RETRIES)"
+                return 0
+                ;;
+        esac
+        log "   ${YELLOW}Waiting for ${name}${NC} (HTTP $code, attempt $i/$HEALTH_RETRIES)"
+    done
+
+    log "${RED}${name} body health check failed${NC}: $url"
+    return 1
+}
+
 assert_pm2_online() {
     local failures
     failures="$(pm2 jlist | node -e "
@@ -79,10 +102,16 @@ const apps = JSON.parse(fs.readFileSync(0, 'utf8'));
 const expected = process.argv.slice(1);
 const failures = [];
 for (const name of expected) {
-  const match = apps.find(app => app.name === name);
-  const status = match?.pm2_env?.status;
-  if (!match || status !== 'online') {
-    failures.push(\`\${name}:\${status || 'missing'}\`);
+  const matches = apps.filter(app => app.name === name);
+  if (matches.length === 0) {
+    failures.push(\`\${name}:missing\`);
+    continue;
+  }
+  const bad = matches
+    .map((app, idx) => ({ idx, status: app?.pm2_env?.status || 'unknown' }))
+    .filter(app => app.status !== 'online');
+  if (bad.length > 0) {
+    failures.push(\`\${name}:\${bad.map(app => \`#\${app.idx}=\${app.status}\`).join('|')}\`);
   }
 }
 if (failures.length) {
@@ -168,6 +197,47 @@ assert_recent_heartbeat() {
 
     log "${RED}Pipeline heartbeat did not refresh${NC}: $HEARTBEAT_FILE"
     return 1
+}
+
+assert_standalone_smoke() {
+    local server="$APP_DIR/apps/web/.next/standalone/apps/web/server.js"
+    local smoke_log="$APP_DIR/infra/deploy/web-smoke.log"
+    local smoke_pid=""
+
+    if [ ! -f "$server" ]; then
+        log "${RED}Web standalone server is missing${NC}: $server"
+        exit 1
+    fi
+
+    log "Running web standalone smoke test on port $DEPLOY_SMOKE_PORT..."
+    rm -f "$smoke_log"
+    (
+        cd "$APP_DIR"
+        NODE_ENV=production PORT="$DEPLOY_SMOKE_PORT" HOSTNAME=127.0.0.1 node "$server"
+    ) >"$smoke_log" 2>&1 &
+    smoke_pid="$!"
+
+    cleanup_smoke() {
+        if [ -n "$smoke_pid" ] && kill -0 "$smoke_pid" 2>/dev/null; then
+            kill "$smoke_pid" 2>/dev/null || true
+            wait "$smoke_pid" 2>/dev/null || true
+        fi
+    }
+    local smoke_status=0
+    assert_http_body_ready "web smoke /zh" "http://127.0.0.1:$DEPLOY_SMOKE_PORT/zh" || smoke_status=$?
+    if [ "$smoke_status" -eq 0 ]; then
+        assert_http_body_ready "web smoke logo" "http://127.0.0.1:$DEPLOY_SMOKE_PORT/brand/logo-square.png" || smoke_status=$?
+    fi
+    if [ "$smoke_status" -eq 0 ]; then
+        assert_http_body_ready "web smoke sitemap" "http://127.0.0.1:$DEPLOY_SMOKE_PORT/sitemap.xml" || smoke_status=$?
+    fi
+    cleanup_smoke
+    if [ "$smoke_status" -ne 0 ]; then
+        log "${RED}Web standalone smoke test failed${NC}; last log lines:"
+        tail -80 "$smoke_log" || true
+        return "$smoke_status"
+    fi
+    log "   ${GREEN}Web standalone smoke test passed${NC}"
 }
 
 assert_disk_space() {
@@ -290,6 +360,7 @@ cp -r apps/web/public apps/web/.next/standalone/public
 cp -r apps/web/.next/static apps/web/.next/standalone/.next/static
 cp -r apps/admin/.next/static apps/admin/.next/standalone/.next/static 2>/dev/null || true
 log "   ${GREEN}Build complete${NC}"
+assert_standalone_smoke
 
 log "Running schema repair preflight..."
 export PYTHONPATH="$APP_DIR/apps/pipeline"
@@ -299,18 +370,21 @@ else
     log "${YELLOW}   fix_schema.py not found; skipping${NC}"
 fi
 
-log "Restarting PM2 services..."
+log "Reloading PM2 services..."
 if ! command -v pm2 >/dev/null 2>&1; then
     log "${RED}PM2 is not installed${NC}"
     exit 1
 fi
-pm2 start ecosystem.config.cjs --update-env
+pm2 reload ecosystem.config.cjs --update-env || pm2 start ecosystem.config.cjs --update-env
 pm2 save >/dev/null
 wait_for_pm2_online "${CORE_PM2_APPS[@]}" "${PYTHON_PM2_APPS[@]}"
 log "   ${GREEN}PM2 services are online${NC}"
 
 log "Running post-deploy health checks..."
 assert_http_ready "web" "$WEB_HEALTH_URL"
+assert_http_body_ready "web /zh" "$WEB_HEALTH_URL/zh"
+assert_http_body_ready "web logo" "$WEB_HEALTH_URL/brand/logo-square.png"
+assert_http_body_ready "web sitemap" "$WEB_HEALTH_URL/sitemap.xml"
 assert_http_ready "admin" "$ADMIN_HEALTH_URL"
 assert_recent_heartbeat "$PREVIOUS_HEARTBEAT_TS"
 

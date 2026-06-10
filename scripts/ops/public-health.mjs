@@ -3,7 +3,17 @@ import http from 'node:http';
 import https from 'node:https';
 
 const DEFAULT_BASE_URL = 'https://yayanews.cryptooptiontool.com';
-const DEFAULT_PATHS = ['/', '/news', '/zh', '/en', '/admin'];
+const DEFAULT_PATHS = [
+  '/',
+  '/news',
+  '/zh',
+  '/en',
+  '/admin',
+  '/robots.txt',
+  '/sitemap.xml',
+  '/sitemap-news.xml',
+  '/brand/logo-square.png',
+];
 const MAX_REDIRECTS = 5;
 const TIMEOUT_MS = Number(process.env.PUBLIC_HEALTH_TIMEOUT_MS || 15000);
 
@@ -48,11 +58,47 @@ async function checkUrl(startUrl) {
   let current = startUrl;
 
   for (let i = 0; i <= MAX_REDIRECTS; i += 1) {
-    const response = await requestHead(current).catch(err => ({
-      status: 0,
-      headers: {},
-      error: err,
-    }));
+    const response = await requestUrl(current, 'HEAD').catch(async err => {
+      if (err?.code === 'HEAD_UNSUPPORTED') {
+        return requestUrl(current, 'GET');
+      }
+      return {
+        status: 0,
+        headers: {},
+        error: err,
+      };
+    });
+
+    if (response.status === 405 || response.status === 501) {
+      const fallback = await requestUrl(current, 'GET').catch(err => ({
+        status: 0,
+        headers: {},
+        error: err,
+      }));
+      response.status = fallback.status;
+      response.headers = fallback.headers;
+      response.error = fallback.error;
+    }
+
+    if (response.status >= 500 && response.status < 600) {
+      const fallback = await requestUrl(current, 'GET').catch(err => ({
+        status: 0,
+        headers: {},
+        error: err,
+      }));
+      if (!fallback.error) {
+        response.status = fallback.status;
+        response.headers = fallback.headers;
+      }
+    }
+
+    if (!response) {
+      return {
+        ok: false,
+        reason: `${current.toString()} empty response`,
+        chain,
+      };
+    }
 
     if (response.error) {
       return {
@@ -95,13 +141,13 @@ async function checkUrl(startUrl) {
   };
 }
 
-function requestHead(url) {
+function requestUrl(url, method) {
   return new Promise((resolve, reject) => {
     const client = url.protocol === 'http:' ? http : https;
     const req = client.request(
       url,
       {
-        method: 'HEAD',
+        method,
         timeout: TIMEOUT_MS,
         headers: {
           'User-Agent': 'YayaNews-Public-Health/1.0',

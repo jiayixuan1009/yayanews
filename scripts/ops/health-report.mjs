@@ -153,15 +153,19 @@ function inspectPm2() {
       ? [...EXPECTED_PM2_APPS, ...PYTHON_PM2_APPS]
       : EXPECTED_PM2_APPS;
     for (const name of expectedApps) {
-      const app = apps.find(item => item.name === name);
-      if (!app) {
+      const matches = apps.filter(item => item.name === name);
+      if (matches.length === 0) {
         warn(name, 'missing');
         continue;
       }
-      const status = app.pm2_env?.status || 'unknown';
-      const restarts = app.pm2_env?.restart_time ?? 0;
-      const memMb = app.monit?.memory ? Math.round(app.monit.memory / 1024 / 1024) : 0;
-      (status === 'online' ? ok : warn)(name, `status=${status} restarts=${restarts} memory=${memMb}MB`);
+      const online = matches.filter(app => app.pm2_env?.status === 'online').length;
+      const restarts = matches.reduce((sum, app) => sum + (app.pm2_env?.restart_time ?? 0), 0);
+      const memMb = matches.reduce((sum, app) => sum + (app.monit?.memory || 0), 0);
+      const statuses = [...new Set(matches.map(app => app.pm2_env?.status || 'unknown'))].join(',');
+      (online === matches.length ? ok : warn)(
+        name,
+        `online=${online}/${matches.length} status=${statuses} restarts=${restarts} memory=${Math.round(memMb / 1024 / 1024)}MB`,
+      );
     }
   } catch (err) {
     warn('pm2', `unavailable: ${err.message}`);
