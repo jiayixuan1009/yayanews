@@ -99,19 +99,74 @@ export async function getPublishedArticles(lang: string = 'zh', limit = 20, offs
   return withTags.map(formatArticleDates);
 }
 
-export async function getAuthorBySlug(slug: string): Promise<{ name: string; slug: string; article_count: number } | undefined> {
-  const rows = await db.queryAll<{ author: string; article_count: number }>(`
+export type AuthorSummary = {
+  name: string;
+  slug: string;
+  article_count: number;
+  latest_at: string | null;
+  aliases: string[];
+};
+
+export const EDITORIAL_AUTHOR: AuthorSummary = {
+  name: 'YayaNews',
+  slug: 'yayanews-editorial',
+  article_count: 0,
+  latest_at: null,
+  aliases: ['YayaNews', 'Yaya Financial News'],
+};
+
+export async function getAuthorsForIndex(limit = 200): Promise<AuthorSummary[]> {
+  let rows: { author: string; article_count: number; latest_at: Date | string | null }[] = [];
+  try {
+    rows = await db.queryAll<{ author: string; article_count: number; latest_at: Date | string | null }>(`
     SELECT COALESCE(NULLIF(TRIM(author), ''), 'YayaNews') as author,
-           COUNT(*)::int as article_count
+           COUNT(*)::int as article_count,
+           MAX(updated_at) as latest_at
     FROM articles
     WHERE status = 'published' AND audit_status = 'approved'
     GROUP BY COALESCE(NULLIF(TRIM(author), ''), 'YayaNews')
     ORDER BY article_count DESC
-  `);
+    LIMIT $1::int
+  `, [limit]);
+  } catch {
+    return [EDITORIAL_AUTHOR];
+  }
 
-  const match = rows.find(row => buildAuthorSlug(row.author) === slug);
-  if (!match) return undefined;
-  return { name: match.author, slug, article_count: match.article_count };
+  const bySlug = new Map<string, AuthorSummary>();
+  for (const row of rows) {
+    const slug = buildAuthorSlug(row.author);
+    const latest = row.latest_at ? safeDateStr(row.latest_at) : null;
+    const existing = bySlug.get(slug);
+    if (existing) {
+      existing.article_count += row.article_count;
+      if (!existing.aliases.includes(row.author)) existing.aliases.push(row.author);
+      if (latest && (!existing.latest_at || new Date(latest) > new Date(existing.latest_at))) {
+        existing.latest_at = latest;
+      }
+      continue;
+    }
+    bySlug.set(slug, {
+      name: row.author,
+      slug,
+      article_count: row.article_count,
+      latest_at: latest,
+      aliases: [row.author],
+    });
+  }
+
+  if (!bySlug.has(EDITORIAL_AUTHOR.slug)) bySlug.set(EDITORIAL_AUTHOR.slug, EDITORIAL_AUTHOR);
+
+  return Array.from(bySlug.values()).sort((a, b) => b.article_count - a.article_count);
+}
+
+export async function getAuthorsForSitemap(): Promise<AuthorSummary[]> {
+  const authors = await getAuthorsForIndex(500);
+  return authors.filter(author => author.slug === 'yayanews-editorial' || author.article_count >= 3);
+}
+
+export async function getAuthorBySlug(slug: string): Promise<AuthorSummary | undefined> {
+  const authors = await getAuthorsForIndex(500);
+  return authors.find(author => author.slug === slug);
 }
 
 export async function getPublishedArticlesByAuthor(author: string, lang: string = 'zh', limit = 20, offset = 0): Promise<Article[]> {
@@ -129,6 +184,30 @@ export async function getPublishedArticlesByAuthor(author: string, lang: string 
 
   const withTags = await attachTagsBatch(articles);
   return withTags.map(formatArticleDates);
+}
+
+export async function getPublishedArticlesByAuthorSlug(slug: string, lang: string = 'zh', limit = 20, offset = 0): Promise<Article[]> {
+  const author = await getAuthorBySlug(slug);
+  if (!author) return [];
+  const aliases = author.aliases.length > 0 ? author.aliases : [author.name];
+  try {
+    const articles = await db.queryAll<Article>(`
+    SELECT a.*, c.name as category_name, c.slug as category_slug
+    FROM articles a
+    LEFT JOIN categories c ON a.category_id = c.id
+    WHERE a.status = 'published'
+      AND a.audit_status = 'approved'
+      AND a.lang = $1::text
+      AND COALESCE(NULLIF(TRIM(a.author), ''), 'YayaNews') = ANY($2::text[])
+    ORDER BY a.published_at DESC
+    LIMIT $3::int OFFSET $4::int
+  `, [lang, aliases, limit, offset]);
+
+    const withTags = await attachTagsBatch(articles);
+    return withTags.map(formatArticleDates);
+  } catch {
+    return [];
+  }
 }
 
 export async function getArticleCountByType(categorySlug?: string, articleType?: string, lang?: string): Promise<number> {

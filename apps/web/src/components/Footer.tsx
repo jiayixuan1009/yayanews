@@ -7,8 +7,8 @@ export default function Footer({ lang = 'zh', dict }: { lang?: string, dict: Rec
   const footerColumns = {
     [dict.colOrg || 'Organization']: [
       { label: dict.colAbout || 'About Us', href: '/about' },
-      { label: dict.colGuide || 'Editorial Guidelines', href: '/guide' },
-      { label: dict.colMasthead || 'Masthead', href: '/topics' },
+      { label: dict.colGuide || 'Editorial Guidelines', href: '/editorial-policy' },
+      { label: dict.colMasthead || 'Masthead', href: '/authors' },
       { label: dict.colContact || 'Contact', href: '/contact' },
     ],
     [dict.colCov || 'Coverage']: [
@@ -20,7 +20,9 @@ export default function Footer({ lang = 'zh', dict }: { lang?: string, dict: Rec
     [dict.colLegal || 'Legal']: [
       { label: dict.colPrivacy || 'Privacy Policy', href: '/privacy' },
       { label: dict.colTerms || 'Terms of Service', href: '/terms' },
-      { label: dict.colCookie || 'Cookie Policy', href: '/privacy' },
+      { label: dict.colCorrections || 'Corrections', href: '/corrections' },
+      { label: dict.colRisk || 'Risk Disclosure', href: '/risk-disclosure' },
+      { label: dict.colAdvertising || 'Advertising Policy', href: '/advertising-policy' },
     ],
   };
 

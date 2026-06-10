@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import ArticleCard from '@/components/ArticleCard';
-import { getAuthorBySlug, getPublishedArticlesByAuthor } from '@/lib/queries';
+import { getAuthorBySlug, getPublishedArticlesByAuthorSlug } from '@/lib/queries';
 import { getDictionary } from '@/lib/dictionaries';
 import { buildAuthorUrl, createMetadata } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
@@ -45,7 +45,7 @@ export default async function AuthorPage({
   ]);
   if (!author) notFound();
 
-  const articles = await getPublishedArticlesByAuthor(author.name, locale, 24);
+  const articles = await getPublishedArticlesByAuthorSlug(slug, locale, 24);
   const isEditorial = slug === 'yayanews-editorial';
   const authorDescription = locale === 'en'
     ? isEditorial

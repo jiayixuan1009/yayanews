@@ -188,7 +188,7 @@
     "colOrg": "组织机构",
     "colAbout": "关于我们",
     "colGuide": "编辑准则",
-    "colMasthead": "管理层",
+    "colMasthead": "作者团队",
     "colContact": "联系我们",
     "colCov": "内容覆盖",
     "usStock": "美股市场",
@@ -198,7 +198,10 @@
     "colLegal": "法律事务",
     "colPrivacy": "隐私政策",
     "colTerms": "服务条款",
-    "colCookie": "Cookie 政策"
+    "colCookie": "Cookie 政策",
+    "colCorrections": "更正政策",
+    "colRisk": "风险披露",
+    "colAdvertising": "广告政策"
   },
   "common": {
     "readMore": "阅读全文",

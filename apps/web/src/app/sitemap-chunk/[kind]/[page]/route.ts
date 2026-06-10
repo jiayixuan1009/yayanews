@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCategories, getRecentArticlesForSitemap, getTagsForSitemap, getTopicsForSitemap } from '@/lib/queries';
+import { getAuthorsForSitemap, getCategories, getRecentArticlesForSitemap, getTagsForSitemap, getTopicsForSitemap } from '@/lib/queries';
 import { buildUrlset, type SitemapUrlEntry } from '@/lib/sitemap-xml';
 import { siteConfig } from '@yayanews/types';
 
@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
 
 const CHUNK_SIZE = 1000;
-const VALID_KINDS = new Set(['static', 'categories', 'articles', 'topics', 'tags']);
+const VALID_KINDS = new Set(['static', 'categories', 'articles', 'authors', 'topics', 'tags']);
 
 function baseUrl(): string {
   return (siteConfig.siteUrl || '').replace(/\/$/, '');
@@ -48,9 +48,15 @@ function staticEntries(): SitemapUrlEntry[] {
     ...localize('/markets', now, 'hourly', 0.7),
     ...localize('/topics', now, 'daily', 0.7),
     ...localize('/about', now, 'monthly', 0.4),
+    ...localize('/authors', now, 'weekly', 0.5),
     ...localize('/editorial', now, 'monthly', 0.5),
+    ...localize('/editorial-policy', now, 'monthly', 0.5),
+    ...localize('/corrections', now, 'monthly', 0.4),
+    ...localize('/risk-disclosure', now, 'monthly', 0.4),
+    ...localize('/advertising-policy', now, 'monthly', 0.4),
     ...localize('/contact', now, 'monthly', 0.4),
     ...localize('/privacy', now, 'monthly', 0.4),
+    ...localize('/terms', now, 'monthly', 0.3),
   ];
 }
 
@@ -92,6 +98,13 @@ async function entriesFor(kind: string, page: number): Promise<SitemapUrlEntry[]
         .filter(article => article.article_type !== 'short')
         .filter(article => !article.slug.includes('&') && (!article.sibling_slug || !article.sibling_slug.includes('&')))
         .map(articleEntry);
+    }
+    case 'authors': {
+      if (page !== 0) return [];
+      const authors = await getAuthorsForSitemap().catch(() => []);
+      return authors
+        .filter(author => !author.slug.includes('&'))
+        .flatMap(author => localize(`/authors/${author.slug}`, safeDate(author.latest_at), 'weekly', author.slug === 'yayanews-editorial' ? 0.55 : 0.45));
     }
     case 'topics': {
       const topics = await getTopicsForSitemap().catch(() => []);

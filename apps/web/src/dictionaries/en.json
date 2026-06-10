@@ -188,13 +188,16 @@
     "colOrg": "Organization",
     "colAbout": "About Us",
     "colGuide": "Editorial Guidelines",
-    "colMasthead": "Masthead",
+    "colMasthead": "Authors",
     "colContact": "Contact",
     "colCov": "Coverage",
     "colLegal": "Legal",
     "colPrivacy": "Privacy Policy",
     "colTerms": "Terms of Service",
-    "colCookie": "Cookie Policy"
+    "colCookie": "Cookie Policy",
+    "colCorrections": "Corrections",
+    "colRisk": "Risk Disclosure",
+    "colAdvertising": "Advertising Policy"
   },
   "common": {
     "readMore": "Read More",
