@@ -73,6 +73,7 @@ setup-logo.js
 remote-nominate.js
 output.html
 temp_remote_env.txt
+env.txt
 .env.remote_bak
 fix_limits.js
 
