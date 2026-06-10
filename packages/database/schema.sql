@@ -135,10 +135,6 @@ CREATE TABLE IF NOT EXISTS speed_benchmarks (
 CREATE INDEX IF NOT EXISTS idx_articles_slug ON articles(slug);
 CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status);
 CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published_at);
-CREATE INDEX IF NOT EXISTS idx_articles_author_id ON articles(author_id);
-CREATE INDEX IF NOT EXISTS idx_articles_source_type ON articles(source_type);
-CREATE INDEX IF NOT EXISTS idx_articles_indexable ON articles(is_indexable);
-CREATE INDEX IF NOT EXISTS idx_articles_deleted_at ON articles(deleted_at);
 CREATE INDEX IF NOT EXISTS idx_flash_published ON flash_news(published_at);
 CREATE INDEX IF NOT EXISTS idx_topics_slug ON topics(slug);
 CREATE INDEX IF NOT EXISTS idx_authors_status ON authors(status);
@@ -181,6 +177,11 @@ ALTER TABLE articles ADD COLUMN IF NOT EXISTS canonical_url TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS subcategory TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES articles(id) ON DELETE CASCADE;
 -- ALTER TABLE articles ADD COLUMN IF NOT EXISTS embedding vector(1536);
+
+CREATE INDEX IF NOT EXISTS idx_articles_author_id ON articles(author_id);
+CREATE INDEX IF NOT EXISTS idx_articles_source_type ON articles(source_type);
+CREATE INDEX IF NOT EXISTS idx_articles_indexable ON articles(is_indexable);
+CREATE INDEX IF NOT EXISTS idx_articles_deleted_at ON articles(deleted_at);
 
 -- add missing columns to flash_news
 ALTER TABLE flash_news ADD COLUMN IF NOT EXISTS subcategory TEXT;
