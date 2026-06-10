@@ -16,6 +16,8 @@ REQUIRE_DB_BACKUP="${REQUIRE_DB_BACKUP:-1}"
 CLEAN_NEXT_CACHE_BEFORE_DEPLOY="${CLEAN_NEXT_CACHE_BEFORE_DEPLOY:-1}"
 MIN_FREE_MB="${MIN_FREE_MB:-3072}"
 ALLOW_DIRTY_DEPLOY="${ALLOW_DIRTY_DEPLOY:-0}"
+STANDALONE_ROLLBACK_DIR=""
+DEPLOY_RELOADED=0
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -50,6 +52,21 @@ for (const line of lines) {
 process.exit(1);
 " "$APP_DIR/.env" "$key"
 }
+
+on_deploy_exit() {
+    local exit_code="$1"
+
+    if [ "$exit_code" -ne 0 ] && [ "$DEPLOY_RELOADED" -eq 0 ] && [ -n "$STANDALONE_ROLLBACK_DIR" ]; then
+        log "${YELLOW}Deploy failed before PM2 reload; restoring previous standalone build${NC}"
+        restore_standalone_snapshot || true
+    fi
+
+    if [ "$exit_code" -eq 0 ] && [ -n "$STANDALONE_ROLLBACK_DIR" ]; then
+        rm -rf -- "$STANDALONE_ROLLBACK_DIR" 2>/dev/null || true
+    fi
+}
+
+trap 'on_deploy_exit $?' EXIT
 
 assert_http_ready() {
     local name="$1"
@@ -213,6 +230,10 @@ assert_standalone_smoke() {
     rm -f "$smoke_log"
     (
         cd "$APP_DIR"
+        set -a
+        # shellcheck disable=SC1091
+        . "$APP_DIR/.env"
+        set +a
         NODE_ENV=production PORT="$DEPLOY_SMOKE_PORT" HOSTNAME=127.0.0.1 node "$server"
     ) >"$smoke_log" 2>&1 &
     smoke_pid="$!"
@@ -238,6 +259,43 @@ assert_standalone_smoke() {
         return "$smoke_status"
     fi
     log "   ${GREEN}Web standalone smoke test passed${NC}"
+}
+
+snapshot_standalone_dirs() {
+    STANDALONE_ROLLBACK_DIR="$APP_DIR/infra/deploy/standalone-rollback-$CURRENT_COMMIT-$(date '+%Y%m%d%H%M%S')"
+    mkdir -p "$STANDALONE_ROLLBACK_DIR"
+
+    if [ -d "$APP_DIR/apps/web/.next/standalone" ]; then
+        cp -a "$APP_DIR/apps/web/.next/standalone" "$STANDALONE_ROLLBACK_DIR/web"
+    fi
+
+    if [ -d "$APP_DIR/apps/admin/.next/standalone" ]; then
+        cp -a "$APP_DIR/apps/admin/.next/standalone" "$STANDALONE_ROLLBACK_DIR/admin"
+    fi
+
+    log "   ${GREEN}Standalone rollback snapshot ready${NC}: $STANDALONE_ROLLBACK_DIR"
+}
+
+restore_standalone_snapshot() {
+    if [ -z "$STANDALONE_ROLLBACK_DIR" ] || [ ! -d "$STANDALONE_ROLLBACK_DIR" ]; then
+        return 0
+    fi
+
+    if [ -d "$STANDALONE_ROLLBACK_DIR/web" ]; then
+        rm -rf "$APP_DIR/apps/web/.next/standalone"
+        mkdir -p "$APP_DIR/apps/web/.next"
+        cp -a "$STANDALONE_ROLLBACK_DIR/web" "$APP_DIR/apps/web/.next/standalone"
+    fi
+
+    if [ -d "$STANDALONE_ROLLBACK_DIR/admin" ]; then
+        rm -rf "$APP_DIR/apps/admin/.next/standalone"
+        mkdir -p "$APP_DIR/apps/admin/.next"
+        cp -a "$STANDALONE_ROLLBACK_DIR/admin" "$APP_DIR/apps/admin/.next/standalone"
+    fi
+
+    rm -rf -- "$STANDALONE_ROLLBACK_DIR" 2>/dev/null || true
+    STANDALONE_ROLLBACK_DIR=""
+    log "   ${GREEN}Standalone rollback snapshot restored${NC}"
 }
 
 assert_disk_space() {
@@ -353,6 +411,7 @@ if [ "$CLEAN_NEXT_CACHE_BEFORE_DEPLOY" = "1" ]; then
     rm -rf apps/web/.next/cache apps/admin/.next/cache .next/cache .turbo 2>/dev/null || true
 fi
 assert_disk_space
+snapshot_standalone_dirs
 npm run build
 mkdir -p apps/web/.next/standalone/.next
 mkdir -p apps/admin/.next/standalone/.next
@@ -376,6 +435,7 @@ if ! command -v pm2 >/dev/null 2>&1; then
     exit 1
 fi
 pm2 reload ecosystem.config.cjs --update-env || pm2 start ecosystem.config.cjs --update-env
+DEPLOY_RELOADED=1
 pm2 save >/dev/null
 wait_for_pm2_online "${CORE_PM2_APPS[@]}" "${PYTHON_PM2_APPS[@]}"
 log "   ${GREEN}PM2 services are online${NC}"
