@@ -32,7 +32,8 @@
     "db:gap-report": "node scripts/content-gap-report.mjs",
     "pipeline:translate-en": "node scripts/pipeline-translate-en.mjs",
     "pipeline:translate-en:all": "node scripts/pipeline-translate-en.mjs --until-done",
-    "ops:health": "node scripts/ops/health-report.mjs"
+    "ops:health": "node scripts/ops/health-report.mjs",
+    "ops:public-health": "node scripts/ops/public-health.mjs"
   },
   "dependencies": {
     "pg": "^8.20.0"
