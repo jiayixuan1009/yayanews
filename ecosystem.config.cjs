@@ -96,6 +96,11 @@ const robustNode = {
   listen_timeout: 8000,
 };
 
+function positiveInt(value, fallback) {
+  const parsed = Number.parseInt(String(value || ''), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 module.exports = {
   apps: [
     {
@@ -103,6 +108,8 @@ module.exports = {
       cwd: root,
       script: "apps/web/.next/standalone/apps/web/server.js",
       ...robustNode,
+      exec_mode: "cluster",
+      instances: positiveInt(mergedEnv.WEB_INSTANCES, 2),
       max_memory_restart: "800M",
       env: {
         ...mergedEnv,
@@ -186,6 +193,8 @@ module.exports = {
       cwd: root,
       script: "apps/admin/.next/standalone/apps/admin/server.js",
       ...robustNode,
+      exec_mode: "cluster",
+      instances: positiveInt(mergedEnv.ADMIN_INSTANCES, 2),
       max_memory_restart: "600M",
       env: {
         ...mergedEnv,
