@@ -8,6 +8,12 @@ import Analytics from '@/components/Analytics';
 import AppToaster from '@/components/AppToaster';
 import '../globals.css';
 import { getDictionary } from '@/lib/dictionaries';
+import { notFound } from 'next/navigation';
+
+function resolveLocale(lang: string): 'zh' | 'en' | null {
+  if (lang === 'zh' || lang === 'en') return lang;
+  return null;
+}
 
 // Google fonts fetching is blocked by the server firewall/GFW during build.
 // Falling back to standard generic system fonts in globals.css.
@@ -24,7 +30,8 @@ export const viewport: Viewport = {
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const { lang } = await params;
-  const locale = lang === 'en' ? 'en' : 'zh';
+  const locale = resolveLocale(lang);
+  if (!locale) return {};
   const isEn = locale === 'en';
   const meta = createMetadata({
     title: isEn
@@ -49,7 +56,8 @@ export default async function RootLayout({
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
-  const locale = lang === 'en' ? 'en' : 'zh';
+  const locale = resolveLocale(lang);
+  if (!locale) notFound();
   const dict = await getDictionary(locale);
   return (
     <html lang={locale} className={`${inter.variable} ${publicSans.variable} ${interTight.variable} ${notoSansSC.variable}`}>

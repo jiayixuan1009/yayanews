@@ -24,7 +24,7 @@ import { sanitizeHtml } from '@/lib/sanitize';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
 import { articleHasRealCover, getArticleCoverSrc } from '@/lib/article-image';
 
-import { createMetadata, buildNewsArticleJsonLd, buildBreadcrumbJsonLd } from '@yayanews/seo';
+import { buildAuthorSlug, createMetadata, buildNewsArticleJsonLd, buildBreadcrumbJsonLd } from '@yayanews/seo';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; lang: string }> }): Promise<Metadata> {
   const { slug, lang } = await params;
@@ -165,7 +165,9 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
               ) : null}
 
               <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[#ddd5ca] pt-4 text-sm text-slate-600">
-                <span className="font-medium text-slate-800">{article.author}</span>
+                <LocalizedLink href={`/authors/${buildAuthorSlug(article.author)}`} className="font-medium text-slate-800 hover:text-[#1d5c4f]">
+                  {article.author}
+                </LocalizedLink>
                 <span className="text-slate-400" aria-hidden>
                   ·
                 </span>

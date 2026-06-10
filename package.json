@@ -31,7 +31,8 @@
     "db:restore:recommended": "node scripts/restore-recommended.mjs",
     "db:gap-report": "node scripts/content-gap-report.mjs",
     "pipeline:translate-en": "node scripts/pipeline-translate-en.mjs",
-    "pipeline:translate-en:all": "node scripts/pipeline-translate-en.mjs --until-done"
+    "pipeline:translate-en:all": "node scripts/pipeline-translate-en.mjs --until-done",
+    "ops:health": "node scripts/ops/health-report.mjs"
   },
   "dependencies": {
     "pg": "^8.20.0"

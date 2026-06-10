@@ -3,7 +3,8 @@ import LocalizedLink from '@/components/LocalizedLink';
 import Image from 'next/image';
 import { getTopics } from '@/lib/queries';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
-import { createMetadata } from '@yayanews/seo';
+import { buildBreadcrumbJsonLd, createMetadata } from '@yayanews/seo';
+import { siteConfig } from '@yayanews/types';
 import { getDictionary } from '@/lib/dictionaries';
 import SectionHeader from '@/components/editorial/SectionHeader';
 
@@ -30,9 +31,38 @@ export default async function TopicsPage({ params }: { params: Promise<{ lang: s
   const topics = rawTopics.filter(t => (t.article_count || 0) > 0 && !(t.slug || '').toLowerCase().includes('sora'));
   const isZh = lang !== 'en';
   const t = dict.topics;
+  const locale = lang === 'en' ? 'en' : 'zh';
+  const collectionJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: t.pageTitle,
+    description: t.pageDesc,
+    url: `${siteConfig.siteUrl}/${locale}/topics`,
+    inLanguage: locale === 'en' ? 'en' : 'zh-CN',
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListOrder: 'https://schema.org/ItemListOrderDescending',
+      numberOfItems: topics.length,
+      itemListElement: topics.slice(0, 50).map((topic, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: isZh
+          ? (topic.name_zh || topic.title || topic.slug)
+          : (topic.name_en || topic.title || topic.slug),
+        url: `${siteConfig.siteUrl}/${locale}/topics/${topic.slug}`,
+      })),
+    },
+  };
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: dict.nav.home, url: `/${locale}` },
+    { name: t.pageTitle, url: `/${locale}/topics` },
+  ]);
 
   return (
-    <div className="container-main py-6 sm:py-8">
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <div className="container-main py-6 sm:py-8">
       <header className="mb-8 border-b border-[#ddd5ca] pb-6">
         <h1 className="yn-page-title">{t.pageTitle}</h1>
         <p className="mt-2 max-w-2xl text-sm text-[#667067]">{t.pageDesc}</p>
@@ -87,6 +117,7 @@ export default async function TopicsPage({ params }: { params: Promise<{ lang: s
       ) : (
         <p className="text-center text-gray-500 py-16">{t.noTopics}</p>
       )}
-    </div>
+      </div>
+    </>
   );
 }

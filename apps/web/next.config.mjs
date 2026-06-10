@@ -135,7 +135,19 @@ const nextConfig = {
         ],
       },
       {
+        source: '/sitemap-chunk/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=600' },
+        ],
+      },
+      {
         source: '/sitemap-news.xml',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=300, s-maxage=300, stale-while-revalidate=600' },
+        ],
+      },
+      {
+        source: '/news.xml',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=300, s-maxage=300, stale-while-revalidate=600' },
         ],
