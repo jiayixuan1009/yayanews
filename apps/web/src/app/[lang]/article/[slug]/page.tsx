@@ -116,6 +116,28 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         .map(t => t.trim())
         .filter(Boolean)
     : [];
+  const authorName = article.author_profile?.display_name || article.author || 'YayaNews';
+  const authorSlug = article.author_profile?.slug || buildAuthorSlug(authorName);
+  const sourceUrl = article.original_url || article.source_url;
+  const sourceName = article.source || article.author_profile?.display_name || '';
+  const sourceType = article.source_type || 'original';
+  const sourceTypeLabel: Record<string, string> = lang === 'en'
+    ? {
+        original: 'Original',
+        syndicated: 'Syndicated',
+        translated: 'Translated',
+        ai_assisted: 'AI-Assisted',
+        sponsored: 'Sponsored',
+        partner: 'Partner',
+      }
+    : {
+        original: '原创',
+        syndicated: '合作来源',
+        translated: '编译',
+        ai_assisted: 'AI 辅助',
+        sponsored: '赞助',
+        partner: '合作',
+      };
 
   return (
     <div className="container-main py-6 sm:py-8 lg:py-10 xl:py-12">
@@ -165,9 +187,19 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
               ) : null}
 
               <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[#ddd5ca] pt-4 text-sm text-slate-600">
-                <LocalizedLink href={`/authors/${buildAuthorSlug(article.author)}`} className="font-medium text-slate-800 hover:text-[#1d5c4f]">
-                  {article.author}
+                <LocalizedLink href={`/authors/${authorSlug}`} rel="author" className="font-medium text-slate-800 hover:text-[#1d5c4f]">
+                  {authorName}
                 </LocalizedLink>
+                {sourceType !== 'original' ? (
+                  <>
+                    <span className="text-slate-400" aria-hidden>
+                      ·
+                    </span>
+                    <span className="rounded-full border border-[#d9d2c8] bg-white px-2 py-0.5 text-xs font-semibold text-[#1d5c4f]" data-source-type={sourceType}>
+                      {sourceTypeLabel[sourceType] || sourceType}
+                    </span>
+                  </>
+                ) : null}
                 <span className="text-slate-400" aria-hidden>
                   ·
                 </span>
@@ -186,25 +218,35 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                   ·
                 </span>
                 <span>{article.view_count} {dict.article.views}</span>
-                {article.source && article.source !== 'YayaNews' ? (
+                {sourceName && sourceName !== 'YayaNews' ? (
                   <>
                     <span className="text-slate-400" aria-hidden>
                       ·
                     </span>
                     <span>
                       {dict.common.source}{' '}
-                      {article.source_url ? (
+                      {sourceUrl ? (
                         <a
-                          href={article.source_url}
+                          href={sourceUrl}
                           target="_blank"
                           rel="noopener noreferrer nofollow"
                           className="yn-link"
                         >
-                          {article.source}
+                          {sourceName}
                         </a>
                       ) : (
-                        <span className="text-slate-800">{article.source}</span>
+                        <span className="text-slate-800">{sourceName}</span>
                       )}
+                    </span>
+                  </>
+                ) : null}
+                {article.reviewed_at ? (
+                  <>
+                    <span className="text-slate-400" aria-hidden>
+                      ·
+                    </span>
+                    <span>
+                      {lang === 'en' ? 'Reviewed' : '已审核'}: <time dateTime={article.reviewed_at}>{formatDate(article.reviewed_at)}</time>
                     </span>
                   </>
                 ) : null}
@@ -274,22 +316,22 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <p className="yn-meta mb-2">{dict.article.disclaimerTitle}</p>
-                    {article.source === 'YayaNews' || !article.source ? (
+                    {sourceName === 'YayaNews' || !sourceName ? (
                       <p className="yn-body">{dict.article.disclaimerSelf}</p>
                     ) : (
                       <p className="yn-body">
                         {dict.article.disclaimerOther}
-                        {article.source_url ? (
+                        {sourceUrl ? (
                           <a
-                            href={article.source_url}
+                            href={sourceUrl}
                             target="_blank"
                             rel="noopener noreferrer nofollow"
                             className="yn-link"
                           >
-                            {article.source}
+                            {sourceName}
                           </a>
                         ) : (
-                          <span className="text-slate-800">{article.source}</span>
+                          <span className="text-slate-800">{sourceName}</span>
                         )}
                         {dict.article.disclaimerSuffix}
                       </p>
@@ -402,16 +444,22 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                     <dd className="text-right text-slate-700">{tickers.map(t => `$${t}`).join(' ')}</dd>
                   </div>
                 ) : null}
-                {article.source ? (
+                {sourceType !== 'original' ? (
+                  <div className="flex items-start justify-between gap-4 border-b border-[#e5ddd2] pb-3">
+                    <dt className="yn-meta !text-[10px]">{lang === 'en' ? 'Source Type' : '来源类型'}</dt>
+                    <dd className="text-right text-slate-700">{sourceTypeLabel[sourceType] || sourceType}</dd>
+                  </div>
+                ) : null}
+                {sourceName ? (
                   <div className="flex items-start justify-between gap-4">
                     <dt className="yn-meta !text-[10px]">{dict.article.infoSource}</dt>
                     <dd className="text-right text-slate-700">
-                      {article.source_url ? (
-                        <a href={article.source_url} target="_blank" rel="noopener noreferrer nofollow" className="yn-link">
-                          {article.source}
+                      {sourceUrl ? (
+                        <a href={sourceUrl} target="_blank" rel="noopener noreferrer nofollow" className="yn-link">
+                          {sourceName}
                         </a>
                       ) : (
-                        article.source
+                        sourceName
                       )}
                     </dd>
                   </div>

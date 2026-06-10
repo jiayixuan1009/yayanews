@@ -1,5 +1,5 @@
 import * as db from '@yayanews/database';
-import type { Article, FlashNews, Category, Topic, Guide, Tag } from '@yayanews/types';
+import type { Article, AuthorProfile, FlashNews, Category, Topic, Guide, Tag } from '@yayanews/types';
 import { buildAuthorSlug } from '@yayanews/seo';
 import { CATEGORY_DISPLAY_ORDER } from './constants';
 
@@ -27,6 +27,31 @@ function formatArticleDates(a: any) {
     updated_at: safeDateStr(a.updated_at)
   };
 }
+
+function authorProfileSelect(alias: string, fieldName: string): string {
+  return `CASE WHEN ${alias}.id IS NULL THEN NULL ELSE json_build_object(
+      'id', ${alias}.id,
+      'slug', ${alias}.slug,
+      'display_name', ${alias}.display_name,
+      'role', ${alias}.role,
+      'bio', ${alias}.bio,
+      'expertise', ${alias}.expertise,
+      'avatar_url', ${alias}.avatar_url,
+      'email_or_contact', ${alias}.email_or_contact,
+      'profile_url', ${alias}.profile_url,
+      'status', ${alias}.status,
+      'review_status', ${alias}.review_status,
+      'is_external_source', ${alias}.is_external_source,
+      'external_source_url', ${alias}.external_source_url,
+      'created_at', ${alias}.created_at,
+      'updated_at', ${alias}.updated_at
+    ) END as ${fieldName}`;
+}
+
+const ARTICLE_AUTHOR_FIELDS = `
+    COALESCE(au.display_name, NULLIF(TRIM(a.author), ''), 'YayaNews') as author,
+    ${authorProfileSelect('au', 'author_profile')}
+`;
 
 /**
  * Batch-load tags for a set of articles in ONE query, avoiding N+1.
@@ -68,10 +93,16 @@ export async function getCategoriesOrdered(): Promise<Category[]> {
 
 export async function getPublishedArticles(lang: string = 'zh', limit = 20, offset = 0, categorySlug?: string, subcategory?: string, articleType?: string): Promise<Article[]> {
   let sql = `
-    SELECT a.*, c.name as category_name, c.slug as category_slug
+    SELECT a.*, c.name as category_name, c.slug as category_slug,
+      ${ARTICLE_AUTHOR_FIELDS}
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
-    WHERE a.status = 'published' AND a.audit_status = 'approved' AND a.lang = $1::text
+    LEFT JOIN authors au ON au.id = a.author_id
+    WHERE a.status = 'published'
+      AND a.audit_status = 'approved'
+      AND a.lang = $1::text
+      AND a.deleted_at IS NULL
+      AND a.is_indexable = TRUE
   `;
   const params: unknown[] = [lang];
   let paramIdx = 2;
@@ -100,8 +131,20 @@ export async function getPublishedArticles(lang: string = 'zh', limit = 20, offs
 }
 
 export type AuthorSummary = {
+  id?: number;
   name: string;
   slug: string;
+  display_name?: string;
+  role?: string;
+  bio?: string | null;
+  expertise?: string | null;
+  avatar_url?: string | null;
+  email_or_contact?: string | null;
+  profile_url?: string | null;
+  status?: string;
+  review_status?: string;
+  is_external_source?: boolean;
+  external_source_url?: string | null;
   article_count: number;
   latest_at: string | null;
   aliases: string[];
@@ -116,18 +159,68 @@ export const EDITORIAL_AUTHOR: AuthorSummary = {
 };
 
 export async function getAuthorsForIndex(limit = 200): Promise<AuthorSummary[]> {
+  try {
+    const rows = await db.queryAll<AuthorProfile & {
+      article_count: number;
+      latest_at: Date | string | null;
+      aliases: string[] | null;
+    }>(`
+      SELECT au.*,
+             COUNT(a.id)::int as article_count,
+             MAX(a.updated_at) as latest_at,
+             ARRAY_REMOVE(ARRAY_AGG(DISTINCT NULLIF(TRIM(a.author), '')), NULL) as aliases
+      FROM authors au
+      LEFT JOIN articles a ON a.author_id = au.id
+        AND a.status = 'published'
+        AND a.audit_status = 'approved'
+        AND a.deleted_at IS NULL
+        AND a.is_indexable = TRUE
+      WHERE au.status = 'active'
+      GROUP BY au.id
+      ORDER BY article_count DESC, au.display_name ASC
+      LIMIT $1::int
+    `, [limit]);
+
+    const authors: AuthorSummary[] = rows.map(row => ({
+      id: row.id,
+      name: row.display_name,
+      slug: row.slug,
+      display_name: row.display_name,
+      role: row.role,
+      bio: row.bio,
+      expertise: row.expertise,
+      avatar_url: row.avatar_url,
+      email_or_contact: row.email_or_contact,
+      profile_url: row.profile_url,
+      status: row.status,
+      review_status: row.review_status,
+      is_external_source: row.is_external_source,
+      external_source_url: row.external_source_url,
+      article_count: row.article_count,
+      latest_at: row.latest_at ? safeDateStr(row.latest_at) : null,
+      aliases: [...new Set([row.display_name, ...(row.aliases || [])].filter(Boolean))],
+    }));
+
+    if (!authors.some(author => author.slug === EDITORIAL_AUTHOR.slug)) {
+      authors.push(EDITORIAL_AUTHOR);
+    }
+    return authors.sort((a, b) => b.article_count - a.article_count);
+  } catch {
+    // Migration-safe fallback for deployments before the authors table exists.
+  }
+
   let rows: { author: string; article_count: number; latest_at: Date | string | null }[] = [];
   try {
     rows = await db.queryAll<{ author: string; article_count: number; latest_at: Date | string | null }>(`
-    SELECT COALESCE(NULLIF(TRIM(author), ''), 'YayaNews') as author,
-           COUNT(*)::int as article_count,
-           MAX(updated_at) as latest_at
-    FROM articles
-    WHERE status = 'published' AND audit_status = 'approved'
-    GROUP BY COALESCE(NULLIF(TRIM(author), ''), 'YayaNews')
-    ORDER BY article_count DESC
-    LIMIT $1::int
-  `, [limit]);
+      SELECT COALESCE(NULLIF(TRIM(author), ''), 'YayaNews') as author,
+             COUNT(*)::int as article_count,
+             MAX(updated_at) as latest_at
+      FROM articles
+      WHERE status = 'published' AND audit_status = 'approved'
+      GROUP BY COALESCE(NULLIF(TRIM(author), ''), 'YayaNews')
+      ORDER BY article_count DESC
+      LIMIT $1::int
+    `, [limit]);
   } catch {
     return [EDITORIAL_AUTHOR];
   }
@@ -170,17 +263,36 @@ export async function getAuthorBySlug(slug: string): Promise<AuthorSummary | und
 }
 
 export async function getPublishedArticlesByAuthor(author: string, lang: string = 'zh', limit = 20, offset = 0): Promise<Article[]> {
-  const articles = await db.queryAll<Article>(`
-    SELECT a.*, c.name as category_name, c.slug as category_slug
-    FROM articles a
-    LEFT JOIN categories c ON a.category_id = c.id
-    WHERE a.status = 'published'
-      AND a.audit_status = 'approved'
-      AND a.lang = $1::text
-      AND COALESCE(NULLIF(TRIM(a.author), ''), 'YayaNews') = $2::text
-    ORDER BY a.published_at DESC
-    LIMIT $3::int OFFSET $4::int
-  `, [lang, author, limit, offset]);
+  let articles: Article[];
+  try {
+    articles = await db.queryAll<Article>(`
+      SELECT a.*, c.name as category_name, c.slug as category_slug,
+        ${ARTICLE_AUTHOR_FIELDS}
+      FROM articles a
+      LEFT JOIN categories c ON a.category_id = c.id
+      LEFT JOIN authors au ON au.id = a.author_id
+      WHERE a.status = 'published'
+        AND a.audit_status = 'approved'
+        AND a.lang = $1::text
+        AND a.deleted_at IS NULL
+        AND a.is_indexable = TRUE
+        AND COALESCE(au.display_name, NULLIF(TRIM(a.author), ''), 'YayaNews') = $2::text
+      ORDER BY a.published_at DESC
+      LIMIT $3::int OFFSET $4::int
+    `, [lang, author, limit, offset]);
+  } catch {
+    articles = await db.queryAll<Article>(`
+      SELECT a.*, c.name as category_name, c.slug as category_slug
+      FROM articles a
+      LEFT JOIN categories c ON a.category_id = c.id
+      WHERE a.status = 'published'
+        AND a.audit_status = 'approved'
+        AND a.lang = $1::text
+        AND COALESCE(NULLIF(TRIM(a.author), ''), 'YayaNews') = $2::text
+      ORDER BY a.published_at DESC
+      LIMIT $3::int OFFSET $4::int
+    `, [lang, author, limit, offset]);
+  }
 
   const withTags = await attachTagsBatch(articles);
   return withTags.map(formatArticleDates);
@@ -192,26 +304,45 @@ export async function getPublishedArticlesByAuthorSlug(slug: string, lang: strin
   const aliases = author.aliases.length > 0 ? author.aliases : [author.name];
   try {
     const articles = await db.queryAll<Article>(`
-    SELECT a.*, c.name as category_name, c.slug as category_slug
+    SELECT a.*, c.name as category_name, c.slug as category_slug,
+      ${ARTICLE_AUTHOR_FIELDS}
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
+    LEFT JOIN authors au ON au.id = a.author_id
     WHERE a.status = 'published'
       AND a.audit_status = 'approved'
       AND a.lang = $1::text
-      AND COALESCE(NULLIF(TRIM(a.author), ''), 'YayaNews') = ANY($2::text[])
+      AND a.deleted_at IS NULL
+      AND a.is_indexable = TRUE
+      AND (
+        au.slug = $2::text
+        OR COALESCE(au.display_name, NULLIF(TRIM(a.author), ''), 'YayaNews') = ANY($3::text[])
+      )
     ORDER BY a.published_at DESC
-    LIMIT $3::int OFFSET $4::int
-  `, [lang, aliases, limit, offset]);
+    LIMIT $4::int OFFSET $5::int
+  `, [lang, slug, aliases, limit, offset]);
 
     const withTags = await attachTagsBatch(articles);
     return withTags.map(formatArticleDates);
   } catch {
-    return [];
+    const articles = await db.queryAll<Article>(`
+      SELECT a.*, c.name as category_name, c.slug as category_slug
+      FROM articles a
+      LEFT JOIN categories c ON a.category_id = c.id
+      WHERE a.status = 'published'
+        AND a.audit_status = 'approved'
+        AND a.lang = $1::text
+        AND COALESCE(NULLIF(TRIM(a.author), ''), 'YayaNews') = ANY($2::text[])
+      ORDER BY a.published_at DESC
+      LIMIT $3::int OFFSET $4::int
+    `, [lang, aliases, limit, offset]);
+    const withTags = await attachTagsBatch(articles);
+    return withTags.map(formatArticleDates);
   }
 }
 
 export async function getArticleCountByType(categorySlug?: string, articleType?: string, lang?: string): Promise<number> {
-  let sql = "SELECT COUNT(*)::int as count FROM articles a LEFT JOIN categories c ON a.category_id = c.id WHERE a.status = 'published' AND a.audit_status = 'approved'";
+  let sql = "SELECT COUNT(*)::int as count FROM articles a LEFT JOIN categories c ON a.category_id = c.id WHERE a.status = 'published' AND a.audit_status = 'approved' AND a.deleted_at IS NULL AND a.is_indexable = TRUE";
   const params: unknown[] = [];
   let paramIdx = 1;
   if (categorySlug) { sql += ` AND c.slug = $${paramIdx++}::text`; params.push(categorySlug); }
@@ -225,11 +356,30 @@ export async function getArticleCountByType(categorySlug?: string, articleType?:
 export async function getArticleBySlug(slug: string): Promise<(Article & { sibling_slug?: string }) | undefined> {
   const article = await db.queryGet<{ sibling_slug?: string }>(`
     SELECT a.*, c.name as category_name, c.slug as category_slug,
-           sib.slug as sibling_slug
+           sib.slug as sibling_slug,
+           ${ARTICLE_AUTHOR_FIELDS},
+           ${authorProfileSelect('ed', 'editor_profile')},
+           ${authorProfileSelect('rv', 'reviewer_profile')}
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
-    LEFT JOIN articles sib ON (a.lang = 'zh' AND sib.parent_id = a.id) OR (a.lang = 'en' AND sib.id = a.parent_id)
-    WHERE a.slug = $1::text AND a.status = 'published' AND a.audit_status = 'approved'
+    LEFT JOIN authors au ON au.id = a.author_id
+    LEFT JOIN authors ed ON ed.id = a.editor_id
+    LEFT JOIN authors rv ON rv.id = a.reviewer_id
+    LEFT JOIN articles sib ON (
+      ((a.lang = 'zh' AND sib.parent_id = a.id) OR (a.lang = 'en' AND sib.id = a.parent_id))
+      AND sib.status = 'published'
+      AND sib.audit_status = 'approved'
+      AND sib.deleted_at IS NULL
+      AND sib.is_indexable = TRUE
+      AND COALESCE(sib.article_type, '') <> 'short'
+      AND NULLIF(TRIM(sib.title), '') IS NOT NULL
+      AND NULLIF(TRIM(sib.content), '') IS NOT NULL
+    )
+    WHERE a.slug = $1::text
+      AND a.status = 'published'
+      AND a.audit_status = 'approved'
+      AND a.deleted_at IS NULL
+      AND a.is_indexable = TRUE
   `, [slug]) as (Article & { sibling_slug?: string }) | undefined;
 
   if (article) {
@@ -250,19 +400,32 @@ export async function getArticleTags(articleId: number): Promise<Tag[]> {
 export async function getRelatedArticles(articleId: number, categoryId: number | null, limit = 5): Promise<Article[]> {
   if (categoryId) {
     const list = await db.queryAll(`
-      SELECT a.*, c.name as category_name, c.slug as category_slug
+      SELECT a.*, c.name as category_name, c.slug as category_slug,
+        ${ARTICLE_AUTHOR_FIELDS}
       FROM articles a
       LEFT JOIN categories c ON a.category_id = c.id
-      WHERE a.id != $1::bigint AND a.status = 'published' AND a.audit_status = 'approved' AND a.category_id = $2::int
+      LEFT JOIN authors au ON au.id = a.author_id
+      WHERE a.id != $1::bigint
+        AND a.status = 'published'
+        AND a.audit_status = 'approved'
+        AND a.deleted_at IS NULL
+        AND a.is_indexable = TRUE
+        AND a.category_id = $2::int
       ORDER BY a.published_at DESC LIMIT $3::int
     `, [articleId, categoryId, limit]) as Article[];
     return list.map(formatArticleDates);
   }
   const list2 = await db.queryAll(`
-    SELECT a.*, c.name as category_name, c.slug as category_slug
+    SELECT a.*, c.name as category_name, c.slug as category_slug,
+      ${ARTICLE_AUTHOR_FIELDS}
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
-    WHERE a.id != $1::bigint AND a.status = 'published' AND a.audit_status = 'approved'
+    LEFT JOIN authors au ON au.id = a.author_id
+    WHERE a.id != $1::bigint
+      AND a.status = 'published'
+      AND a.audit_status = 'approved'
+      AND a.deleted_at IS NULL
+      AND a.is_indexable = TRUE
     ORDER BY a.published_at DESC LIMIT $2::int
   `, [articleId, limit]) as Article[];
   return list2.map(formatArticleDates);
@@ -331,16 +494,22 @@ export async function getTopics(limit = 20): Promise<Topic[]> {
         SELECT COUNT(*)::int
         FROM articles a
         WHERE a.topic_id = t.id AND a.status = 'published' AND a.audit_status = 'approved'
+          AND a.deleted_at IS NULL AND a.is_indexable = TRUE
+          AND a.published_at <= NOW()
       ) as article_count,
       (
         SELECT MAX(a.published_at)
         FROM articles a
         WHERE a.topic_id = t.id AND a.status = 'published' AND a.audit_status = 'approved'
+          AND a.deleted_at IS NULL AND a.is_indexable = TRUE
+          AND a.published_at <= NOW()
       ) as latest_article_time,
       (
         SELECT a.cover_image
         FROM articles a
         WHERE a.topic_id = t.id AND a.status = 'published' AND a.audit_status = 'approved'
+          AND a.deleted_at IS NULL AND a.is_indexable = TRUE
+          AND a.published_at <= NOW()
           AND a.cover_image IS NOT NULL AND a.cover_image != ''
         ORDER BY a.published_at DESC
         LIMIT 1
@@ -351,6 +520,8 @@ export async function getTopics(limit = 20): Promise<Topic[]> {
         SELECT COUNT(*)
         FROM articles a
         WHERE a.topic_id = t.id AND a.status = 'published' AND a.audit_status = 'approved'
+          AND a.deleted_at IS NULL AND a.is_indexable = TRUE
+          AND a.published_at <= NOW()
       ) > 0
     ORDER BY t.sort_order ASC, latest_article_time DESC NULLS LAST, t.created_at DESC
     LIMIT $1::int
@@ -379,15 +550,29 @@ export async function getTopicBySlug(
     SELECT a.*, c.name as category_name, c.slug as category_slug
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
-    WHERE a.topic_id = $1::int AND a.status = 'published' AND a.audit_status = 'approved' AND a.published_at <= NOW()
+    WHERE a.topic_id = $1::int
+      AND a.status = 'published'
+      AND a.audit_status = 'approved'
+      AND a.deleted_at IS NULL
+      AND a.is_indexable = TRUE
+      AND a.published_at <= NOW()
+      ${lang ? 'AND a.lang = $4::text' : ''}
     ORDER BY a.published_at DESC
     LIMIT $2::int OFFSET $3::int
-  `, [topic.id, pageSize, offset]);
+  `, lang ? [topic.id, pageSize, offset, lang] : [topic.id, pageSize, offset]);
 
   // \u6587\u7ae0\u603b\u6570
   const countRow = await db.queryGet<{ count: number }>(
-    `SELECT COUNT(*)::int as count FROM articles WHERE topic_id = $1::int AND status = 'published' AND audit_status = 'approved'`,
-    [topic.id]
+    `SELECT COUNT(*)::int as count
+     FROM articles
+     WHERE topic_id = $1::int
+       AND status = 'published'
+       AND audit_status = 'approved'
+       AND deleted_at IS NULL
+       AND is_indexable = TRUE
+       AND published_at <= NOW()
+       ${lang ? 'AND lang = $2::text' : ''}`,
+    lang ? [topic.id, lang] : [topic.id]
   );
 
   // \u7cbe\u9009\u6587\u7ae0\uff08\u4f18\u5148\u4f7f\u7528 topic_featured_articles\uff0c\u5982\u65e7\u8868\u5b58\u5728\u5219 fallback topic_articles\uff09
@@ -398,7 +583,13 @@ export async function getTopicBySlug(
       FROM topic_featured_articles tfa
       JOIN articles a ON a.id = tfa.article_id
       LEFT JOIN categories c ON a.category_id = c.id
-      WHERE tfa.topic_id = $1::int AND a.status = 'published' AND a.audit_status = 'approved'${lang ? ' AND a.lang = $2::text' : ''}
+      WHERE tfa.topic_id = $1::int
+        AND a.status = 'published'
+        AND a.audit_status = 'approved'
+        AND a.deleted_at IS NULL
+        AND a.is_indexable = TRUE
+        AND a.published_at <= NOW()
+        ${lang ? 'AND a.lang = $2::text' : ''}
       ORDER BY tfa.sort_order ASC
       LIMIT 6
     `, lang ? [topic.id, lang] : [topic.id]);
@@ -434,6 +625,7 @@ export async function getArticleTopic(
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
     WHERE a.topic_id = $1::int AND a.status = 'published' AND a.audit_status = 'approved'
+      AND a.deleted_at IS NULL AND a.is_indexable = TRUE
       AND a.id != $2::bigint AND a.published_at <= NOW()
     ORDER BY a.published_at DESC
     LIMIT 3
@@ -448,7 +640,19 @@ export async function getArticleTopic(
 /** \u4e13\u9898\u9875\u7528\uff1a\u83b7\u53d6 sitemap \u8f93\u51fa \u2014 \u53ea\u53d6 active \u4e13\u9898 */
 export async function getTopicsForSitemap(): Promise<{ slug: string; updated_at: string }[]> {
   const topics = await db.queryAll<{ slug: string; updated_at: Date | string }>(
-    `SELECT slug, updated_at FROM topics WHERE status = 'active' ORDER BY updated_at DESC`
+    `SELECT t.slug, MAX(GREATEST(t.updated_at, a.updated_at)) as updated_at
+     FROM topics t
+     JOIN articles a ON a.topic_id = t.id
+     WHERE t.status = 'active'
+       AND a.status = 'published'
+       AND a.audit_status = 'approved'
+       AND a.deleted_at IS NULL
+       AND a.is_indexable = TRUE
+       AND a.published_at <= NOW()
+     GROUP BY t.id
+     HAVING COUNT(*) FILTER (WHERE a.lang = 'zh') >= 3
+        AND COUNT(*) FILTER (WHERE a.lang = 'en') >= 3
+     ORDER BY updated_at DESC`
   );
   return topics.map(t => ({ slug: t.slug, updated_at: safeDateStr(t.updated_at) }));
 }
@@ -457,8 +661,8 @@ export async function getTopicsForSitemap(): Promise<{ slug: string; updated_at:
 
 export async function getArticleCount(lang?: string): Promise<number> {
   const sql = lang
-    ? "SELECT COUNT(*)::int as count FROM articles WHERE status = 'published' AND audit_status = 'approved' AND lang = $1::text"
-    : "SELECT COUNT(*)::int as count FROM articles WHERE status = 'published' AND audit_status = 'approved'";
+    ? "SELECT COUNT(*)::int as count FROM articles WHERE status = 'published' AND audit_status = 'approved' AND deleted_at IS NULL AND is_indexable = TRUE AND lang = $1::text"
+    : "SELECT COUNT(*)::int as count FROM articles WHERE status = 'published' AND audit_status = 'approved' AND deleted_at IS NULL AND is_indexable = TRUE";
   const row = await db.queryGet<{ count: number }>(sql, lang ? [lang] : []);
   return row?.count || 0;
 }
@@ -467,10 +671,24 @@ export async function getArticleSitemapCount(): Promise<number> {
   const row = await db.queryGet<{ count: number }>(`
     SELECT COUNT(*)::int as count
     FROM articles a
-    LEFT JOIN articles sib ON (a.lang = 'zh' AND sib.parent_id = a.id) OR (a.lang = 'en' AND sib.id = a.parent_id)
+    LEFT JOIN articles sib ON (
+      ((a.lang = 'zh' AND sib.parent_id = a.id) OR (a.lang = 'en' AND sib.id = a.parent_id))
+      AND sib.status = 'published'
+      AND sib.audit_status = 'approved'
+      AND sib.deleted_at IS NULL
+      AND sib.is_indexable = TRUE
+      AND COALESCE(sib.article_type, '') <> 'short'
+      AND NULLIF(TRIM(sib.title), '') IS NOT NULL
+      AND NULLIF(TRIM(sib.content), '') IS NOT NULL
+    )
     WHERE a.status = 'published'
       AND a.audit_status = 'approved'
+      AND a.deleted_at IS NULL
+      AND a.is_indexable = TRUE
+      AND COALESCE(a.published_at, a.created_at) <= NOW()
       AND COALESCE(a.article_type, '') <> 'short'
+      AND NULLIF(TRIM(a.title), '') IS NOT NULL
+      AND NULLIF(TRIM(a.content), '') IS NOT NULL
       AND a.slug NOT LIKE '%&%'
       AND (sib.slug IS NULL OR sib.slug NOT LIKE '%&%')
   `);
@@ -485,10 +703,24 @@ export async function getRecentArticlesForSitemap(
     SELECT a.slug, a.updated_at, a.lang, a.article_type,
            sib.slug as sibling_slug
     FROM articles a
-    LEFT JOIN articles sib ON (a.lang = 'zh' AND sib.parent_id = a.id) OR (a.lang = 'en' AND sib.id = a.parent_id)
+    LEFT JOIN articles sib ON (
+      ((a.lang = 'zh' AND sib.parent_id = a.id) OR (a.lang = 'en' AND sib.id = a.parent_id))
+      AND sib.status = 'published'
+      AND sib.audit_status = 'approved'
+      AND sib.deleted_at IS NULL
+      AND sib.is_indexable = TRUE
+      AND COALESCE(sib.article_type, '') <> 'short'
+      AND NULLIF(TRIM(sib.title), '') IS NOT NULL
+      AND NULLIF(TRIM(sib.content), '') IS NOT NULL
+    )
     WHERE a.status = 'published'
       AND a.audit_status = 'approved'
+      AND a.deleted_at IS NULL
+      AND a.is_indexable = TRUE
+      AND COALESCE(a.published_at, a.created_at) <= NOW()
       AND COALESCE(a.article_type, '') <> 'short'
+      AND NULLIF(TRIM(a.title), '') IS NOT NULL
+      AND NULLIF(TRIM(a.content), '') IS NOT NULL
       AND a.slug NOT LIKE '%&%'
       AND (sib.slug IS NULL OR sib.slug NOT LIKE '%&%')
     ORDER BY a.published_at DESC
@@ -509,11 +741,18 @@ export async function getRecentArticlesForSitemap(
  */
 export async function getNewsArticlesForNewsSitemap(): Promise<Article[]> {
   const sql = `
-    SELECT a.*, c.name as category_name
+    SELECT a.*, c.name as category_name,
+      ${ARTICLE_AUTHOR_FIELDS}
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
+    LEFT JOIN authors au ON au.id = a.author_id
     WHERE a.status = 'published' AND a.audit_status = 'approved'
+      AND a.deleted_at IS NULL
+      AND a.is_indexable = TRUE
       AND a.article_type IS DISTINCT FROM 'flash'
+      AND COALESCE(a.source_type, 'original') = 'original'
+      AND NULLIF(TRIM(a.title), '') IS NOT NULL
+      AND NULLIF(TRIM(a.content), '') IS NOT NULL
       AND COALESCE(a.published_at, a.created_at) >= (NOW() - ($1::bigint * INTERVAL '1 hour'))
     ORDER BY COALESCE(a.published_at, a.created_at) DESC
     LIMIT 1000
@@ -533,12 +772,12 @@ export async function getNewsArticlesLast48h(): Promise<Article[]> {
 export async function getAdjacentArticles(articleId: number): Promise<{ prev: { slug: string; title: string } | null; next: { slug: string; title: string } | null }> {
   const prev = await db.queryGet(`
     SELECT slug, title FROM articles
-    WHERE status = 'published' AND audit_status = 'approved' AND id < $1::bigint
+    WHERE status = 'published' AND audit_status = 'approved' AND deleted_at IS NULL AND is_indexable = TRUE AND id < $1::bigint
     ORDER BY id DESC LIMIT 1
   `, [articleId]) as { slug: string; title: string } | undefined;
   const next = await db.queryGet(`
     SELECT slug, title FROM articles
-    WHERE status = 'published' AND audit_status = 'approved' AND id > $1::bigint
+    WHERE status = 'published' AND audit_status = 'approved' AND deleted_at IS NULL AND is_indexable = TRUE AND id > $1::bigint
     ORDER BY id ASC LIMIT 1
   `, [articleId]) as { slug: string; title: string } | undefined;
   return { prev: prev || null, next: next || null };
@@ -550,7 +789,7 @@ export async function getPopularTags(limit = 15): Promise<Tag[]> {
     FROM tags t
     JOIN article_tags at ON t.id = at.tag_id
     JOIN articles a ON a.id = at.article_id
-    WHERE a.status = 'published' AND a.audit_status = 'approved'
+    WHERE a.status = 'published' AND a.audit_status = 'approved' AND a.deleted_at IS NULL AND a.is_indexable = TRUE
     GROUP BY t.id
     ORDER BY usage_count DESC
     LIMIT $1::int
@@ -589,7 +828,7 @@ export async function getPublishedArticlesByTagSlug(tagSlug: string, limit = 48,
     JOIN article_tags at ON a.id = at.article_id
     JOIN tags t ON t.id = at.tag_id
     LEFT JOIN categories c ON a.category_id = c.id
-    WHERE t.slug = $1::text AND a.status = 'published' AND a.audit_status = 'approved'
+    WHERE t.slug = $1::text AND a.status = 'published' AND a.audit_status = 'approved' AND a.deleted_at IS NULL AND a.is_indexable = TRUE
   `;
   const params: any[] = [tagSlug];
 
@@ -611,7 +850,7 @@ export async function getArticleCountByTagSlug(tagSlug: string, lang?: string): 
     SELECT COUNT(*)::int as count FROM articles a
     JOIN article_tags at ON a.id = at.article_id
     JOIN tags t ON t.id = at.tag_id
-    WHERE t.slug = $1::text AND a.status = 'published' AND a.audit_status = 'approved'
+    WHERE t.slug = $1::text AND a.status = 'published' AND a.audit_status = 'approved' AND a.deleted_at IS NULL AND a.is_indexable = TRUE
   `;
   const params: any[] = [tagSlug];
 
@@ -632,7 +871,7 @@ export async function getTagsForSitemap(): Promise<{ slug: string; updated_at: s
     FROM tags t
     JOIN article_tags at ON t.id = at.tag_id
     JOIN articles a ON a.id = at.article_id
-    WHERE a.status = 'published' AND a.audit_status = 'approved'
+    WHERE a.status = 'published' AND a.audit_status = 'approved' AND a.deleted_at IS NULL AND a.is_indexable = TRUE
     GROUP BY t.id
     HAVING COUNT(at.article_id) >= 3
   `

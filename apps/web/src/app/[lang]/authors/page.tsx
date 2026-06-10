@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import LocalizedLink from '@/components/LocalizedLink';
 import { getAuthorsForIndex, getPublishedArticles } from '@/lib/queries';
-import { buildAuthorUrl, createMetadata } from '@yayanews/seo';
+import { createMetadata } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 
 export const revalidate = 300;
@@ -25,6 +25,19 @@ function roleFor(author: { slug: string; name: string }, locale: 'zh' | 'en') {
     return locale === 'en' ? 'Editorial Desk' : '编辑部';
   }
   return locale === 'en' ? 'Market Contributor' : '市场作者';
+}
+
+function roleLabelFor(author: { slug: string; name: string; role?: string }, locale: 'zh' | 'en') {
+  const labels: Record<string, { zh: string; en: string }> = {
+    syndication_source: { zh: '合作来源', en: 'Syndication Source' },
+    news_writer: { zh: '新闻撰稿', en: 'News Writer' },
+    ai_assisted_desk: { zh: 'AI 辅助编辑组', en: 'AI-Assisted Desk' },
+    editor: { zh: '编辑部', en: 'Editorial Desk' },
+    senior_editor: { zh: '高级编辑', en: 'Senior Editor' },
+    market_analyst: { zh: '市场分析师', en: 'Market Analyst' },
+    guest_contributor: { zh: '特约作者', en: 'Guest Contributor' },
+  };
+  return author.role && labels[author.role] ? labels[author.role][locale] : roleFor(author, locale);
 }
 
 export default async function AuthorsPage({ params }: { params: Promise<{ lang: string }> }) {
@@ -54,8 +67,8 @@ export default async function AuthorsPage({ params }: { params: Promise<{ lang: 
         item: {
           '@type': 'Person',
           name: author.name,
-          url: buildAuthorUrl(author.name, locale),
-          jobTitle: roleFor(author, locale),
+          url: `${siteConfig.siteUrl}/${locale}/authors/${author.slug}`,
+          jobTitle: roleLabelFor(author, locale),
           worksFor: {
             '@type': 'NewsMediaOrganization',
             name: siteConfig.siteName,
@@ -89,7 +102,7 @@ export default async function AuthorsPage({ params }: { params: Promise<{ lang: 
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="yn-meta text-[#1d5c4f]">{roleFor(author, locale)}</p>
+                  <p className="yn-meta text-[#1d5c4f]">{roleLabelFor(author, locale)}</p>
                   <h2 className="mt-2 text-xl font-semibold leading-7 text-[#14261f] group-hover:text-[#1d5c4f]">{author.name}</h2>
                 </div>
                 <span className="rounded-full border border-[#cfe1d9] bg-[#eef6f3] px-2.5 py-1 text-xs font-semibold text-[#1d5c4f]">

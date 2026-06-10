@@ -172,6 +172,24 @@ export interface AdminArticleListResult {
   pageSize: number;
 }
 
+const AUTHOR_PROFILE_SQL = `
+  CASE WHEN au.id IS NULL THEN NULL ELSE json_build_object(
+    'id', au.id,
+    'slug', au.slug,
+    'display_name', au.display_name,
+    'role', au.role,
+    'bio', au.bio,
+    'expertise', au.expertise,
+    'avatar_url', au.avatar_url,
+    'email_or_contact', au.email_or_contact,
+    'profile_url', au.profile_url,
+    'status', au.status,
+    'review_status', au.review_status,
+    'is_external_source', au.is_external_source,
+    'external_source_url', au.external_source_url
+  ) END as author_profile
+`;
+
 export async function getAdminArticles(params: AdminArticleListParams = {}): Promise<AdminArticleListResult> {
   const page = params.page ?? 1;
   const pageSize = params.pageSize ?? 20;
@@ -209,10 +227,13 @@ export async function getAdminArticles(params: AdminArticleListParams = {}): Pro
 
   const articles = await db.queryAll<Article>(`
     SELECT a.*, c.name as category_name, c.slug as category_slug,
+      COALESCE(au.display_name, NULLIF(TRIM(a.author), ''), 'YayaNews') as author,
+      ${AUTHOR_PROFILE_SQL},
       CASE WHEN a.collected_at IS NOT NULL AND a.published_at IS NOT NULL
         THEN EXTRACT(EPOCH FROM (a.published_at - a.collected_at))::int
         ELSE NULL END as processing_seconds
     FROM articles a LEFT JOIN categories c ON a.category_id=c.id
+    LEFT JOIN authors au ON au.id = a.author_id
     WHERE ${where}
     ORDER BY a.created_at DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}
   `, [...binds, pageSize, offset]);
@@ -223,10 +244,14 @@ export async function getAdminArticles(params: AdminArticleListParams = {}): Pro
 export async function getAdminArticleById(id: number): Promise<Article | undefined> {
   const article = await db.queryGet<Article>(`
     SELECT a.*, c.name as category_name, c.slug as category_slug,
+      COALESCE(au.display_name, NULLIF(TRIM(a.author), ''), 'YayaNews') as author,
+      ${AUTHOR_PROFILE_SQL},
       CASE WHEN a.collected_at IS NOT NULL AND a.published_at IS NOT NULL
         THEN EXTRACT(EPOCH FROM (a.published_at - a.collected_at))::int
         ELSE NULL END as processing_seconds
-    FROM articles a LEFT JOIN categories c ON a.category_id=c.id WHERE a.id=$1
+    FROM articles a LEFT JOIN categories c ON a.category_id=c.id
+    LEFT JOIN authors au ON au.id = a.author_id
+    WHERE a.id=$1
   `, [id]);
   
   if (article) {

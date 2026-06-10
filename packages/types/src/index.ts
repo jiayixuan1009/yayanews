@@ -15,6 +15,24 @@ export interface Tag {
   name_en?: string;
 }
 
+export interface AuthorProfile {
+  id: number;
+  slug: string;
+  display_name: string;
+  role: 'syndication_source' | 'news_writer' | 'ai_assisted_desk' | 'editor' | 'senior_editor' | 'market_analyst' | 'guest_contributor' | string;
+  bio: string | null;
+  expertise: string | null;
+  avatar_url: string | null;
+  email_or_contact: string | null;
+  profile_url: string | null;
+  status: 'active' | 'inactive' | string;
+  review_status: 'pending' | 'approved' | string;
+  is_external_source: boolean;
+  external_source_url: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Article {
   id: number;
   title: string;
@@ -24,6 +42,7 @@ export interface Article {
   /** 封面图 URL；入库前可由 pipeline/cover_image.py 从信源 og:image 或图库/文生图解析 */
   cover_image: string | null;
   category_id: number | null;
+  author_id?: number | null;
   author: string;
   status: 'draft' | 'review' | 'published' | 'archived';
   article_type: 'short' | 'standard' | 'deep';
@@ -32,6 +51,15 @@ export interface Article {
   key_points?: string;
   source?: string;
   source_url?: string;
+  source_type?: 'original' | 'syndicated' | 'translated' | 'ai_assisted' | 'sponsored' | 'partner' | string;
+  original_url?: string | null;
+  license_type?: string | null;
+  editor_id?: number | null;
+  reviewer_id?: number | null;
+  reviewed_at?: string | null;
+  deleted_at?: string | null;
+  is_indexable?: boolean;
+  canonical_url?: string | null;
   subcategory?: string;
   collected_at?: string | null;
   view_count: number;
@@ -45,6 +73,9 @@ export interface Article {
   lang?: string;
   audit_status?: 'pending' | 'approved' | 'rejected';
   audit_reason?: string | null;
+  author_profile?: AuthorProfile | null;
+  editor_profile?: AuthorProfile | null;
+  reviewer_profile?: AuthorProfile | null;
   /** Many queries join this from topic_articles for list views. */
   topic_id?: number | null;
 }

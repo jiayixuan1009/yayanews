@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import ArticleCard from '@/components/ArticleCard';
 import { getAuthorBySlug, getPublishedArticlesByAuthorSlug } from '@/lib/queries';
 import { getDictionary } from '@/lib/dictionaries';
-import { buildAuthorUrl, createMetadata } from '@yayanews/seo';
+import { createMetadata } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 
 export const revalidate = 300;
@@ -47,29 +47,35 @@ export default async function AuthorPage({
 
   const articles = await getPublishedArticlesByAuthorSlug(slug, locale, 24);
   const isEditorial = slug === 'yayanews-editorial';
-  const authorDescription = locale === 'en'
+  const fallbackAuthorDescription = locale === 'en'
     ? isEditorial
       ? 'YayaNews Editorial Desk curates real-time financial news, market context and data-informed analysis across US stocks, Hong Kong markets, crypto assets, derivatives and global macro.'
       : `${author.name} publishes market coverage and financial news analysis for YayaNews.`
     : isEditorial
       ? 'YayaNews 编辑部持续整理全球财经快讯、市场脉络与数据驱动分析，覆盖美股、港股、加密资产、衍生品与全球宏观。'
       : `${author.name} 在 YayaNews 发布市场资讯与财经分析。`;
+  const authorDescription = author.bio || fallbackAuthorDescription;
+  const sameAs = [
+    ...(isEditorial ? Object.values(siteConfig.socialLinks) : []),
+    ...(author.external_source_url ? [author.external_source_url] : []),
+  ];
+  const authorProfileUrl = `${siteConfig.siteUrl}/${locale}/authors/${author.slug}`;
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ProfilePage',
-    url: buildAuthorUrl(author.name, locale),
+    url: authorProfileUrl,
     inLanguage: locale === 'en' ? 'en' : 'zh-CN',
     mainEntity: {
-      '@type': 'Person',
+      '@type': author.is_external_source ? 'Organization' : 'Person',
       name: author.name,
-      url: buildAuthorUrl(author.name, locale),
+      url: authorProfileUrl,
       description: authorDescription,
       worksFor: {
         '@type': 'NewsMediaOrganization',
         name: siteConfig.siteName,
         url: siteConfig.siteUrl,
       },
-      sameAs: isEditorial ? Object.values(siteConfig.socialLinks) : undefined,
+      sameAs: sameAs.length > 0 ? sameAs : undefined,
     },
   };
 

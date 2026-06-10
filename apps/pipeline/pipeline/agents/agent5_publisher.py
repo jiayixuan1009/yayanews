@@ -5,7 +5,7 @@ Agent 5: 入库发布
 - 入库后主动 Ping 谷歌 sitemap 以加速收录
 """
 import requests
-from pipeline.utils.database import insert_article, insert_tags
+from pipeline.utils.database import insert_article, insert_tags, get_conn, get_pool
 from pipeline.utils.logger import get_logger, step_print
 from pipeline.config.settings import SITE_URL, CATEGORIES
 from pipeline.cover_image import resolve_cover_for_article
@@ -59,6 +59,61 @@ def _detect_subcategory(article: dict) -> str:
     return "commodity"
 
 
+def _resolve_source_type(source: str, source_label: str, article: dict) -> str:
+    explicit = (article.get("source_type") or "").strip()
+    allowed = {"original", "syndicated", "translated", "ai_assisted", "sponsored", "partner"}
+    if explicit in allowed:
+        return explicit
+    if source == "ai_generated" or source_label == "YayaNews":
+        return "ai_assisted" if article.get("_ai_assisted") else "original"
+    if source_label and source_label != "YayaNews":
+        return "syndicated"
+    return "original"
+
+
+def _author_slug(name: str) -> str:
+    import hashlib
+    import re
+
+    raw = (name or "YayaNews").strip() or "YayaNews"
+    lower = raw.lower()
+    if lower in {"yayanews", "yaya financial news"} or "editorial" in lower:
+        return "yayanews-editorial"
+    if lower in {"ai", "yayanews ai desk"}:
+        return "yayanews-ai-desk"
+    slug = re.sub(r"[^a-z0-9]+", "-", lower.replace("&", " and ")).strip("-")
+    return slug or f"author-{hashlib.md5(raw.encode('utf-8')).hexdigest()[:12]}"
+
+
+def _resolve_author_id(display_name: str, role: str, external_url: str = "") -> int | None:
+    slug = _author_slug(display_name)
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM authors WHERE slug = %s", (slug,))
+            row = cur.fetchone()
+            if row:
+                return row[0]
+            cur.execute(
+                """
+                INSERT INTO authors
+                    (slug, display_name, role, profile_url, status, review_status, is_external_source, external_source_url)
+                VALUES (%s, %s, %s, %s, 'active', 'pending', %s, %s)
+                RETURNING id
+                """,
+                (slug, display_name, role, f"/authors/{slug}", role == "syndication_source", external_url or None)
+            )
+            author_id = cur.fetchone()[0]
+        conn.commit()
+        return author_id
+    except Exception as e:
+        conn.rollback()
+        log.warning(f"Author resolve skipped: {e}")
+        return None
+    finally:
+        get_pool().putconn(conn)
+
+
 def _ping_google():
     """Google /ping 已废弃（始终返回 404），改为仅记日志。收录改由 IndexNow + GSC 驱动。"""
     log.info(f"Google sitemap ping skipped (deprecated API). Relying on IndexNow + GSC.")
@@ -86,6 +141,12 @@ def publish(articles: list[dict]) -> list[dict]:
         source_url = article.get("source_url", "")
 
         source_label = _resolve_source_label(source, source_url, article)
+        source_type = _resolve_source_type(source, source_label, article)
+        author_display = source_label if source_type in {"syndicated", "translated", "partner"} else article.get("author", "YayaNews")
+        author_role = "syndication_source" if source_type in {"syndicated", "translated", "partner"} else ("ai_assisted_desk" if source_type == "ai_assisted" else "news_writer")
+        author_id = _resolve_author_id(author_display or "YayaNews", author_role, source_url if source_type in {"syndicated", "translated", "partner"} else "")
+        original_url = article.get("original_url") or (source_url if source_type in {"syndicated", "translated", "partner"} else "")
+        license_type = article.get("license_type") or ("rss" if source_type == "syndicated" and source == "rss" else "")
         subcategory = _detect_subcategory(article)
 
         # 解析、提取或生成合适的封面大图
@@ -118,6 +179,11 @@ def publish(articles: list[dict]) -> list[dict]:
                 key_points="\n".join(key_points) if key_points else "",
                 source=source_label,
                 source_url=source_url,
+                source_type=source_type,
+                original_url=original_url,
+                license_type=license_type,
+                author_id=author_id,
+                is_indexable=bool(slug and content and title),
                 subcategory=subcategory,
                 cover_image=cover_image,
             )
@@ -136,6 +202,11 @@ def publish(articles: list[dict]) -> list[dict]:
                 key_points="\n".join(key_points) if key_points else "",
                 source=source_label,
                 source_url=source_url,
+                source_type=source_type,
+                original_url=original_url,
+                license_type=license_type,
+                author_id=author_id,
+                is_indexable=bool(slug and content and title),
                 subcategory=subcategory,
                 collected_at=article.get("collected_at"),
                 cover_image=cover_image,
