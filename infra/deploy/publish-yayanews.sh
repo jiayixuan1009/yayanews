@@ -56,9 +56,20 @@ process.exit(1);
 on_deploy_exit() {
     local exit_code="$1"
 
-    if [ "$exit_code" -ne 0 ] && [ "$DEPLOY_RELOADED" -eq 0 ] && [ -n "$STANDALONE_ROLLBACK_DIR" ]; then
-        log "${YELLOW}Deploy failed before PM2 reload; restoring previous standalone build${NC}"
-        restore_standalone_snapshot || true
+    if [ "$exit_code" -ne 0 ] && [ -n "$STANDALONE_ROLLBACK_DIR" ]; then
+        set +e
+        if [ "$DEPLOY_RELOADED" -eq 0 ]; then
+            log "${YELLOW}Deploy failed before PM2 reload; restoring previous standalone build${NC}"
+        else
+            log "${YELLOW}Deploy failed after PM2 reload; restoring previous standalone build${NC}"
+        fi
+        restore_standalone_snapshot
+        if [ "$DEPLOY_RELOADED" -eq 1 ] && command -v pm2 >/dev/null 2>&1; then
+            log "${YELLOW}Reloading PM2 back onto restored standalone build${NC}"
+            pm2 reload ecosystem.config.cjs --update-env || pm2 start ecosystem.config.cjs --update-env
+            pm2 save >/dev/null
+            wait_for_pm2_online "${CORE_PM2_APPS[@]}" "${PYTHON_PM2_APPS[@]}" || true
+        fi
     fi
 
     if [ "$exit_code" -eq 0 ] && [ -n "$STANDALONE_ROLLBACK_DIR" ]; then
@@ -230,11 +241,8 @@ assert_standalone_smoke() {
     rm -f "$smoke_log"
     (
         cd "$APP_DIR"
-        set -a
-        # shellcheck disable=SC1091
-        . "$APP_DIR/.env"
-        set +a
-        NODE_ENV=production PORT="$DEPLOY_SMOKE_PORT" HOSTNAME=127.0.0.1 node "$server"
+        NODE_ENV=production PORT="$DEPLOY_SMOKE_PORT" HOSTNAME=127.0.0.1 \
+            node "$APP_DIR/scripts/ops/run-with-env.cjs" "$APP_DIR/.env" node "$server"
     ) >"$smoke_log" 2>&1 &
     smoke_pid="$!"
 
