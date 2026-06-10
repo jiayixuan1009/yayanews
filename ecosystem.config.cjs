@@ -20,8 +20,41 @@ try {
 
 // 确保与系统当前环境变量合并，避免丢失某些继承信息
 // 注意：必须清除代理变量，否则 pg 数据库连接会被 SOCKS5 代理劫持导致超时
+const volatileEnvPrefixes = [
+  "CODEX_",
+  "VSCODE_",
+  "GK_",
+  "GIT_ASKPASS",
+  "BUNDLED_DEBUGPY",
+  "PYDEVD_",
+];
+const volatileEnvKeys = new Set([
+  "COLORTERM",
+  "FINANCIAL_DATASETS_API_KEY",
+  "GIT_EDITOR",
+  "GIT_MERGE_AUTOEDIT",
+  "GIT_PAGER",
+  "LANG",
+  "LOG_FORMAT",
+  "PROMPT",
+  "PWD",
+  "RUST_LOG",
+  "SHELL",
+  "TERM_PROGRAM",
+  "TERM_PROGRAM_VERSION",
+  "ZSH_TMUX_AUTOSTART",
+  "ZSH_TMUX_AUTOSTARTED",
+]);
+const cleanProcessEnv = Object.fromEntries(
+  Object.entries(process.env).filter(([key]) => {
+    if (volatileEnvKeys.has(key)) return false;
+    return !volatileEnvPrefixes.some((prefix) => key.startsWith(prefix));
+  }),
+);
+const pm2FilterEnv = [...volatileEnvPrefixes, ...volatileEnvKeys];
+
 const mergedEnv = { 
-  ...process.env, 
+  ...cleanProcessEnv,
   ...baseEnv,
   PYTHONPATH: path.join(root, "apps", "pipeline"),
   ALL_PROXY: '',
@@ -54,6 +87,7 @@ try {
 // kill_timeout: 5000ms gives graceful SIGTERM time before SIGKILL
 // listen_timeout: 8000ms for Next.js server readiness
 const robustNode = {
+  filter_env: pm2FilterEnv,
   autorestart: true,
   exp_backoff_restart_delay: 200,
   max_restarts: 15,

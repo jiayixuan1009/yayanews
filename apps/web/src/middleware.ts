@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 
 const locales = ['zh', 'en'];
 const defaultLocale = 'zh';
+const fallbackOrigin = 'https://yayanews.cryptooptiontool.com';
 
 function getLocale(request: NextRequest): string {
   // 1. Respect explicit user choice (set by LangSwitcher)
@@ -25,7 +26,7 @@ function getLocale(request: NextRequest): string {
 
 export function middleware(request: NextRequest) {
   // Check if there is any supported locale in the pathname
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
 
   const pathnameHasLocale = locales.some(
     (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
@@ -35,11 +36,14 @@ export function middleware(request: NextRequest) {
 
   // Redirect if there is no locale
   const locale = getLocale(request);
-  request.nextUrl.pathname = `/${locale}${pathname}`;
-  
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+  const proto = request.headers.get('x-forwarded-proto') || request.nextUrl.protocol.replace(':', '') || 'https';
+  const origin = host ? `${proto}://${host}` : fallbackOrigin;
+  const redirectUrl = new URL(`/${locale}${pathname}${search}`, origin);
+
   // e.g. incoming request is /news
   // The new URL is now /zh/news
-  return NextResponse.redirect(request.nextUrl, 308);
+  return NextResponse.redirect(redirectUrl, 308);
 }
 
 export const config = {

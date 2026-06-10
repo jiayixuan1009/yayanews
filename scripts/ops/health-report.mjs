@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import http from 'node:http';
+import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
@@ -25,6 +27,9 @@ const EXPECTED_PM2_APPS = [
   'yayanews',
   'yaya-admin',
   'yaya-ws-gateway',
+];
+
+const PYTHON_PM2_APPS = [
   'yaya-finnhub-ws',
   'yaya-pipeline-daemon',
   'yaya-worker-flash',
@@ -119,10 +124,35 @@ function inspectHeartbeat() {
 
 function inspectPm2() {
   section('PM2');
+  const pm2Candidates = process.platform === 'win32'
+    ? [
+        process.env.PM2_BIN,
+        path.join(process.env.APPDATA || '', 'npm', 'pm2.cmd'),
+        'pm2.cmd',
+        'pm2',
+      ].filter(Boolean)
+    : [process.env.PM2_BIN, 'pm2'].filter(Boolean);
+  const pm2 = pm2Candidates.find(candidate => {
+    if (candidate.includes(path.sep)) return fs.existsSync(candidate);
+    try {
+      execPm2(candidate, ['--version'], { stdio: 'ignore', timeout: 5000 });
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  if (!pm2) {
+    warn('pm2', 'unavailable: pm2 executable not found');
+    return;
+  }
+
   try {
-    const raw = execFileSync('pm2', ['jlist'], { encoding: 'utf8', timeout: 10000 });
+    const raw = execPm2(pm2, ['jlist'], { encoding: 'utf8', timeout: 10000 });
     const apps = JSON.parse(raw);
-    for (const name of EXPECTED_PM2_APPS) {
+    const expectedApps = envFlag(process.env.ENABLE_PYTHON_WORKERS)
+      ? [...EXPECTED_PM2_APPS, ...PYTHON_PM2_APPS]
+      : EXPECTED_PM2_APPS;
+    for (const name of expectedApps) {
       const app = apps.find(item => item.name === name);
       if (!app) {
         warn(name, 'missing');
@@ -136,6 +166,60 @@ function inspectPm2() {
   } catch (err) {
     warn('pm2', `unavailable: ${err.message}`);
   }
+}
+
+async function inspectLocalServices() {
+  section('Local Services');
+  await httpCheck('web /zh', 'http://127.0.0.1:3002/zh');
+  await httpCheck('admin /admin', 'http://127.0.0.1:3003/admin');
+  await tcpCheck('ws gateway', 3001);
+}
+
+function httpCheck(label, url) {
+  return new Promise(resolve => {
+    const req = http.get(url, { timeout: 8000 }, res => {
+      res.resume();
+      const status = res.statusCode >= 200 && res.statusCode < 400 ? ok : warn;
+      status(label, `status=${res.statusCode}`);
+      resolve();
+    });
+    req.on('timeout', () => {
+      req.destroy(new Error('timeout'));
+    });
+    req.on('error', err => {
+      warn(label, err.message);
+      resolve();
+    });
+  });
+}
+
+function tcpCheck(label, port) {
+  return new Promise(resolve => {
+    const socket = net.createConnection({ host: '127.0.0.1', port, timeout: 5000 });
+    socket.on('connect', () => {
+      ok(label, `tcp=${port} open`);
+      socket.destroy();
+      resolve();
+    });
+    socket.on('timeout', () => {
+      socket.destroy(new Error('timeout'));
+    });
+    socket.on('error', err => {
+      warn(label, err.message);
+      resolve();
+    });
+  });
+}
+
+function execPm2(pm2, args, options) {
+  if (process.platform === 'win32' && pm2.toLowerCase().endsWith('.cmd')) {
+    return execFileSync('cmd.exe', ['/d', '/s', '/c', pm2, ...args], options);
+  }
+  return execFileSync(pm2, args, options);
+}
+
+function envFlag(value) {
+  return String(value || '').toLowerCase() === 'true';
 }
 
 function inspectRq() {
@@ -263,9 +347,13 @@ async function main() {
   console.log(`time=${new Date().toISOString()}`);
 
   const env = readEnvSafe();
+  for (const [key, value] of env) {
+    if (!(key in process.env)) process.env[key] = value;
+  }
   inspectEnv(env);
   inspectHeartbeat();
   inspectPm2();
+  await inspectLocalServices();
   inspectRq();
   await inspectDb(env);
 }
