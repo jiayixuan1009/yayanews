@@ -46,6 +46,15 @@ function safeMetadataBase(): URL {
   }
 }
 
+function resolveMetadataImageUrl(image: string, metadataBaseUrl: URL): string {
+  const target = image.trim() || DEFAULT_OG_IMAGE;
+  try {
+    return new URL(target, metadataBaseUrl).toString();
+  } catch {
+    return new URL(DEFAULT_OG_IMAGE, metadataBaseUrl).toString();
+  }
+}
+
 export function createMetadata(options: MetadataOptions = {}): Metadata {
   const {
     title,
@@ -80,6 +89,7 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
 
   const metadataBaseUrl = safeMetadataBase();
   const fullUrl = `${metadataBaseUrl.origin}${finalCanonical}`;
+  const finalImageUrl = resolveMetadataImageUrl(finalImage, metadataBaseUrl);
   const defaultKeywords = isZh ? DEFAULT_KEYWORDS_ZH : DEFAULT_KEYWORDS_EN;
 
   const metadata: Metadata = {
@@ -107,7 +117,7 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
       url: fullUrl,
       images: [
         {
-          url: finalImage,
+          url: finalImageUrl,
           width: 1200,
           height: 630,
           alt: title ?? `${brandName} — ${slogan}`,
@@ -129,7 +139,7 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
       description: finalDesc,
       images: [
         {
-          url: finalImage,
+          url: finalImageUrl,
           alt: title ?? `${brandName} — ${slogan}`,
         },
       ],
