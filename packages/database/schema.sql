@@ -135,9 +135,6 @@ CREATE TABLE IF NOT EXISTS speed_benchmarks (
 CREATE INDEX IF NOT EXISTS idx_articles_slug ON articles(slug);
 CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status);
 CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published_at);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_articles_normalized_title_unique
-    ON articles ((lower(trim(title))))
-    WHERE NULLIF(trim(title), '') IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_flash_published ON flash_news(published_at);
 CREATE INDEX IF NOT EXISTS idx_topics_slug ON topics(slug);
 CREATE INDEX IF NOT EXISTS idx_authors_status ON authors(status);
