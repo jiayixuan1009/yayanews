@@ -2,7 +2,6 @@
 
 import Script from 'next/script';
 
-const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-M5TYCGL732';
 const BING_UET = process.env.NEXT_PUBLIC_BING_UET_ID;
 const CLARITY_ID = process.env.NEXT_PUBLIC_MS_CLARITY_ID;
 
@@ -12,23 +11,6 @@ const CLARITY_ID = process.env.NEXT_PUBLIC_MS_CLARITY_ID;
 export default function Analytics() {
   return (
     <>
-      {GA_ID ? (
-        <>
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
-            strategy="lazyOnload"
-          />
-          <Script id="ga4-gtag" strategy="lazyOnload">
-            {`
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', '${GA_ID}', { anonymize_ip: true });
-            `}
-          </Script>
-        </>
-      ) : null}
-
       {BING_UET ? (
         <Script id="bing-uet" strategy="lazyOnload">
           {`

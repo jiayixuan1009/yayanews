@@ -5,6 +5,7 @@ import { createMetadata, getSiteVerificationMeta } from '@yayanews/seo';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Analytics from '@/components/Analytics';
+import AnalyticsHead, { GoogleTagManagerNoScript } from '@/components/AnalyticsHead';
 import AppToaster from '@/components/AppToaster';
 import '../globals.css';
 import { getDictionary } from '@/lib/dictionaries';
@@ -63,9 +64,11 @@ export default async function RootLayout({
     <html lang={locale} className={`${inter.variable} ${publicSans.variable} ${interTight.variable} ${notoSansSC.variable}`}>
       <head>
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <AnalyticsHead />
         <link rel="alternate" type="application/rss+xml" title={`${siteConfig.siteName} - News Feed`} href="/feed-news.xml" />
       </head>
       <body className="flex min-h-screen flex-col bg-[#f6f3ee] font-body text-slate-900 overflow-x-hidden w-full">
+        <GoogleTagManagerNoScript />
         <Analytics />
         <Header lang={locale} dict={dict.nav} />
         <main className="flex-1">{children}</main>
