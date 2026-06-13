@@ -60,13 +60,18 @@ const ARTICLE_AUTHOR_FIELDS = `
 async function attachTagsBatch<T extends { id: number }>(articles: T[]): Promise<(T & { tags: Tag[] })[]> {
   if (articles.length === 0) return [];
   const ids = articles.map(a => a.id);
-  const rows = await db.queryAll<Tag & { article_id: number }>(
-    `SELECT at.article_id, t.*
-     FROM tags t
-     JOIN article_tags at ON t.id = at.tag_id
-     WHERE at.article_id = ANY($1::bigint[])`,
-    [ids]
-  );
+  let rows: (Tag & { article_id: number })[] = [];
+  try {
+    rows = await db.queryAll<Tag & { article_id: number }>(
+      `SELECT at.article_id, t.*
+       FROM tags t
+       JOIN article_tags at ON t.id = at.tag_id
+       WHERE at.article_id = ANY($1::bigint[])`,
+      [ids]
+    );
+  } catch {
+    return articles.map(a => ({ ...a, tags: [] }));
+  }
   const byArticle = new Map<number, Tag[]>();
   for (const r of rows) {
     const { article_id: aid, ...tag } = r;
@@ -453,7 +458,11 @@ export async function getArticleBySlug(slug: string): Promise<(Article & { sibli
   `, [slug]) as (Article & { sibling_slug?: string }) | undefined;
 
   if (article) {
-    article.tags = await getArticleTags(article.id);
+    try {
+      article.tags = await getArticleTags(article.id);
+    } catch {
+      article.tags = [];
+    }
   }
   return formatArticleDates(article);
 }
