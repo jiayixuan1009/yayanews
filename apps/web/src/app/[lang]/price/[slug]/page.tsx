@@ -18,15 +18,21 @@ async function fetchCoinMeta(slug: string) {
 import { createMetadata } from '@yayanews/seo';
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string; slug: string }> }): Promise<Metadata> {
-  const { slug } = await params;
+  const { lang, slug } = await params;
+  const locale = lang === 'en' ? 'en' : 'zh';
   const j = await fetchCoinMeta(slug);
   const name = j?.name ?? slug;
   const sym = j?.symbol?.toUpperCase() ?? '';
-  const title = sym ? `${name} (${sym}) 价格行情` : `${name} 价格行情`;
+  const title = locale === 'en'
+    ? (sym ? `${name} (${sym}) Price Chart` : `${name} Price Chart`)
+    : (sym ? `${name} (${sym}) 价格行情` : `${name} 价格行情`);
   return createMetadata({
     title,
-    description: `${name} 实时价格、市值与 24 小时涨跌 · YayaNews 行情`,
+    description: locale === 'en'
+      ? `${name} live price, market cap and 24-hour performance from YayaNews markets.`
+      : `${name} 实时价格、市值与 24 小时涨跌 · YayaNews 行情`,
     url: `/price/${slug}`,
+    lang: locale,
   });
 }
 

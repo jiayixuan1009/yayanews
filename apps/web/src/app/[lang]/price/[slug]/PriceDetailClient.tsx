@@ -37,7 +37,7 @@ export default function PriceDetailClient({ slug }: { slug: string }) {
     (async () => {
       try {
         const res = await fetch(
-          `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(slug)}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=true`
+          `/api/markets/coingecko?endpoint=coins/${encodeURIComponent(slug)}&localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=true`
         );
         if (!res.ok) {
           if (!cancelled) setErr(res.status === 404 ? '未找到该币种（请使用 CoinGecko 的 id，如 bitcoin）' : `请求失败 (${res.status})`);

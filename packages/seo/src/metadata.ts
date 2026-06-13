@@ -32,7 +32,7 @@ const DEFAULT_KEYWORDS_EN = [
 
 // The default OG/Twitter image should be the site's official OG card.
 // When not available, fall back to the article placeholder.
-const DEFAULT_OG_IMAGE = '/brand/logo-square.png';
+const DEFAULT_OG_IMAGE = '/brand/og-default.png';
 
 const FALLBACK_SITE_ORIGIN = 'https://yayanews.cryptooptiontool.com';
 
@@ -53,6 +53,21 @@ function resolveMetadataImageUrl(image: string, metadataBaseUrl: URL): string {
   } catch {
     return new URL(DEFAULT_OG_IMAGE, metadataBaseUrl).toString();
   }
+}
+
+function inferMetadataImageType(imageUrl: string): string {
+  const pathname = (() => {
+    try {
+      return new URL(imageUrl).pathname.toLowerCase();
+    } catch {
+      return imageUrl.toLowerCase();
+    }
+  })();
+
+  if (pathname.endsWith('.jpg') || pathname.endsWith('.jpeg')) return 'image/jpeg';
+  if (pathname.endsWith('.webp')) return 'image/webp';
+  if (pathname.endsWith('.gif')) return 'image/gif';
+  return 'image/png';
 }
 
 export function createMetadata(options: MetadataOptions = {}): Metadata {
@@ -90,6 +105,7 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
   const metadataBaseUrl = safeMetadataBase();
   const fullUrl = `${metadataBaseUrl.origin}${finalCanonical}`;
   const finalImageUrl = resolveMetadataImageUrl(finalImage, metadataBaseUrl);
+  const finalImageType = inferMetadataImageType(finalImageUrl);
   const defaultKeywords = isZh ? DEFAULT_KEYWORDS_ZH : DEFAULT_KEYWORDS_EN;
 
   const metadata: Metadata = {
@@ -121,7 +137,7 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
           width: 1200,
           height: 630,
           alt: title ?? `${brandName} — ${slogan}`,
-          type: 'image/png',
+          type: finalImageType,
         },
       ],
       ...(type === 'article' && {
@@ -164,8 +180,16 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
 }
 
 export function getSiteVerificationMeta(): Metadata['verification'] | undefined {
-  const googleSiteVer = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim();
-  const bingSiteVer = process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION?.trim();
+  const googleSiteVer = (
+    process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    || process.env.GOOGLE_SITE_VERIFICATION
+    || ''
+  ).trim();
+  const bingSiteVer = (
+    process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION
+    || process.env.BING_SITE_VERIFICATION
+    || ''
+  ).trim();
 
   if (googleSiteVer || bingSiteVer) {
     return {

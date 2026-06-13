@@ -13,13 +13,20 @@ interface Props {
 import { createMetadata } from '@yayanews/seo';
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
+  const { lang, slug } = await params;
+  const locale = lang === 'en' ? 'en' : 'zh';
   const guide = await getGuideBySlug(slug);
-  if (!guide) return createMetadata({ title: '指南未找到' });
+  if (!guide) {
+    return createMetadata({
+      title: locale === 'en' ? 'Guide Not Found' : '指南未找到',
+      lang: locale,
+    });
+  }
   return createMetadata({
     title: guide.title,
     description: guide.summary || `${guide.title} - ${siteConfig.siteName}新手指南`,
     url: `/guide/${slug}`,
+    lang: locale,
   });
 }
 

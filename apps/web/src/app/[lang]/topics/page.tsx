@@ -12,10 +12,10 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: 'zh
   const { lang } = await params;
   const isZh = lang !== 'en';
   return createMetadata({
-    title: isZh ? '热门专题 | 金融市场重大事件深度追踪' : 'Trending Topics | Deep Financial Market Event Tracking',
+    title: isZh ? '热门专题 | 金融市场重大事件深度追踪' : 'Market Topics & Event Trackers',
     description: isZh
-      ? '金融市场热门专题聚合，深度追踪美股、港股、加密货币、衍生品市场重大事件'
-      : 'Aggregated financial market trending topics. Deep tracking of major events in US stocks, HK stocks, crypto and derivatives markets.',
+      ? '聚合美股、港股、加密货币、衍生品与宏观事件专题，持续沉淀背景、时间线、关键文章和后续影响。'
+      : 'Follow major market themes across US stocks, Hong Kong equities, crypto, derivatives and macro events with timelines, context and key articles.',
     url: '/topics',
     lang,
   });
@@ -94,7 +94,7 @@ export default async function TopicsPage({ params }: { params: Promise<{ lang: s
                         fill
                         sizes="(max-width: 640px) 100vw, 33vw"
                         className="object-cover transition-opacity duration-200 group-hover:opacity-95"
-                        priority={idx < 3}
+                        priority={idx === 0}
                         unoptimized={!isRemoteImageOptimizable(coverImg)}
                       />
                     </div>

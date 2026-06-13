@@ -3,6 +3,8 @@ import { SITE_NAME_ZH, SITE_NAME_EN } from '@yayanews/types';
 import { createMetadata } from '@yayanews/seo';
 import EditorialPolicyPage from '../editorial/EditorialPolicyPage';
 
+export const revalidate = 86400;
+
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const { lang } = await params;
   const isZh = lang !== 'en';

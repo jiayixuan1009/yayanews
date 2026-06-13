@@ -70,7 +70,7 @@ export async function GET() {
   return new NextResponse(xml, {
     headers: {
       'Content-Type': 'application/rss+xml; charset=utf-8',
-      'Cache-Control': 'public, max-age=300, s-maxage=300',
+      'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=600',
     },
   });
 }

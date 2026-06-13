@@ -18,18 +18,40 @@ import SectionHeader from '@/components/editorial/SectionHeader';
 import { createMetadata, buildBreadcrumbJsonLd } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 
+function tagAlternates(slug: string, counts: { zh: number; en: number }, currentLang: 'zh' | 'en') {
+  const languages: Record<string, string> = {};
+  if (counts.zh >= 3) languages.zh = `/zh/tag/${slug}`;
+  if (counts.en >= 3) languages.en = `/en/tag/${slug}`;
+
+  if (Object.keys(languages).length === 0) {
+    languages[currentLang] = `/${currentLang}/tag/${slug}`;
+  }
+
+  languages['x-default'] = languages.zh || languages.en || languages[currentLang];
+  return languages;
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; lang: string }> }): Promise<Metadata> {
   const { slug, lang } = await params;
   const decodedSlug = decodeURIComponent(slug);
   const tag = await getTagBySlug(decodedSlug);
   if (!tag) return {};
   const isZh = lang !== 'en';
-  const articleCount = await getArticleCountByTagSlug(decodedSlug, lang);
+  const locale = isZh ? 'zh' : 'en';
+  const tagName = isZh ? tag.name : (tag.name_en || tag.name);
+  const [zhArticleCount, enArticleCount] = await Promise.all([
+    getArticleCountByTagSlug(decodedSlug, 'zh'),
+    getArticleCountByTagSlug(decodedSlug, 'en'),
+  ]);
+  const articleCount = isZh ? zhArticleCount : enArticleCount;
   return createMetadata({
-    title: isZh ? `标签：${tag.name}` : `Tag: ${tag.name}`,
-    description: isZh ? `浏览与「${tag.name}」相关的 YayaNews 资讯稿件` : `Browse YayaNews articles related to #${tag.name}`,
+    title: isZh ? `标签：${tagName}` : `Tag: ${tagName}`,
+    description: isZh
+      ? `追踪「${tagName}」相关市场新闻、深度分析和实时资讯，覆盖美股、港股、加密货币、衍生品与宏观事件。`
+      : `Track YayaNews market coverage related to #${tagName}, including news, analysis and live updates across stocks, crypto, derivatives and macro events.`,
     url: `/tag/${decodedSlug}`,
-    lang: lang as 'zh' | 'en',
+    lang: locale,
+    alternatesLanguages: tagAlternates(decodedSlug, { zh: zhArticleCount, en: enArticleCount }, locale),
     noIndex: articleCount < 3, // P1 SEO: thin tag pages (< 3 articles) excluded from index pool
   });
 }

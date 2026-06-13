@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: 'zh
   return createMetadata({
     title: lang === 'en' ? 'Live Financial Flash News 24/7' : '财经快讯 · 实时滚动播报',
     description: lang === 'en'
-      ? 'YayaNews live financial flash feed — the fastest breaking market news on US equities, Hong Kong stocks, Bitcoin, Ethereum, gold and key commodities, updated around the clock every day.'
+      ? 'Live market flash updates from YayaNews covering US stocks, Hong Kong equities, Bitcoin, Ethereum, gold and key commodities around the clock.'
       : '鸭鸭财经实时快讯流——精选美股、港股、加密货币、衍生品市场每日重要资讯。突发事件秒级推送，7×24全天候覆盖全球市场关键动态，助投资者及时决策。',
     url: '/flash',
     lang,

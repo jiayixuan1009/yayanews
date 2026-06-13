@@ -28,17 +28,16 @@ export async function generateMetadata({
   const isZh = lang !== 'en';
   const page = parseInt(resolvedSearchParams.page || '1', 10);
   return createMetadata({
-    title: isZh ? '金融新闻深度分析 | 美股·港股·加密货币·衍生品' : 'Financial News & In-Depth Analysis | US Stocks, Crypto, HK Markets',
+    title: isZh ? '金融新闻深度分析 | 美股·港股·加密货币·衍生品' : 'Financial News & Market Analysis',
     description: isZh
       ? '浏览鸭鸭财经全站深度分析与实时资讯，覆盖美股指数、港股蓝筹、比特币行情、黄金原油等核心资产。专业量化与AI驱动编辑团队，为投资者提供精准市场解读。'
-      : 'Browse YayaNews in-depth financial analysis and breaking news across US equities, HK stocks, Bitcoin, crypto, gold and oil. Expert-curated and AI-powered market coverage for professional investors.',
+      : 'Latest market news and analysis across US stocks, Hong Kong equities, crypto, derivatives, gold and oil from YayaNews.',
     url: '/news',
     lang: lang as 'zh' | 'en',
     noIndex: page > 1, // P2 SEO: pagination pages excluded from index to prevent duplicate content
   });
 }
 
-export const dynamic = 'force-dynamic';
 export const revalidate = 60;
 
 export default async function NewsPage({ 

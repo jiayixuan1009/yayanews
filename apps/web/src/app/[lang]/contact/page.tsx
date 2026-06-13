@@ -1,14 +1,22 @@
 import type { Metadata } from 'next';
 import LocalizedLink from '@/components/LocalizedLink';
 import { siteConfig } from '@yayanews/types';
-import { getMetadataBase } from '@/lib/metadata-base';
+import { createMetadata } from '@yayanews/seo';
 
-export const metadata: Metadata = {
-  metadataBase: getMetadataBase(),
-  title: '联系我们',
-  description: `联系 ${siteConfig.siteName} 与 Yayapay 官方渠道。`,
-  alternates: { canonical: '/contact' },
-};
+export const revalidate = 86400;
+
+export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
+  const { lang } = await params;
+  const locale = lang === 'en' ? 'en' : 'zh';
+  return createMetadata({
+    title: locale === 'en' ? 'Contact Us' : '联系我们',
+    description: locale === 'en'
+      ? `Contact ${siteConfig.siteName} for editorial questions, partnerships, and official channels.`
+      : `联系 ${siteConfig.siteName} 与 Yayapay 官方渠道。`,
+    url: '/contact',
+    lang: locale,
+  });
+}
 
 export default async function ContactPage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang } = await params;

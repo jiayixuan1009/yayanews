@@ -30,6 +30,7 @@ function appendKey(url: string): string {
  * Uses COINGECKO_API_KEY from env (never exposed to browser).
  *
  * GET /api/markets/coingecko?endpoint=coins/markets&vs_currency=usd&...
+ * GET /api/markets/coingecko?endpoint=coins/bitcoin&localization=false&...
  */
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
@@ -46,7 +47,8 @@ export async function GET(req: NextRequest) {
     'simple/price',
     'coins/list',
   ]);
-  if (!ALLOWED_ENDPOINTS.has(endpoint)) {
+  const isCoinDetailEndpoint = /^coins\/[a-z0-9][a-z0-9-]*$/i.test(endpoint);
+  if (!ALLOWED_ENDPOINTS.has(endpoint) && !isCoinDetailEndpoint) {
     return NextResponse.json({ error: 'Endpoint not allowed' }, { status: 400 });
   }
 

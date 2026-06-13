@@ -1,14 +1,22 @@
 import type { Metadata } from 'next';
 import LocalizedLink from '@/components/LocalizedLink';
 import { siteConfig } from '@yayanews/types';
-import { getMetadataBase } from '@/lib/metadata-base';
+import { createMetadata } from '@yayanews/seo';
 
-export const metadata: Metadata = {
-  metadataBase: getMetadataBase(),
-  title: '隐私政策',
-  description: `${siteConfig.siteName} 隐私政策与用户数据说明。`,
-  alternates: { canonical: '/privacy' },
-};
+export const revalidate = 86400;
+
+export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
+  const { lang } = await params;
+  const locale = lang === 'en' ? 'en' : 'zh';
+  return createMetadata({
+    title: locale === 'en' ? 'Privacy Policy' : '隐私政策',
+    description: locale === 'en'
+      ? `${siteConfig.siteName} privacy policy and user data practices.`
+      : `${siteConfig.siteName} 隐私政策与用户数据说明。`,
+    url: '/privacy',
+    lang: locale,
+  });
+}
 
 export default function PrivacyPage() {
   return (

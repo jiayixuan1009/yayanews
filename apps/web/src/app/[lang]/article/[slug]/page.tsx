@@ -19,12 +19,25 @@ import TopicBridge from '@/components/editorial/TopicBridge';
 import SectionHeader from '@/components/editorial/SectionHeader';
 import TopicEyebrow from '@/components/TopicEyebrow';
 import TopicMoreArticles from '@/components/TopicMoreArticles';
+import ArticleViewBeacon from '@/components/ArticleViewBeacon';
 import { siteConfig, type Article } from '@yayanews/types';
 import { sanitizeHtml } from '@/lib/sanitize';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
 import { articleHasRealCover, getArticleCoverSrc } from '@/lib/article-image';
 
 import { buildAuthorSlug, createMetadata, buildNewsArticleJsonLd, buildBreadcrumbJsonLd } from '@yayanews/seo';
+
+function truncateMetadataTitle(title: string, lang: string): string {
+  const maxLength = lang === 'en' ? 95 : 60;
+  const chars = Array.from(title);
+  if (chars.length <= maxLength) return title;
+
+  const sliced = chars.slice(0, maxLength - 1).join('');
+  const trimmed = lang === 'en'
+    ? sliced.replace(/\s+\S*$/, '').trim()
+    : sliced.trim();
+  return `${trimmed || sliced.trim()}…`;
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; lang: string }> }): Promise<Metadata> {
   const { slug, lang } = await params;
@@ -59,7 +72,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   return createMetadata({
-    title: article.title,
+    title: truncateMetadataTitle(article.title, lang),
     description: descFallback,
     url: `/article/${slug}`,
     type: 'article',
@@ -142,6 +155,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   return (
     <div className="container-main py-6 sm:py-8 lg:py-10 xl:py-12">
       <ReadingProgress />
+      <ArticleViewBeacon articleId={article.id} />
       <div className="grid gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-12">
         <article className="lg:col-span-8 xl:pr-2">
           <div className="mx-auto max-w-measure-wide">

@@ -384,9 +384,21 @@ export async function getArticleBySlug(slug: string): Promise<(Article & { sibli
 
   if (article) {
     article.tags = await getArticleTags(article.id);
-    await db.queryAll('UPDATE articles SET view_count = view_count + 1 WHERE id = $1::bigint', [article.id]);
   }
   return formatArticleDates(article);
+}
+
+export async function incrementArticleViewCount(articleId: number): Promise<void> {
+  await db.queryAll(
+    `UPDATE articles
+     SET view_count = view_count + 1
+     WHERE id = $1::bigint
+       AND status = 'published'
+       AND audit_status = 'approved'
+       AND deleted_at IS NULL
+       AND is_indexable = TRUE`,
+    [articleId],
+  );
 }
 
 export async function getArticleTags(articleId: number): Promise<Tag[]> {
@@ -481,6 +493,19 @@ export async function getFlashNewsById(id: number | string): Promise<FlashNews |
     WHERE f.id = $1::bigint
   `, [id]);
   return flash ? formatArticleDates(flash) : undefined;
+}
+
+export async function getIndexableFlashForSitemap(limit = 500): Promise<FlashNews[]> {
+  const flashes = await db.queryAll<FlashNews>(
+    `SELECT f.*, c.name as category_name
+     FROM flash_news f
+     LEFT JOIN categories c ON f.category_id = c.id
+     WHERE f.importance IN ('high', 'urgent')
+     ORDER BY f.published_at DESC
+     LIMIT $1::int`,
+    [limit]
+  );
+  return flashes.map(formatArticleDates);
 }
 
 
@@ -863,22 +888,37 @@ export async function getArticleCountByTagSlug(tagSlug: string, lang?: string): 
   return row?.count || 0;
 }
 
-/** 有已发布稿件关联的标签，用于 sitemap（仅含 ≥3 篇文章的标签） */
-export async function getTagsForSitemap(): Promise<{ slug: string; updated_at: string }[]> {
-  const tags = await db.queryAll<{ slug: string; updated_at: Date | string }>(
-      `
-    SELECT t.slug, MAX(a.updated_at) as updated_at
+/** 有已发布稿件关联的标签，用于 sitemap（仅含当前语言下 ≥3 篇文章的标签页） */
+export async function getTagsForSitemap(): Promise<{ slug: string; updated_at: string; langs: Array<'zh' | 'en'> }[]> {
+  const rows = await db.queryAll<{ slug: string; lang: string; updated_at: Date | string }>(
+    `
+    SELECT t.slug, COALESCE(a.lang, 'zh') as lang, MAX(a.updated_at) as updated_at
     FROM tags t
     JOIN article_tags at ON t.id = at.tag_id
     JOIN articles a ON a.id = at.article_id
     WHERE a.status = 'published' AND a.audit_status = 'approved' AND a.deleted_at IS NULL AND a.is_indexable = TRUE
-    GROUP BY t.id
+    GROUP BY t.id, t.slug, COALESCE(a.lang, 'zh')
     HAVING COUNT(at.article_id) >= 3
   `
   );
-  return tags.map(t => ({
-    slug: t.slug,
-    updated_at: safeDateStr(t.updated_at)
+  const bySlug = new Map<string, { slug: string; updated_at: string; langs: Set<'zh' | 'en'> }>();
+  for (const row of rows) {
+    const lang = row.lang === 'en' ? 'en' : 'zh';
+    const existing = bySlug.get(row.slug);
+    const updatedAt = safeDateStr(row.updated_at);
+    if (!existing) {
+      bySlug.set(row.slug, { slug: row.slug, updated_at: updatedAt, langs: new Set([lang]) });
+      continue;
+    }
+    existing.langs.add(lang);
+    if (new Date(updatedAt).getTime() > new Date(existing.updated_at).getTime()) {
+      existing.updated_at = updatedAt;
+    }
+  }
+  return Array.from(bySlug.values()).map(tag => ({
+    slug: tag.slug,
+    updated_at: tag.updated_at,
+    langs: Array.from(tag.langs),
   }));
 }
 
@@ -887,6 +927,24 @@ export async function getGuides(limit = 20): Promise<Guide[]> {
     return await db.queryAll<Guide>(
       'SELECT * FROM guides ORDER BY sort_order, created_at DESC LIMIT $1::int', [limit]
     );
+  } catch {
+    return [];
+  }
+}
+
+export async function getGuidesForSitemap(): Promise<{ slug: string; updated_at: string }[]> {
+  try {
+    const guides = await db.queryAll<{ slug: string; updated_at: Date | string }>(
+      `SELECT slug, COALESCE(updated_at, published_at, created_at) as updated_at
+       FROM guides
+       WHERE slug IS NOT NULL AND slug <> ''
+       ORDER BY sort_order ASC, COALESCE(published_at, created_at, updated_at) DESC
+       LIMIT 500`
+    );
+    return guides.map(g => ({
+      slug: g.slug,
+      updated_at: safeDateStr(g.updated_at),
+    }));
   } catch {
     return [];
   }

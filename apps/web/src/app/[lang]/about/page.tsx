@@ -3,6 +3,8 @@ import LocalizedLink from '@/components/LocalizedLink';
 import { siteConfig, SITE_NAME_ZH, SITE_NAME_EN, SITE_SLOGAN_ZH, SITE_SLOGAN_EN } from '@yayanews/types';
 import { createMetadata, buildOrganizationJsonLd } from '@yayanews/seo';
 
+export const revalidate = 86400;
+
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const { lang } = await params;
   const isZh = lang !== 'en';
