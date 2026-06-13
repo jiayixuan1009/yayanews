@@ -35,6 +35,7 @@ const DEFAULT_KEYWORDS_EN = [
 const DEFAULT_OG_IMAGE = '/brand/og-default.png';
 
 const FALLBACK_SITE_ORIGIN = 'https://yayanews.cryptooptiontool.com';
+const DEFAULT_GOOGLE_SITE_VERIFICATION = 'vG9GwN_MFqx35CiRPLw7POt6WxmCN0hllAizS6DwS3M';
 
 function safeMetadataBase(): URL {
   const raw = (siteConfig.siteUrl || '').trim() || FALLBACK_SITE_ORIGIN;
@@ -183,6 +184,7 @@ export function getSiteVerificationMeta(): Metadata['verification'] | undefined 
   const googleSiteVer = (
     process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
     || process.env.GOOGLE_SITE_VERIFICATION
+    || DEFAULT_GOOGLE_SITE_VERIFICATION
     || ''
   ).trim();
   const bingSiteVer = (
