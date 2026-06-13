@@ -565,20 +565,6 @@ export async function getFlashNewsById(id: number | string): Promise<FlashNews |
   return flash ? formatArticleDates(flash) : undefined;
 }
 
-export async function getIndexableFlashForSitemap(limit = 500): Promise<FlashNews[]> {
-  const flashes = await db.queryAll<FlashNews>(
-    `SELECT f.*, c.name as category_name
-     FROM flash_news f
-     LEFT JOIN categories c ON f.category_id = c.id
-     WHERE f.importance IN ('high', 'urgent')
-     ORDER BY f.published_at DESC
-     LIMIT $1::int`,
-    [limit]
-  );
-  return flashes.map(formatArticleDates);
-}
-
-
 /** \u83b7\u53d6\u6240\u6709 active \u4e13\u9898\u5217\u8868\uff0c\u9644\u5e26\u6587\u7ae0\u8ba1\u6570 */
 export async function getTopics(limit = 20): Promise<Topic[]> {
   const rows = await db.queryAll(`
@@ -733,9 +719,32 @@ export async function getArticleTopic(
 }
 
 /** \u4e13\u9898\u9875\u7528\uff1a\u83b7\u53d6 sitemap \u8f93\u51fa \u2014 \u53ea\u53d6 active \u4e13\u9898 */
-export async function getTopicsForSitemap(): Promise<{ slug: string; updated_at: string }[]> {
-  const topics = await db.queryAll<{ slug: string; updated_at: Date | string }>(
-    `SELECT t.slug, MAX(GREATEST(t.updated_at, a.updated_at)) as updated_at
+export async function getTopicArticleCountsByLang(slug: string): Promise<{ zh: number; en: number }> {
+  const rows = await db.queryAll<{ lang: string; count: number }>(
+    `SELECT COALESCE(a.lang, 'zh') as lang, COUNT(*)::int as count
+     FROM topics t
+     JOIN articles a ON a.topic_id = t.id
+     WHERE t.slug = $1::text
+       AND t.status IN ('active', 'archive')
+       AND a.status = 'published'
+       AND a.audit_status = 'approved'
+       AND a.deleted_at IS NULL
+       AND a.is_indexable = TRUE
+       AND a.published_at <= NOW()
+     GROUP BY COALESCE(a.lang, 'zh')`,
+    [slug]
+  );
+  const counts = { zh: 0, en: 0 };
+  for (const row of rows) {
+    if (row.lang === 'en') counts.en = row.count;
+    else counts.zh = row.count;
+  }
+  return counts;
+}
+
+export async function getTopicsForSitemap(): Promise<{ slug: string; updated_at: string; langs: Array<'zh' | 'en'> }[]> {
+  const rows = await db.queryAll<{ slug: string; lang: string; updated_at: Date | string }>(
+    `SELECT t.slug, COALESCE(a.lang, 'zh') as lang, MAX(GREATEST(t.updated_at, a.updated_at)) as updated_at
      FROM topics t
      JOIN articles a ON a.topic_id = t.id
      WHERE t.status = 'active'
@@ -744,12 +753,31 @@ export async function getTopicsForSitemap(): Promise<{ slug: string; updated_at:
        AND a.deleted_at IS NULL
        AND a.is_indexable = TRUE
        AND a.published_at <= NOW()
-     GROUP BY t.id
-     HAVING COUNT(*) FILTER (WHERE a.lang = 'zh') >= 3
-        AND COUNT(*) FILTER (WHERE a.lang = 'en') >= 3
+     GROUP BY t.id, t.slug, COALESCE(a.lang, 'zh')
+     HAVING COUNT(*) >= 3
      ORDER BY updated_at DESC`
   );
-  return topics.map(t => ({ slug: t.slug, updated_at: safeDateStr(t.updated_at) }));
+
+  const bySlug = new Map<string, { slug: string; updated_at: string; langs: Set<'zh' | 'en'> }>();
+  for (const row of rows) {
+    const lang = row.lang === 'en' ? 'en' : 'zh';
+    const existing = bySlug.get(row.slug);
+    const updatedAt = safeDateStr(row.updated_at);
+    if (!existing) {
+      bySlug.set(row.slug, { slug: row.slug, updated_at: updatedAt, langs: new Set([lang]) });
+      continue;
+    }
+    existing.langs.add(lang);
+    if (new Date(updatedAt).getTime() > new Date(existing.updated_at).getTime()) {
+      existing.updated_at = updatedAt;
+    }
+  }
+
+  return Array.from(bySlug.values()).map(topic => ({
+    slug: topic.slug,
+    updated_at: topic.updated_at,
+    langs: Array.from(topic.langs),
+  }));
 }
 
 
