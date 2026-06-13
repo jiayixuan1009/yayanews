@@ -17,6 +17,14 @@ import ChannelHeader from '@/components/editorial/ChannelHeader';
 import RightRailPanel from '@/components/editorial/RightRailPanel';
 import SectionHeader from '@/components/editorial/SectionHeader';
 
+async function optional<T>(promise: Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await promise;
+  } catch {
+    return fallback;
+  }
+}
+
 export async function generateMetadata({
   params,
   searchParams,
@@ -56,17 +64,26 @@ export default async function NewsPage({
   const offset = (page - 1) * pageSize;
   const locale = lang === 'en' ? 'en' : 'zh';
   const dict = await getDictionary(locale);
-  const articles = await getPublishedArticles(locale, pageSize, offset, undefined, undefined, articleType);
-  const total = await getArticleCountByType(undefined, articleType, locale);
+  const [
+    articles,
+    total,
+    categories,
+    countAll,
+    countStandard,
+    countDeep,
+    popularTags,
+    flashMini,
+  ] = await Promise.all([
+    getPublishedArticles(locale, pageSize, offset, undefined, undefined, articleType),
+    getArticleCountByType(undefined, articleType, locale),
+    optional(getCategoriesOrdered(), []),
+    optional(getArticleCountByType(undefined, undefined, locale), 0),
+    optional(getArticleCountByType(undefined, 'standard', locale), 0),
+    optional(getArticleCountByType(undefined, 'deep', locale), 0),
+    optional(getPopularTags(12), []),
+    optional(getFlashNews(locale, 6), []),
+  ]);
   const totalPages = Math.ceil(total / pageSize);
-  const categories = await getCategoriesOrdered();
-
-  const countAll = await getArticleCountByType(undefined, undefined, locale);
-  const countStandard = await getArticleCountByType(undefined, 'standard', locale);
-  const countDeep = await getArticleCountByType(undefined, 'deep', locale);
-
-  const popularTags = await getPopularTags(12);
-  const flashMini = await getFlashNews(locale, 6);
 
   const featured = articles[0];
   const subFeatured = articles.slice(1, 3);

@@ -27,6 +27,14 @@ import { articleHasRealCover, getArticleCoverSrc } from '@/lib/article-image';
 
 import { buildAuthorSlug, createMetadata, buildNewsArticleJsonLd, buildBreadcrumbJsonLd } from '@yayanews/seo';
 
+async function optional<T>(promise: Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await promise;
+  } catch {
+    return fallback;
+  }
+}
+
 function truncateMetadataTitle(title: string, lang: string): string {
   const maxLength = lang === 'en' ? 95 : 60;
   const chars = Array.from(title);
@@ -158,20 +166,22 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   const article = await getArticleBySlug(slug);
   if (!article || (article.lang && article.lang !== lang)) notFound();
 
-  const related = await getRelatedArticles(article.id, article.category_id, 5);
-  const { prev, next } = await getAdjacentArticles(article.id);
+  const topicId = article.topic_id as number | null | undefined;
+  const [related, adjacent, sameCategory, articleTopic] = await Promise.all([
+    optional(getRelatedArticles(article.id, article.category_id, 5), []),
+    optional(getAdjacentArticles(article.id), { prev: null, next: null }),
+    article.category_slug != null
+      ? optional(getPublishedArticles(lang, 6, 0, article.category_slug), [])
+      : Promise.resolve([]),
+    optional(getArticleTopic(article.id, topicId), null),
+  ]);
+  const { prev, next } = adjacent;
   const articleUrl = `${siteConfig.siteUrl}/${lang}/article/${article.slug}`;
   const hasCover = articleHasRealCover(article.cover_image, article.source);
   const coverSrc = getArticleCoverSrc(article.cover_image, lang, article.source);
   const coverOpt = hasCover ? isRemoteImageOptimizable(coverSrc) : false;
-  const sameCategory =
-    article.category_slug != null
-      ? (await getPublishedArticles(lang, 8, 0, article.category_slug)).filter((a: Article) => a.id !== article.id)
-      : [];
-  const moreRead = sameCategory.slice(0, 4);
+  const moreRead = sameCategory.filter((a: Article) => a.id !== article.id).slice(0, 4);
   // 从文章自己的 topic_id 获取所属专题（含同专题最新3篇文章）
-  const topicId = article.topic_id as number | null | undefined;
-  const articleTopic = await getArticleTopic(article.id, topicId);
   const sentiment = getSentimentLabel(article.sentiment);
   const tickers = article.tickers
     ? article.tickers

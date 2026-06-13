@@ -24,6 +24,14 @@ import { isRemoteImageOptimizable } from '@/lib/remote-image';
 import { createMetadata, buildBreadcrumbJsonLd } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 
+async function optional<T>(promise: Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await promise;
+  } catch {
+    return fallback;
+  }
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ category: string; lang: string }> }): Promise<Metadata> {
   const { category, lang } = await params;
   const dict = await getDictionary(lang);
@@ -55,21 +63,29 @@ export default async function CategoryPage({
   const depthFilter = resolvedSearchParams.type || '';
   const articleType = depthFilter === 'deep' ? 'deep' : depthFilter === 'standard' ? 'standard' : undefined;
 
-  const articles = await getPublishedArticles(locale, 36, 0, category, undefined, articleType);
-  const categories = await getCategoriesOrdered();
+  const [
+    articles,
+    categories,
+    countAll,
+    countStandard,
+    countDeep,
+    popularTags,
+    flashMini,
+  ] = await Promise.all([
+    getPublishedArticles(locale, 30, 0, category, undefined, articleType),
+    optional(getCategoriesOrdered(), []),
+    optional(getArticleCountByType(category, undefined, locale), 0),
+    optional(getArticleCountByType(category, 'standard', locale), 0),
+    optional(getArticleCountByType(category, 'deep', locale), 0),
+    optional(getPopularTags(10), []),
+    optional(getFlashNews(locale, 6), []),
+  ]);
   const isDerivatives = category === 'derivatives';
-
-  const countAll = await getArticleCountByType(category, undefined, locale);
-  const countStandard = await getArticleCountByType(category, 'standard', locale);
-  const countDeep = await getArticleCountByType(category, 'deep', locale);
 
   const featured = articles[0];
   const secondary = articles.slice(1, 3);
   const tertiary = articles.slice(3, 6);
   const feed = articles.slice(6);
-
-  const popularTags = await getPopularTags(10);
-  const flashMini = await getFlashNews(locale, 6);
 
   const lead = featured ?? null;
   const featureCover = lead ? getArticleCoverSrc(lead.cover_image, undefined, lead.source) : null;
