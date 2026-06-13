@@ -57,7 +57,7 @@ export default async function FlashDetailPage({ params }: { params: Promise<{ sl
   const flashLang = flashLocale(flash.lang);
   const canonicalSlug = encodeFlashSlug(flash);
   if (flashLang !== lang || canonicalSlug !== slug) {
-    permanentRedirect(`/${flashLang}/flash/${canonicalSlug}`);
+    permanentRedirect(`/${flashLang}/flash/${encodeURIComponent(canonicalSlug)}`);
   }
 
   const dict = await getDictionary(lang);

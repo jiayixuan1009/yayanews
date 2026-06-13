@@ -67,7 +67,7 @@ export default async function TagPage({ params }: { params: Promise<{ slug: stri
   if (!tag) {
     const legacyTag = await getTagBySlugOrName(decodedSlug);
     if (legacyTag && legacyTag.slug !== decodedSlug) {
-      permanentRedirect(`/${lang}/tag/${legacyTag.slug}`);
+      permanentRedirect(`/${lang}/tag/${encodeURIComponent(legacyTag.slug)}`);
     }
     notFound();
   }
