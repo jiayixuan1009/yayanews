@@ -67,12 +67,6 @@ const RESOURCE_CHECKS = [
     resourceKind: 'news-sitemap',
   },
   {
-    path: '/news.xml',
-    contentType: 'xml',
-    cache: 'cacheable',
-    resourceKind: 'news-sitemap',
-  },
-  {
     path: '/feed-news.xml',
     contentType: 'rss+xml',
     cache: 'cacheable',
@@ -803,7 +797,7 @@ function assertRobotsTxt(failures, text, expectedBaseUrl) {
     return;
   }
 
-  for (const requiredPath of ['/sitemap.xml', '/sitemap-news.xml', '/news.xml']) {
+  for (const requiredPath of ['/sitemap.xml', '/sitemap-news.xml']) {
     if (!sitemapUrls.some((url) => decodeXmlEntities(url).endsWith(requiredPath))) {
       failures.push(`robots.txt: missing Sitemap ${requiredPath}`);
     }

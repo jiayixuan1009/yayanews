@@ -1,4 +1,5 @@
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+import { permanentRedirect } from 'next/navigation';
 
-export { GET } from '../sitemap-news.xml/route';
+export function GET() {
+  permanentRedirect('/sitemap-news.xml');
+}

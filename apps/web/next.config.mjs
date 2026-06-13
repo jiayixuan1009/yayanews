@@ -156,12 +156,6 @@ const nextConfig = {
         ],
       },
       {
-        source: '/news.xml',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=300, s-maxage=300, stale-while-revalidate=600' },
-        ],
-      },
-      {
         source: '/feed-news.xml',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=300, s-maxage=300, stale-while-revalidate=600' },

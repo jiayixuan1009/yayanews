@@ -6,7 +6,7 @@
 
 ## 1. 结论先行
 
-当前站点不是“完全无法抓取”的状态：线上 `robots.txt`、`sitemap.xml`、`sitemap-news.xml`、`news.xml` 都返回 200，根路径 `/` 也会 308 跳转到 `/zh/`。因此，GSC 0 展现的第一判断不应是 robots 或 sitemap 被整体拦截。
+当前站点不是“完全无法抓取”的状态：线上 `robots.txt`、`sitemap.xml`、`sitemap-news.xml` 都返回 200，根路径 `/` 也会 308 跳转到 `/zh/`。因此，GSC 0 展现的第一判断不应是 robots 或 sitemap 被整体拦截。
 
 更高概率的根因是：生产站点仍在运行旧 SEO 状态，本地已完成的一批 canonical、OG、缓存、sitemap/noindex 一致性修复尚未在生产域名生效。用当前仓库的验证脚本直接打线上域名，结果为 `43/49 checks failed`；这意味着 GSC 当前看到的仍是旧版本信号。
 
@@ -24,11 +24,10 @@ P0 处理顺序：
 | 项目 | 线上结果 | 判断 |
 | --- | --- | --- |
 | `/` | 308 到 `https://yayanews.cryptooptiontool.com/zh/` | 正常 |
-| `/robots.txt` | 200，`Allow: /`，声明 3 个 sitemap | 正常 |
+| `/robots.txt` | 200，`Allow: /`，声明普通 sitemap 与 News sitemap | 正常 |
 | `/sitemap.xml` | 200，包含 10 个 sitemap chunk | 正常 |
 | `/sitemap-chunk/static/0` | 200 | 正常 |
 | `/sitemap-news.xml` | 200，当前约 94 条 News URL | 正常 |
-| `/news.xml` | 200，与 News sitemap 可访问 | 正常 |
 
 线上 `robots.txt` 主要规则：
 
@@ -41,7 +40,6 @@ Disallow: /*/search
 
 Sitemap: https://yayanews.cryptooptiontool.com/sitemap.xml
 Sitemap: https://yayanews.cryptooptiontool.com/sitemap-news.xml
-Sitemap: https://yayanews.cryptooptiontool.com/news.xml
 ```
 
 结论：全站不是被 robots 整体禁止抓取。
@@ -293,7 +291,6 @@ npm run verify:seo -- --base https://yayanews.cryptooptiontool.com --expected-or
 2. 在 GSC 重新提交：
    - `https://yayanews.cryptooptiontool.com/sitemap.xml`
    - `https://yayanews.cryptooptiontool.com/sitemap-news.xml`
-   - `https://yayanews.cryptooptiontool.com/news.xml`
 3. 用 URL Inspection 检查并请求索引：
    - `https://yayanews.cryptooptiontool.com/zh/`
    - `https://yayanews.cryptooptiontool.com/zh/news/us-stock`
