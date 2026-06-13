@@ -39,7 +39,9 @@ export function middleware(request: NextRequest) {
   const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
   const proto = request.headers.get('x-forwarded-proto') || request.nextUrl.protocol.replace(':', '') || 'https';
   const origin = host ? `${proto}://${host}` : fallbackOrigin;
-  const redirectUrl = new URL(`/${locale}${pathname}${search}`, origin);
+  const normalizedPathname = pathname === '/' ? '/' : pathname.replace(/\/+$/, '');
+  const targetPathname = normalizedPathname === '/' ? `/${locale}` : `/${locale}${normalizedPathname}`;
+  const redirectUrl = new URL(`${targetPathname}${search}`, origin);
 
   // e.g. incoming request is /news
   // The new URL is now /zh/news

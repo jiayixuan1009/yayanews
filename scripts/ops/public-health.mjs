@@ -8,11 +8,11 @@ const DEFAULT_PATHS = [
   '/news',
   '/zh',
   '/en',
-  '/admin',
   '/robots.txt',
   '/sitemap.xml',
   '/sitemap-news.xml',
   '/brand/logo-square.png',
+  '/google557e7d124058718a.html',
 ];
 const MAX_REDIRECTS = 5;
 const TIMEOUT_MS = Number(process.env.PUBLIC_HEALTH_TIMEOUT_MS || 15000);
