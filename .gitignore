@@ -63,6 +63,9 @@ Desktop.ini
 
 # ── 部署日志与产物 ──
 deploy/deploy.log
+deploy/deploy.log.*
+infra/deploy/*.log
+infra/deploy/*.log.*
 deploy.tar.gz
 
 # ── 一次性运维脚本（不入库）──
