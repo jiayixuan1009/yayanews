@@ -61,14 +61,15 @@ export const revalidate = 120;
 export default async function TagPage({ params }: { params: Promise<{ slug: string; lang: string }> }) {
   const { slug, lang } = await params;
   const decodedSlug = decodeURIComponent(slug);
-  const tag = await getTagBySlug(decodedSlug);
+  const [tag, dict, articles, total, popularTags, flashMini] = await Promise.all([
+    getTagBySlug(decodedSlug),
+    getDictionary(lang),
+    getPublishedArticlesByTagSlug(decodedSlug, 24, 0, lang),
+    getArticleCountByTagSlug(decodedSlug, lang),
+    getPopularTags(12).catch(() => []),
+    getFlashNews(lang, 6).catch(() => []),
+  ]);
   if (!tag) notFound();
-
-  const dict = await getDictionary(lang);
-  const articles = await getPublishedArticlesByTagSlug(decodedSlug, 48, 0, lang);
-  const total = await getArticleCountByTagSlug(decodedSlug, lang);
-  const popularTags = await getPopularTags(12);
-  const flashMini = await getFlashNews(lang, 6);
   const isEn = lang === 'en';
   const tagName = isEn ? (tag.name_en || tag.name) : tag.name;
   const featured = articles[0];
