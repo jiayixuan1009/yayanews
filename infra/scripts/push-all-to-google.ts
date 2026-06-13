@@ -25,32 +25,38 @@ function encodeFlashSlug(flash: { id: number; title: string; published_at: Date 
 
 const BASE_URL = 'https://yayanews.cryptooptiontool.com';
 
+function locale(value: unknown): 'zh' | 'en' {
+  return value === 'en' ? 'en' : 'zh';
+}
+
 async function main() {
   console.log('Fetching latest pages from database...');
   
   // Get latest 50 articles
   const resArt = await queryAll(`
-    SELECT slug FROM articles 
+    SELECT slug, COALESCE(lang, 'zh') as lang FROM articles
     WHERE status='published'
+      AND audit_status = 'approved'
+      AND deleted_at IS NULL
+      AND is_indexable = TRUE
+      AND COALESCE(article_type, '') <> 'short'
     ORDER BY published_at DESC LIMIT 50
   `);
   
   // Get latest 50 flash news
   const resFlash = await queryAll(`
-    SELECT id, title, published_at FROM flash_news 
+    SELECT id, title, published_at, COALESCE(lang, 'zh') as lang FROM flash_news
     ORDER BY published_at DESC LIMIT 50
   `);
 
   const urlsToPush: string[] = [];
   resArt.forEach((art: any) => {
-    urlsToPush.push(`/zh/article/${encodeURIComponent(art.slug)}`);
-    urlsToPush.push(`/en/article/${encodeURIComponent(art.slug)}`);
+    urlsToPush.push(`/${locale(art.lang)}/article/${encodeURIComponent(art.slug)}`);
   });
 
   resFlash.forEach((flash: any) => {
     const flashSlug = encodeFlashSlug(flash);
-    urlsToPush.push(`/zh/flash/${encodeURIComponent(flashSlug)}`);
-    urlsToPush.push(`/en/flash/${encodeURIComponent(flashSlug)}`);
+    urlsToPush.push(`/${locale(flash.lang)}/flash/${encodeURIComponent(flashSlug)}`);
   });
 
   console.log(`Prepared ${urlsToPush.length} URLs. Sending to webhook...`);
