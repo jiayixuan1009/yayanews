@@ -25,6 +25,15 @@ function topicAlternates(slug: string, counts: { zh: number; en: number }, curre
   return languages;
 }
 
+function topicDescription(name: string, description: string | null | undefined, isZh: boolean) {
+  const cleanDescription = (description || '').trim();
+  if (cleanDescription) return cleanDescription.slice(0, isZh ? 120 : 160);
+
+  return isZh
+    ? `追踪${name}专题的最新市场新闻、深度分析和实时动态，覆盖美股、港股、加密货币与宏观事件。`
+    : `Track the latest ${name} market news, analysis and live updates across stocks, crypto and macro events.`;
+}
+
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const [{ slug, lang }, resolvedSearchParams] = await Promise.all([params, searchParams]);
   const locale = lang === 'en' ? 'en' : 'zh';
@@ -38,7 +47,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const name = isZh ? topic.name_zh : topic.name_en;
   const desc = isZh ? topic.description_zh : topic.description_en;
   const metaTitle = topic.meta_title || `${name} ${isZh ? '专题报道' : 'Topic Coverage'} | YayaNews`;
-  const metaDesc = topic.meta_description || (desc || '').slice(0, isZh ? 120 : 160);
+  const metaDesc = topic.meta_description || topicDescription(name || topic.title || slug, desc, isZh);
   const page = parseInt(resolvedSearchParams.page || '1', 10);
 
   const baseMeta = createMetadata({
