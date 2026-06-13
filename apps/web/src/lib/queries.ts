@@ -158,6 +158,32 @@ export const EDITORIAL_AUTHOR: AuthorSummary = {
   aliases: ['YayaNews', 'Yaya Financial News'],
 };
 
+function authorSummaryFromProfile(row: AuthorProfile & {
+  article_count: number;
+  latest_at: Date | string | null;
+  aliases: string[] | null;
+}): AuthorSummary {
+  return {
+    id: row.id,
+    name: row.display_name,
+    slug: row.slug,
+    display_name: row.display_name,
+    role: row.role,
+    bio: row.bio,
+    expertise: row.expertise,
+    avatar_url: row.avatar_url,
+    email_or_contact: row.email_or_contact,
+    profile_url: row.profile_url,
+    status: row.status,
+    review_status: row.review_status,
+    is_external_source: row.is_external_source,
+    external_source_url: row.external_source_url,
+    article_count: row.article_count,
+    latest_at: row.latest_at ? safeDateStr(row.latest_at) : null,
+    aliases: [...new Set([row.display_name, ...(row.aliases || [])].filter(Boolean))],
+  };
+}
+
 export async function getAuthorsForIndex(limit = 200): Promise<AuthorSummary[]> {
   try {
     const rows = await db.queryAll<AuthorProfile & {
@@ -181,25 +207,7 @@ export async function getAuthorsForIndex(limit = 200): Promise<AuthorSummary[]> 
       LIMIT $1::int
     `, [limit]);
 
-    const authors: AuthorSummary[] = rows.map(row => ({
-      id: row.id,
-      name: row.display_name,
-      slug: row.slug,
-      display_name: row.display_name,
-      role: row.role,
-      bio: row.bio,
-      expertise: row.expertise,
-      avatar_url: row.avatar_url,
-      email_or_contact: row.email_or_contact,
-      profile_url: row.profile_url,
-      status: row.status,
-      review_status: row.review_status,
-      is_external_source: row.is_external_source,
-      external_source_url: row.external_source_url,
-      article_count: row.article_count,
-      latest_at: row.latest_at ? safeDateStr(row.latest_at) : null,
-      aliases: [...new Set([row.display_name, ...(row.aliases || [])].filter(Boolean))],
-    }));
+    const authors: AuthorSummary[] = rows.map(authorSummaryFromProfile);
 
     if (!authors.some(author => author.slug === EDITORIAL_AUTHOR.slug)) {
       authors.push(EDITORIAL_AUTHOR);
@@ -258,6 +266,38 @@ export async function getAuthorsForSitemap(): Promise<AuthorSummary[]> {
 }
 
 export async function getAuthorBySlug(slug: string): Promise<AuthorSummary | undefined> {
+  try {
+    const row = await db.queryGet<AuthorProfile & {
+      article_count: number;
+      latest_at: Date | string | null;
+      aliases: string[] | null;
+    }>(`
+      SELECT au.*,
+             COALESCE(article_stats.article_count, 0)::int as article_count,
+             article_stats.latest_at,
+             COALESCE(article_stats.aliases, ARRAY[]::text[]) as aliases
+      FROM authors au
+      LEFT JOIN LATERAL (
+        SELECT COUNT(a.id)::int as article_count,
+               MAX(a.updated_at) as latest_at,
+               ARRAY_REMOVE(ARRAY_AGG(DISTINCT NULLIF(TRIM(a.author), '')), NULL) as aliases
+        FROM articles a
+        WHERE a.author_id = au.id
+          AND a.status = 'published'
+          AND a.audit_status = 'approved'
+          AND a.deleted_at IS NULL
+          AND a.is_indexable = TRUE
+      ) article_stats ON TRUE
+      WHERE au.status = 'active'
+        AND au.slug = $1::text
+      LIMIT 1
+    `, [slug]);
+
+    if (row) return authorSummaryFromProfile(row);
+  } catch {
+    // Migration-safe fallback for deployments before the authors table exists.
+  }
+
   const authors = await getAuthorsForIndex(500);
   return authors.find(author => author.slug === slug);
 }
@@ -298,9 +338,39 @@ export async function getPublishedArticlesByAuthor(author: string, lang: string 
   return withTags.map(formatArticleDates);
 }
 
-export async function getPublishedArticlesByAuthorSlug(slug: string, lang: string = 'zh', limit = 20, offset = 0): Promise<Article[]> {
-  const author = await getAuthorBySlug(slug);
+export async function getPublishedArticlesByAuthorSlug(
+  slug: string,
+  lang: string = 'zh',
+  limit = 20,
+  offset = 0,
+  knownAuthor?: AuthorSummary
+): Promise<Article[]> {
+  const author = knownAuthor ?? await getAuthorBySlug(slug);
   if (!author) return [];
+  if (typeof author.id === 'number') {
+    try {
+      const articles = await db.queryAll<Article>(`
+        SELECT a.*, c.name as category_name, c.slug as category_slug,
+          ${ARTICLE_AUTHOR_FIELDS}
+        FROM articles a
+        LEFT JOIN categories c ON a.category_id = c.id
+        LEFT JOIN authors au ON au.id = a.author_id
+        WHERE a.status = 'published'
+          AND a.audit_status = 'approved'
+          AND a.lang = $1::text
+          AND a.deleted_at IS NULL
+          AND a.is_indexable = TRUE
+          AND a.author_id = $2::int
+        ORDER BY a.published_at DESC
+        LIMIT $3::int OFFSET $4::int
+      `, [lang, author.id, limit, offset]);
+
+      const withTags = await attachTagsBatch(articles);
+      return withTags.map(formatArticleDates);
+    } catch {
+      // Fall through to alias-based lookup for older schemas or partially migrated data.
+    }
+  }
   const aliases = author.aliases.length > 0 ? author.aliases : [author.name];
   try {
     const articles = await db.queryAll<Article>(`

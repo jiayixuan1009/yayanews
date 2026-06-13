@@ -45,7 +45,7 @@ export default async function AuthorPage({
   ]);
   if (!author) notFound();
 
-  const articles = await getPublishedArticlesByAuthorSlug(slug, locale, 24);
+  const articles = await getPublishedArticlesByAuthorSlug(slug, locale, 24, 0, author);
   const isEditorial = slug === 'yayanews-editorial';
   const fallbackAuthorDescription = locale === 'en'
     ? isEditorial
