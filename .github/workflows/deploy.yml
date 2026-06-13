@@ -22,10 +22,11 @@ jobs:
             cd /var/www/yayanews
 
             echo "Deploying tag: ${{ github.ref_name }}"
-            if [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
+            dirty_status="$(git status --porcelain --untracked-files=normal | grep -Ev '^\?\? infra/deploy/[^/]+\.log(\.[0-9]+)?$' || true)"
+            if [ -n "$dirty_status" ]; then
               echo "Production worktree is dirty; snapshotting and aborting before checkout."
               echo "::group::Production dirty status"
-              git status --branch --short --untracked-files=normal || true
+              printf '%s\n' "$dirty_status" || true
               echo "::endgroup::"
               echo "::group::Production tracked diff stat"
               git diff --stat || true

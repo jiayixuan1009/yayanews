@@ -346,10 +346,14 @@ assert_clean_worktree() {
         return 0
     fi
 
-    if [ -n "$(git status --porcelain)" ]; then
+    local dirty_status
+    dirty_status="$(git status --porcelain --untracked-files=normal | grep -Ev '^\?\? infra/deploy/[^/]+\.log(\.[0-9]+)?$' || true)"
+    if [ -n "$dirty_status" ]; then
         local snapshot_dir
         snapshot_dir="$(bash "$APP_DIR/infra/scripts/snapshot-worktree.sh")"
         log "${RED}Git worktree is dirty; aborting deploy to avoid overwriting production changes${NC}"
+        log "${YELLOW}Dirty status:${NC}"
+        printf '%s\n' "$dirty_status" | tee -a "$LOG_FILE"
         log "${YELLOW}Snapshot saved to: $snapshot_dir${NC}"
         log "${YELLOW}Review and commit/stash those changes, or rerun with ALLOW_DIRTY_DEPLOY=1 if intentional.${NC}"
         exit 1
