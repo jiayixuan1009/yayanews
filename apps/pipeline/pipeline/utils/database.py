@@ -2,6 +2,9 @@
 import json
 import os
 import psycopg2
+import re
+from collections.abc import Mapping
+from difflib import SequenceMatcher
 from psycopg2.extras import RealDictCursor
 from datetime import datetime, timezone, timedelta
 from typing import Optional
@@ -34,6 +37,32 @@ def now_cn() -> str:
 
 _pool = None
 _llm_usage_table_missing = False
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.environ.get(name, str(default)))
+    except ValueError:
+        return default
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.environ.get(name, str(default)))
+    except ValueError:
+        return default
+
+
+TITLE_DUPLICATE_LOOKBACK = _env_int("TITLE_DUPLICATE_LOOKBACK", 300)
+TITLE_DUPLICATE_PREFIX_LENGTH = _env_int("TITLE_DUPLICATE_PREFIX_LENGTH", 10)
+TITLE_DUPLICATE_SIMILARITY = _env_float("TITLE_DUPLICATE_SIMILARITY", 0.72)
+TITLE_NEAR_DUPLICATE_SIMILARITY = _env_float("TITLE_NEAR_DUPLICATE_SIMILARITY", 0.88)
+
+
+def normalize_title_key(title: str) -> str:
+    text = (title or "").casefold().strip()
+    text = re.sub(r"\s*[\|｜]\s*(yayanews|yaya news).*?$", "", text)
+    return re.sub(r"[\W_]+", "", text, flags=re.UNICODE)
 
 def get_pool():
     global _pool
@@ -94,6 +123,18 @@ def insert_article(
     conn = get_conn()
     try:
         with conn.cursor() as cur:
+            normalized_title = (title or "").strip()
+            if normalized_title:
+                cur.execute(
+                    "SELECT id FROM articles WHERE lower(trim(title)) = lower(trim(%s)) LIMIT 1",
+                    (normalized_title,),
+                )
+                existing = cur.fetchone()
+                if existing:
+                    conn.rollback()
+                    log.warning(f"Article title already exists: id={existing[0]}, title={normalized_title[:80]}")
+                    return -1
+
             # Check slug uniqueness and mutate if collision exists
             original_slug = slug
             counter = 1
@@ -178,6 +219,20 @@ def update_article_full(
     conn = get_conn()
     try:
         with conn.cursor() as cur:
+            normalized_title = (title or "").strip()
+            if normalized_title:
+                cur.execute(
+                    "SELECT id FROM articles WHERE lower(trim(title)) = lower(trim(%s)) AND id <> %s LIMIT 1",
+                    (normalized_title, article_id),
+                )
+                existing = cur.fetchone()
+                if existing:
+                    conn.rollback()
+                    log.warning(
+                        f"Article title already exists: id={existing[0]}, title={normalized_title[:80]}"
+                    )
+                    return False
+
             cur.execute("""
                 UPDATE articles SET
                     title=%s, slug=%s, summary=%s, content=%s, category_id=%s,
@@ -457,16 +512,115 @@ def slug_exists(slug: str) -> bool:
     finally:
         get_pool().putconn(conn)
 
-def title_exists(title: str) -> bool:
+def _query_existing_normalized_title(
+    cur,
+    title: str,
+    exclude_article_id: Optional[int] = None,
+) -> Optional[object]:
+    normalized_title = (title or "").strip()
+    if not normalized_title:
+        return None
+    if exclude_article_id is None:
+        cur.execute(
+            "SELECT id, title FROM articles WHERE lower(trim(title)) = lower(trim(%s)) LIMIT 1",
+            (normalized_title,),
+        )
+    else:
+        cur.execute(
+            "SELECT id, title FROM articles WHERE lower(trim(title)) = lower(trim(%s)) AND id <> %s LIMIT 1",
+            (normalized_title, exclude_article_id),
+        )
+    return cur.fetchone()
+
+def normalized_title_exists(title: str, exclude_article_id: Optional[int] = None) -> bool:
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT 1 FROM articles WHERE title = %s", (title,))
-            return cur.fetchone() is not None
-    except Exception:
+            return _query_existing_normalized_title(cur, title, exclude_article_id) is not None
+    except Exception as e:
+        log.warning(f"Normalized title check failed: {e}")
         return False
     finally:
         get_pool().putconn(conn)
+
+def title_exists(title: str) -> bool:
+    return normalized_title_exists(title)
+
+def find_similar_article_title(
+    title: str,
+    exclude_article_id: Optional[int] = None,
+    limit: int = TITLE_DUPLICATE_LOOKBACK,
+    prefix_length: int = TITLE_DUPLICATE_PREFIX_LENGTH,
+    prefix_similarity: float = TITLE_DUPLICATE_SIMILARITY,
+    near_similarity: float = TITLE_NEAR_DUPLICATE_SIMILARITY,
+) -> Optional[dict]:
+    candidate_key = normalize_title_key(title)
+    if not candidate_key:
+        return None
+
+    conn = get_conn()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            exact = _query_existing_normalized_title(cur, title, exclude_article_id)
+            if exact:
+                return {
+                    "id": exact["id"] if isinstance(exact, Mapping) else exact[0],
+                    "title": exact["title"] if isinstance(exact, Mapping) else exact[1],
+                    "reason": "exact_normalized_title",
+                    "similarity": 1.0,
+                }
+
+            where = [
+                "NULLIF(trim(title), '') IS NOT NULL",
+                "status = 'published'",
+            ]
+            params: list[object] = []
+            if exclude_article_id is not None:
+                where.append("id <> %s")
+                params.append(exclude_article_id)
+            params.append(limit)
+            cur.execute(
+                f"""
+                SELECT id, title
+                FROM articles
+                WHERE {' AND '.join(where)}
+                ORDER BY COALESCE(published_at, created_at) DESC NULLS LAST, id DESC
+                LIMIT %s
+                """,
+                tuple(params),
+            )
+            for row in cur.fetchall():
+                existing_key = normalize_title_key(row["title"])
+                if not existing_key:
+                    continue
+                if existing_key == candidate_key:
+                    return {
+                        "id": row["id"],
+                        "title": row["title"],
+                        "reason": "exact_title_key",
+                        "similarity": 1.0,
+                    }
+
+                similarity = SequenceMatcher(None, candidate_key, existing_key).ratio()
+                prefix_match = (
+                    len(candidate_key) >= prefix_length
+                    and len(existing_key) >= prefix_length
+                    and candidate_key[:prefix_length] == existing_key[:prefix_length]
+                )
+                if (prefix_match and similarity >= prefix_similarity) or similarity >= near_similarity:
+                    return {
+                        "id": row["id"],
+                        "title": row["title"],
+                        "reason": "similar_title",
+                        "similarity": round(similarity, 3),
+                    }
+    except Exception as e:
+        log.warning(f"Similar title check failed: {e}")
+        return None
+    finally:
+        get_pool().putconn(conn)
+
+    return None
 
 def get_recent_titles(limit: int = 50) -> list[str]:
     conn = get_conn()

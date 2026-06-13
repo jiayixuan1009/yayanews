@@ -5,7 +5,7 @@ Agent 5: 入库发布
 - 入库后主动 Ping 谷歌 sitemap 以加速收录
 """
 import requests
-from pipeline.utils.database import insert_article, insert_tags, get_conn, get_pool
+from pipeline.utils.database import insert_article, insert_tags, get_conn, get_pool, find_similar_article_title
 from pipeline.utils.logger import get_logger, step_print
 from pipeline.config.settings import SITE_URL, CATEGORIES
 from pipeline.cover_image import resolve_cover_for_article
@@ -163,6 +163,19 @@ def publish(articles: list[dict]) -> list[dict]:
             continue
 
         draft_id = article.get("draft_id")
+        duplicate = find_similar_article_title(
+            article.get("title", ""),
+            exclude_article_id=draft_id if draft_id and draft_id > 0 else None,
+        )
+        if duplicate:
+            log.warning(
+                f"Skip [{title}]: duplicate title before publish "
+                f"reason={duplicate.get('reason')} existing_id={duplicate.get('id')} "
+                f"similarity={duplicate.get('similarity')} existing_title={duplicate.get('title')}"
+            )
+            print(f"  [{i}] SKIPPED DUPLICATE TITLE ({duplicate.get('reason')}): {title}")
+            continue
+
         if draft_id and draft_id > 0:
             from pipeline.utils.database import update_article_full
             success = update_article_full(
