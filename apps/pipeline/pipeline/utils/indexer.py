@@ -69,21 +69,22 @@ def _do_ping(urls: list[str], webhook_url: str) -> None:
     except Exception as e:
         log.warning(f"Failed to ping indexer webhook: {e}")
 
-def ping_indexer(article_slug=None, flash_dict=None):
+def _locale(value) -> str:
+    return "en" if value == "en" else "zh"
+
+
+def ping_indexer(article_slug=None, article_lang="zh", flash_dict=None):
     urls_google = []
     urls_all_paths = []
     
     if article_slug:
-        urls_all_paths.append(f"/zh/article/{urllib.parse.quote(article_slug)}")
-        urls_all_paths.append(f"/en/article/{urllib.parse.quote(article_slug)}")
+        article_path = f"/{_locale(article_lang)}/article/{urllib.parse.quote(article_slug)}"
+        urls_all_paths.append(article_path)
         urls_google.extend(urls_all_paths)
         
     if flash_dict:
         flash_slug = _encode_flash_slug(flash_dict["id"], flash_dict["title"], flash_dict["published_at"])
-        flash_paths = [
-            f"/zh/flash/{urllib.parse.quote(flash_slug)}",
-            f"/en/flash/{urllib.parse.quote(flash_slug)}"
-        ]
+        flash_paths = [f"/{_locale(flash_dict.get('lang'))}/flash/{urllib.parse.quote(flash_slug)}"]
         urls_all_paths.extend(flash_paths)
         
         importance = flash_dict.get("importance", "normal")

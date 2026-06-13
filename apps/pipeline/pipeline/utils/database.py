@@ -173,7 +173,7 @@ def insert_article(
                 
         if status == "published":
             from pipeline.utils.indexer import ping_indexer
-            ping_indexer(article_slug=slug)
+            ping_indexer(article_slug=slug, article_lang=lang)
                 
         return article_id
     except psycopg2.IntegrityError as e:
@@ -261,7 +261,7 @@ def update_article_full(
                 except Exception as e:
                     log.error(f"Redis publish fail: {e}")
             from pipeline.utils.indexer import ping_indexer
-            ping_indexer(article_slug=slug)
+            ping_indexer(article_slug=slug, article_lang=lang)
 
         return True
     except Exception as e:
@@ -401,7 +401,8 @@ def insert_flash(
             "id": fid,
             "title": title,
             "published_at": ts,
-            "importance": importance
+            "importance": importance,
+            "lang": lang,
         })
                 
         return fid

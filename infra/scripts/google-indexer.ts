@@ -61,6 +61,18 @@ function encodeFlashSlug(flash: { id: number; title: string; published_at: Date 
 
 const BASE_URL = 'https://yayanews.cryptooptiontool.com';
 
+function locale(value: unknown): 'zh' | 'en' {
+  return value === 'en' ? 'en' : 'zh';
+}
+
+function articleUrl(row: { slug: string; lang?: unknown }): string {
+  return `${BASE_URL}/${locale(row.lang)}/article/${encodeURIComponent(row.slug)}`;
+}
+
+function flashUrl(row: { id: number; title: string; published_at: Date; lang?: unknown }): string {
+  return `${BASE_URL}/${locale(row.lang)}/flash/${encodeURIComponent(encodeFlashSlug(row))}`;
+}
+
 async function main() {
   console.log('Starting Google Indexing Proactive Ping...');
   
@@ -86,8 +98,12 @@ async function main() {
   // Get 5 newest articles less than 24 hours old
   console.log('Querying latest articles...');
   const resArt = await queryAll(`
-    SELECT slug FROM articles 
+    SELECT slug, COALESCE(lang, 'zh') as lang FROM articles
     WHERE status='published' 
+      AND audit_status = 'approved'
+      AND deleted_at IS NULL
+      AND is_indexable = TRUE
+      AND COALESCE(article_type, '') <> 'short'
       AND published_at > NOW() - INTERVAL '24 HOURS'
     ORDER BY published_at DESC LIMIT 5
   `);
@@ -95,7 +111,7 @@ async function main() {
   // Get 5 newest flash news less than 24 hours old
   console.log('Querying latest flashes...');
   const resFlash = await queryAll(`
-    SELECT id, title, published_at FROM flash_news 
+    SELECT id, title, published_at, COALESCE(lang, 'zh') as lang FROM flash_news
     WHERE published_at > NOW() - INTERVAL '24 HOURS'
     ORDER BY published_at DESC LIMIT 10
   `);
@@ -103,14 +119,11 @@ async function main() {
   const urlsToPush: string[] = [];
   
   for (const row of resArt as any[]) {
-      urlsToPush.push(`${BASE_URL}/zh/article/${row.slug}`);
-      urlsToPush.push(`${BASE_URL}/en/article/${row.slug}`);
+      urlsToPush.push(articleUrl(row));
   }
 
   for (const row of resFlash as any[]) {
-      const slug = encodeFlashSlug(row);
-      urlsToPush.push(`${BASE_URL}/zh/flash/${slug}`);
-      urlsToPush.push(`${BASE_URL}/en/flash/${slug}`);
+      urlsToPush.push(flashUrl(row));
   }
 
   console.log(`Prepared ${urlsToPush.length} URLs for Indexing Push.`);
