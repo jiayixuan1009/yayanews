@@ -2,9 +2,10 @@ import { getDictionary } from '@/lib/dictionaries';
 import type { Metadata } from 'next';
 import LocalizedLink from '@/components/LocalizedLink';
 import Image from 'next/image';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import {
   getArticleBySlug,
+  getArticleRedirectTargetByLegacySlug,
   getRelatedArticles,
   getAdjacentArticles,
   getPublishedArticles,
@@ -50,7 +51,7 @@ function truncateMetadataTitle(title: string, lang: string): string {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; lang: string }> }): Promise<Metadata> {
   const { slug, lang } = await params;
   const article = await getArticleBySlug(slug) as (Article & { sibling_slug?: string }) | undefined;
-  if (!article || (article.lang && article.lang !== lang)) return {};
+  if (!article || articleLocale(article.lang) !== articleLocale(lang)) return {};
   const descFallback = article.summary
     ? article.summary.slice(0, 155)
     : article.content
@@ -109,6 +110,10 @@ function splitList(value?: string | null): string[] {
     .filter(Boolean);
 }
 
+function articleLocale(value?: string | null): 'zh' | 'en' {
+  return value === 'en' ? 'en' : 'zh';
+}
+
 function roleLabel(role: string | undefined, lang: string): string {
   const labels: Record<string, { zh: string; en: string }> = {
     syndication_source: { zh: '授权/合作来源', en: 'Syndication source' },
@@ -154,6 +159,23 @@ function licenseLabel(value?: string | null, lang?: string): string | null {
 
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string; lang: string }> }) {
   const { slug, lang } = await params;
+
+  const article = await getArticleBySlug(slug);
+  const requestedLocale = articleLocale(lang);
+  if (!article || articleLocale(article.lang) !== requestedLocale) {
+    const currentLocale = articleLocale(article?.lang);
+    const siblingSlug = (article as { sibling_slug?: string } | undefined)?.sibling_slug;
+    const target = article
+      ? currentLocale !== requestedLocale && siblingSlug
+        ? { lang: requestedLocale, slug: siblingSlug }
+        : { lang: currentLocale, slug: article.slug }
+      : await getArticleRedirectTargetByLegacySlug(slug, lang);
+    if (target && (target.lang !== requestedLocale || target.slug !== slug)) {
+      permanentRedirect(`/${target.lang}/article/${target.slug}`);
+    }
+    notFound();
+  }
+
   const dict = await getDictionary(lang);
 
   function getSentimentLabel(sentiment?: string) {
@@ -162,9 +184,6 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     if (sentiment) return { label: dict.article.neutral, cls: 'border-slate-200 bg-slate-100 text-slate-600' };
     return null;
   }
-
-  const article = await getArticleBySlug(slug);
-  if (!article || (article.lang && article.lang !== lang)) notFound();
 
   const topicId = article.topic_id as number | null | undefined;
   const [related, adjacent, sameCategory, articleTopic] = await Promise.all([

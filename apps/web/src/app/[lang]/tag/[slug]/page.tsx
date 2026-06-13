@@ -1,9 +1,10 @@
 import { getDictionary } from '@/lib/dictionaries';
 import type { Metadata } from 'next';
 import LocalizedLink from '@/components/LocalizedLink';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import {
   getTagBySlug,
+  getTagBySlugOrName,
   getPublishedArticlesByTagSlug,
   getArticleCountByTagSlug,
   getPopularTags,
@@ -34,14 +35,15 @@ function tagAlternates(slug: string, counts: { zh: number; en: number }, current
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; lang: string }> }): Promise<Metadata> {
   const { slug, lang } = await params;
   const decodedSlug = decodeURIComponent(slug);
-  const tag = await getTagBySlug(decodedSlug);
+  const tag = await getTagBySlug(decodedSlug) || await getTagBySlugOrName(decodedSlug);
   if (!tag) return {};
   const isZh = lang !== 'en';
   const locale = isZh ? 'zh' : 'en';
   const tagName = isZh ? tag.name : (tag.name_en || tag.name);
+  const canonicalSlug = tag.slug || decodedSlug;
   const [zhArticleCount, enArticleCount] = await Promise.all([
-    getArticleCountByTagSlug(decodedSlug, 'zh'),
-    getArticleCountByTagSlug(decodedSlug, 'en'),
+    getArticleCountByTagSlug(canonicalSlug, 'zh'),
+    getArticleCountByTagSlug(canonicalSlug, 'en'),
   ]);
   const articleCount = isZh ? zhArticleCount : enArticleCount;
   return createMetadata({
@@ -49,9 +51,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     description: isZh
       ? `追踪「${tagName}」相关市场新闻、深度分析和实时资讯，覆盖美股、港股、加密货币、衍生品与宏观事件。`
       : `Track YayaNews market coverage related to #${tagName}, including news, analysis and live updates across stocks, crypto, derivatives and macro events.`,
-    url: `/tag/${decodedSlug}`,
+    url: `/tag/${canonicalSlug}`,
     lang: locale,
-    alternatesLanguages: tagAlternates(decodedSlug, { zh: zhArticleCount, en: enArticleCount }, locale),
+    alternatesLanguages: tagAlternates(canonicalSlug, { zh: zhArticleCount, en: enArticleCount }, locale),
     noIndex: articleCount < 3, // P1 SEO: thin tag pages (< 3 articles) excluded from index pool
   });
 }
@@ -61,15 +63,22 @@ export const revalidate = 120;
 export default async function TagPage({ params }: { params: Promise<{ slug: string; lang: string }> }) {
   const { slug, lang } = await params;
   const decodedSlug = decodeURIComponent(slug);
-  const [tag, dict, articles, total, popularTags, flashMini] = await Promise.all([
-    getTagBySlug(decodedSlug),
+  const tag = await getTagBySlug(decodedSlug);
+  if (!tag) {
+    const legacyTag = await getTagBySlugOrName(decodedSlug);
+    if (legacyTag && legacyTag.slug !== decodedSlug) {
+      permanentRedirect(`/${lang}/tag/${legacyTag.slug}`);
+    }
+    notFound();
+  }
+
+  const [dict, articles, total, popularTags, flashMini] = await Promise.all([
     getDictionary(lang),
-    getPublishedArticlesByTagSlug(decodedSlug, 24, 0, lang),
-    getArticleCountByTagSlug(decodedSlug, lang),
+    getPublishedArticlesByTagSlug(tag.slug, 24, 0, lang),
+    getArticleCountByTagSlug(tag.slug, lang),
     getPopularTags(12).catch(() => []),
     getFlashNews(lang, 6).catch(() => []),
   ]);
-  if (!tag) notFound();
   const isEn = lang === 'en';
   const tagName = isEn ? (tag.name_en || tag.name) : tag.name;
   const featured = articles[0];
@@ -83,7 +92,7 @@ export default async function TagPage({ params }: { params: Promise<{ slug: stri
     description: isEn
       ? `Browse YayaNews articles related to #${tagName}`
       : `浏览与「${tagName}」相关的 YayaNews 资讯稿件`,
-    url: `${siteConfig.siteUrl}/${lang}/tag/${decodedSlug}`,
+    url: `${siteConfig.siteUrl}/${lang}/tag/${tag.slug}`,
     mainEntity: {
       '@type': 'ItemList',
       itemListElement: articles.slice(0, 20).map((a, i) => ({
@@ -98,7 +107,7 @@ export default async function TagPage({ params }: { params: Promise<{ slug: stri
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
     { name: dict.nav.home, url: `/${lang}` },
     { name: dict.nav.newsSection || dict.nav.news, url: `/${lang}/news` },
-    { name: `#${tagName}`, url: `/${lang}/tag/${decodedSlug}` },
+    { name: `#${tagName}`, url: `/${lang}/tag/${tag.slug}` },
   ]);
 
   return (

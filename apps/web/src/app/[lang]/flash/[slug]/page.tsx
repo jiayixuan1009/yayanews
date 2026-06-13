@@ -1,8 +1,8 @@
 import { getDictionary } from '@/lib/dictionaries';
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { getFlashNewsById } from '@/lib/queries';
-import { decodeFlashSlug, getImportanceDot } from '@/lib/ui-utils';
+import { decodeFlashSlug, encodeFlashSlug, getImportanceDot } from '@/lib/ui-utils';
 import { createMetadata } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 import LocalizedLink from '@/components/LocalizedLink';
@@ -12,19 +12,24 @@ function isIndexable(importance: string | undefined): boolean {
   return importance === 'high' || importance === 'urgent';
 }
 
+function flashLocale(value?: string | null): 'zh' | 'en' {
+  return value === 'en' ? 'en' : 'zh';
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; lang: string }> }): Promise<Metadata> {
   const { slug, lang } = await params;
   const flashId = decodeFlashSlug(slug);
   if (!flashId) return {};
   const flash = await getFlashNewsById(flashId);
-  if (!flash || (flash.lang && flash.lang !== lang)) return {};
-  const locale = lang === 'en' ? 'en' : 'zh';
-  const canonicalPath = `/${locale}/flash/${slug}`;
+  const locale = flashLocale(lang);
+  if (!flash || flashLocale(flash.lang) !== locale) return {};
+  const canonicalSlug = encodeFlashSlug(flash);
+  const canonicalPath = `/${locale}/flash/${canonicalSlug}`;
 
   return createMetadata({
     title: flash.title, // brand suffix auto-appended by title template
     description: (flash.content || flash.title).slice(0, 155),
-    url: `/flash/${slug}`,
+    url: `/flash/${canonicalSlug}`,
     type: 'article',
     publishedTime: flash.published_at || undefined,
     modifiedTime: flash.published_at || undefined,
@@ -43,13 +48,19 @@ export const revalidate = 60;
 
 export default async function FlashDetailPage({ params }: { params: Promise<{ slug: string; lang: string }> }) {
   const { slug, lang } = await params;
-  const dict = await getDictionary(lang);
   const flashId = decodeFlashSlug(slug);
   if (!flashId) notFound();
 
   const flash = await getFlashNewsById(flashId);
-  if (!flash || (flash.lang && flash.lang !== lang)) notFound();
+  if (!flash) notFound();
 
+  const flashLang = flashLocale(flash.lang);
+  const canonicalSlug = encodeFlashSlug(flash);
+  if (flashLang !== lang || canonicalSlug !== slug) {
+    permanentRedirect(`/${flashLang}/flash/${canonicalSlug}`);
+  }
+
+  const dict = await getDictionary(lang);
   const loc = lang === 'en' ? '/en' : '/zh';
   const flashJsonLd = isIndexable(flash.importance) ? {
     '@context': 'https://schema.org',
@@ -68,7 +79,7 @@ export default async function FlashDetailPage({ params }: { params: Promise<{ sl
       logo: { '@type': 'ImageObject', url: `${siteConfig.siteUrl}/brand/logo-square.png`, width: 512, height: 512 },
       sameAs: Object.values(siteConfig.socialLinks),
     },
-    mainEntityOfPage: { '@type': 'WebPage', '@id': `${siteConfig.siteUrl}${loc}/flash/${slug}` },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `${siteConfig.siteUrl}${loc}/flash/${canonicalSlug}` },
   } : null;
 
   return (
