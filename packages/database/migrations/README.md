@@ -23,4 +23,4 @@ npm --prefix packages/database run db:migrate
 
 ## Relationship to `schema.sql`
 
-`schema.sql` remains the bootstrap schema for brand-new databases (`npm run db:init`). Once a database exists, incremental changes **must** be expressed as migrations in this directory. The first migration (`0001_create_schema_migrations.sql`) only creates the registry table, so applying migrations to a pre-existing database is safe and idempotent.
+`schema.sql` remains the bootstrap schema for brand-new databases (`npm run db:init`). Once a database exists, incremental changes **must** be expressed as migrations in this directory. The first migration (`0001_create_schema_migrations.sql`) only creates the registry table, so applying migrations to a pre-existing database is safe and idempotent. Indexes that require data cleanup, such as normalized article-title uniqueness, should live in migrations instead of `schema.sql` so old production data can be repaired before constraints are enforced.
