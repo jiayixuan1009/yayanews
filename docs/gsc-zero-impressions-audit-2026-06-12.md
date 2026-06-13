@@ -1,8 +1,8 @@
 # GSC 0 展现专项 SEO 审计报告
 
-审计日期：2026-06-12  
-审计对象：`https://yayanews.cryptooptiontool.com`  
-审计目标：解释为什么 Google Search Console 仍为 0 展现，并给出可执行的修复与复查顺序。  
+审计日期：2026-06-12
+审计对象：`https://yayanews.cryptooptiontool.com`
+审计目标：解释为什么 Google Search Console 仍为 0 展现，并给出可执行的修复与复查顺序。
 
 ## 1. 结论先行
 
@@ -70,7 +70,7 @@ npm run verify:seo -- --base https://yayanews.cryptooptiontool.com --expected-or
 
 ### 2.3 Google 验证 meta 当前未出现在页面 HTML
 
-线上抽样 `/zh`、`/en/news/us-stock`、`/zh/privacy`、`/en/contact`，未发现 `google-site-verification` meta。  
+线上抽样 `/zh`、`/en/news/us-stock`、`/zh/privacy`、`/en/contact`，未发现 `google-site-verification` meta。
 本地 `.env` 也未配置 `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`。
 
 判断：
@@ -339,11 +339,11 @@ npm run verify:seo -- --base https://yayanews.cryptooptiontool.com --expected-or
 
 ## 7. 官方参考
 
-- Google Search Central：Sitemap 基础说明  
+- Google Search Central：Sitemap 基础说明
   https://developers.google.com/search/docs/crawling-indexing/sitemaps/overview
-- Google Search Central：Canonical 与重复 URL 规范化  
+- Google Search Central：Canonical 与重复 URL 规范化
   https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls
-- Google Search Central：robots meta / X-Robots-Tag  
+- Google Search Central：robots meta / X-Robots-Tag
   https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag
-- Google Search Central：请求重新抓取  
+- Google Search Central：请求重新抓取
   https://developers.google.com/search/docs/crawling-indexing/ask-google-to-recrawl
