@@ -50,7 +50,7 @@ jobs:
       - name: 搭建物联网环境
         uses: actions/setup-node@v4
         with:
-          node-version: '18.17.x'
+          node-version: '20.19.x'
 
       - name: 重度构建 (Standalone化生成)
         run: |
