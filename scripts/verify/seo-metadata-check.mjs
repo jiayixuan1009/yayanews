@@ -106,7 +106,7 @@ function usage() {
 
 function parseSitemapKindSamples(value) {
   if (!value) return [];
-  const validKinds = new Set(['static', 'categories', 'articles', 'authors', 'topics', 'tags', 'guides', 'flash']);
+  const validKinds = new Set(['static', 'categories', 'articles', 'authors', 'topics', 'tags', 'guides']);
   return value
     .split(',')
     .map((entry) => entry.trim())
@@ -343,7 +343,7 @@ function checkFromSitemapPath(path) {
     return {
       ...check,
       jsonLdTypes: ['CollectionPage'],
-      allowPartialAlternates: /^\/(zh|en)\/tag\//.test(path),
+      allowPartialAlternates: /^\/(zh|en)\/(?:tag|topics)\//.test(path),
     };
   }
   return check;

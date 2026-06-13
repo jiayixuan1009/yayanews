@@ -49,7 +49,7 @@ Sitemap: https://yayanews.cryptooptiontool.com/sitemap-news.xml
 验证命令：
 
 ```bash
-npm run verify:seo -- --base https://yayanews.cryptooptiontool.com --expected-origin https://yayanews.cryptooptiontool.com --sample-article-urls 2 --probe-sitemap-urls 5 --sample-sitemap-kinds authors:2,topics:2,tags:2,guides:2,flash:2
+npm run verify:seo -- --base https://yayanews.cryptooptiontool.com --expected-origin https://yayanews.cryptooptiontool.com --sample-article-urls 2 --probe-sitemap-urls 5 --sample-sitemap-kinds authors:2,topics:2,tags:2,guides:2
 ```
 
 线上结果：`SEO metadata check failed: 43/49 checks failed.`
@@ -272,7 +272,7 @@ bash deploy/publish-yayanews.sh
 部署完成后立即运行：
 
 ```bash
-npm run verify:seo -- --base https://yayanews.cryptooptiontool.com --expected-origin https://yayanews.cryptooptiontool.com --sample-article-urls 5 --probe-sitemap-urls 20 --sample-sitemap-kinds authors:2,topics:2,tags:5,guides:2,flash:2
+npm run verify:seo -- --base https://yayanews.cryptooptiontool.com --expected-origin https://yayanews.cryptooptiontool.com --sample-article-urls 5 --probe-sitemap-urls 20 --sample-sitemap-kinds authors:2,topics:2,tags:5,guides:2
 ```
 
 必须重点确认：

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAuthorsForSitemap, getCategories, getGuidesForSitemap, getIndexableFlashForSitemap, getRecentArticlesForSitemap, getTagsForSitemap, getTopicsForSitemap } from '@/lib/queries';
-import { encodeFlashSlug } from '@/lib/ui-utils';
+import { getAuthorsForSitemap, getCategories, getGuidesForSitemap, getRecentArticlesForSitemap, getTagsForSitemap, getTopicsForSitemap } from '@/lib/queries';
 import { buildUrlset, type SitemapUrlEntry } from '@/lib/sitemap-xml';
 import { CATEGORY_DISPLAY_ORDER } from '@/lib/constants';
 import { siteConfig } from '@yayanews/types';
@@ -9,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
 
 const CHUNK_SIZE = 1000;
-const VALID_KINDS = new Set(['static', 'categories', 'articles', 'authors', 'topics', 'tags', 'guides', 'flash']);
+const VALID_KINDS = new Set(['static', 'categories', 'articles', 'authors', 'topics', 'tags', 'guides']);
 const INDEXABLE_CATEGORY_SLUGS = new Set(CATEGORY_DISPLAY_ORDER);
 
 function baseUrl(): string {
@@ -107,20 +106,26 @@ function tagEntries(tag: { slug: string; updated_at: string; langs: Array<'zh' |
   });
 }
 
-function flashEntry(flash: { lang?: string | null; published_at?: string | null; updated_at?: string | null; created_at?: string | null; id?: unknown; title?: unknown }): SitemapUrlEntry {
-  const lang = flash.lang === 'en' ? 'en' : 'zh';
-  const path = safeEncodeURI(`/flash/${encodeFlashSlug(flash)}`);
-  const loc = `${baseUrl()}/${lang}${path}`;
-  return {
-    loc,
-    lastmod: safeDate(flash.updated_at || flash.published_at || flash.created_at),
-    changefreq: 'daily',
-    priority: 0.45,
-    alternates: {
-      [lang]: loc,
-      'x-default': loc,
-    },
-  };
+function topicEntries(topic: { slug: string; updated_at: string; langs: Array<'zh' | 'en'> }): SitemapUrlEntry[] {
+  const encodedPath = safeEncodeURI(`/topics/${topic.slug}`);
+  const langUrls = Object.fromEntries(
+    topic.langs.map(lang => [lang, `${baseUrl()}/${lang}${encodedPath}`])
+  ) as Partial<Record<'zh' | 'en', string>>;
+  const xDefault = langUrls.zh ?? langUrls.en;
+
+  return topic.langs.map(lang => {
+    const loc = langUrls[lang] as string;
+    return {
+      loc,
+      lastmod: safeDate(topic.updated_at),
+      changefreq: 'daily',
+      priority: 0.8,
+      alternates: {
+        ...langUrls,
+        ...(xDefault ? { 'x-default': xDefault } : {}),
+      },
+    };
+  });
 }
 
 async function entriesFor(kind: string, page: number): Promise<SitemapUrlEntry[]> {
@@ -156,18 +161,12 @@ async function entriesFor(kind: string, page: number): Promise<SitemapUrlEntry[]
         .filter(guide => !guide.slug.includes('&'))
         .flatMap(guide => localize(`/guide/${guide.slug}`, safeDate(guide.updated_at), 'monthly', 0.55));
     }
-    case 'flash': {
-      const flashes = await getIndexableFlashForSitemap(CHUNK_SIZE).catch(() => []);
-      return flashes
-        .slice(offset, offset + CHUNK_SIZE)
-        .map(flashEntry);
-    }
     case 'topics': {
       const topics = await getTopicsForSitemap().catch(() => []);
       return topics
         .filter(topic => !topic.slug.includes('&'))
         .slice(offset, offset + CHUNK_SIZE)
-        .flatMap(topic => localize(`/topics/${topic.slug}`, safeDate(topic.updated_at), 'daily', 0.8));
+        .flatMap(topicEntries);
     }
     case 'tags': {
       const tags = await getTagsForSitemap().catch(() => []);

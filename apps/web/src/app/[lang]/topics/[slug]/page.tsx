@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import LocalizedLink from '@/components/LocalizedLink';
 import ArticleCard from '@/components/ArticleCard';
-import { getTopicBySlug, getTopics } from '@/lib/queries';
+import { getTopicArticleCountsByLang, getTopicBySlug, getTopics } from '@/lib/queries';
 import { createMetadata, buildBreadcrumbJsonLd } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 import { sanitizeHtml } from '@/lib/sanitize';
@@ -12,10 +12,26 @@ interface Props {
   searchParams: Promise<{ page?: string }>;
 }
 
+function topicAlternates(slug: string, counts: { zh: number; en: number }, currentLang: 'zh' | 'en') {
+  const languages: Record<string, string> = {};
+  if (counts.zh >= 3) languages.zh = `/zh/topics/${slug}`;
+  if (counts.en >= 3) languages.en = `/en/topics/${slug}`;
+
+  if (Object.keys(languages).length === 0) {
+    languages[currentLang] = `/${currentLang}/topics/${slug}`;
+  }
+
+  languages['x-default'] = languages.zh || languages.en || languages[currentLang];
+  return languages;
+}
+
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const [{ slug, lang }, resolvedSearchParams] = await Promise.all([params, searchParams]);
   const locale = lang === 'en' ? 'en' : 'zh';
-  const topic = await getTopicBySlug(slug, 1, 20, locale);
+  const [topic, langCounts] = await Promise.all([
+    getTopicBySlug(slug, 1, 20, locale),
+    getTopicArticleCountsByLang(slug),
+  ]);
   if (!topic) return createMetadata({ title: lang === 'en' ? 'Topic Not Found' : '专题未找到', lang: lang as 'zh' | 'en' });
 
   const isZh = lang !== 'en';
@@ -31,6 +47,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     url: `/topics/${slug}`,
     image: topic.cover_image || undefined,
     lang: lang as 'zh' | 'en',
+    alternatesLanguages: topicAlternates(slug, langCounts, locale),
     noIndex: topic.status === 'archive' || page > 1 || (topic.total_count || 0) < 3, // P2 SEO: archive + pagination + thin (<3 articles in this lang) noindex
   });
 
