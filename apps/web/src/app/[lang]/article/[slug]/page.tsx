@@ -94,6 +94,56 @@ function formatDate(value?: string | null) {
   return value?.slice(0, 16) ?? '';
 }
 
+function splitList(value?: string | null): string[] {
+  return (value || '')
+    .split(/[,;，、]/)
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+function roleLabel(role: string | undefined, lang: string): string {
+  const labels: Record<string, { zh: string; en: string }> = {
+    syndication_source: { zh: '授权/合作来源', en: 'Syndication source' },
+    news_writer: { zh: '财经新闻作者', en: 'Financial news writer' },
+    ai_assisted_desk: { zh: 'AI 辅助编辑台', en: 'AI-assisted desk' },
+    editor: { zh: '编辑', en: 'Editor' },
+    senior_editor: { zh: '高级编辑', en: 'Senior editor' },
+    market_analyst: { zh: '市场分析师', en: 'Market analyst' },
+    guest_contributor: { zh: '特约撰稿人', en: 'Guest contributor' },
+  };
+  const key = role || 'news_writer';
+  return labels[key]?.[lang === 'en' ? 'en' : 'zh'] || key.replace(/_/g, ' ');
+}
+
+function sourceTypeDescription(sourceType: string, sourceName: string, lang: string): string {
+  if (lang === 'en') {
+    if (sourceType === 'syndicated') return `Syndicated or excerpted from ${sourceName || 'an external source'} with attribution and editorial checks.`;
+    if (sourceType === 'translated') return `Translated and edited from ${sourceName || 'an external source'} with attribution.`;
+    if (sourceType === 'ai_assisted') return 'Produced with AI assistance and reviewed by the YayaNews editorial workflow before publication.';
+    if (sourceType === 'sponsored') return 'Sponsored or commercial content; labeling and editorial separation rules apply.';
+    if (sourceType === 'partner') return `Partner-supplied content from ${sourceName || 'a partner source'} with attribution.`;
+    return 'Original YayaNews editorial coverage, published for informational purposes.';
+  }
+
+  if (sourceType === 'syndicated') return `本文转载或摘编自${sourceName || '外部来源'}，并经过来源标注与编辑核查。`;
+  if (sourceType === 'translated') return `本文编译自${sourceName || '外部来源'}，并经过来源标注与编辑整理。`;
+  if (sourceType === 'ai_assisted') return '本文使用 AI 辅助生产，并在发布前经过 YayaNews 编辑流程审核。';
+  if (sourceType === 'sponsored') return '本文为赞助或商业合作内容，适用明确标注与编辑独立规则。';
+  if (sourceType === 'partner') return `本文来自${sourceName || '合作方'}，并经过来源标注。`;
+  return '本文为 YayaNews 原创或编辑整理内容，仅供信息参考。';
+}
+
+function licenseLabel(value?: string | null, lang?: string): string | null {
+  if (!value) return null;
+  const labels: Record<string, { zh: string; en: string }> = {
+    rss: { zh: 'RSS 引用/聚合', en: 'RSS attribution' },
+    permission: { zh: '授权转载', en: 'Licensed republication' },
+    partner: { zh: '合作方授权', en: 'Partner license' },
+    original: { zh: '原创版权', en: 'Original copyright' },
+  };
+  return labels[value]?.[lang === 'en' ? 'en' : 'zh'] || value;
+}
+
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string; lang: string }> }) {
   const { slug, lang } = await params;
   const dict = await getDictionary(lang);
@@ -131,9 +181,23 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     : [];
   const authorName = article.author_profile?.display_name || article.author || 'YayaNews';
   const authorSlug = article.author_profile?.slug || buildAuthorSlug(authorName);
-  const sourceUrl = article.original_url || article.source_url;
-  const sourceName = article.source || article.author_profile?.display_name || '';
   const sourceType = article.source_type || 'original';
+  const sourceUrl = article.original_url || article.source_url || article.author_profile?.external_source_url || '';
+  const sourceName = article.source || (article.author_profile?.is_external_source ? article.author_profile.display_name : '');
+  const authorRole = roleLabel(article.author_profile?.role || (sourceType === 'ai_assisted' ? 'ai_assisted_desk' : undefined), lang);
+  const authorExpertise = splitList(article.author_profile?.expertise);
+  const authorBio = article.author_profile?.bio || (lang === 'en'
+    ? `${authorName} contributes financial news and market context through the YayaNews editorial workflow.`
+    : `${authorName} 通过 YayaNews 编辑流程发布财经资讯与市场背景。`);
+  const editorName = article.editor_profile?.display_name;
+  const reviewerName = article.reviewer_profile?.display_name;
+  const sourceTypeNote = sourceTypeDescription(sourceType, sourceName, lang);
+  const licenseName = licenseLabel(article.license_type, lang);
+  const complianceLinks = [
+    { href: '/editorial-policy', label: lang === 'en' ? 'Editorial Policy' : '编辑准则' },
+    { href: '/corrections', label: lang === 'en' ? 'Corrections' : '更正政策' },
+    { href: '/risk-disclosure', label: lang === 'en' ? 'Risk Disclosure' : '风险披露' },
+  ];
   const sourceTypeLabel: Record<string, string> = lang === 'en'
     ? {
         original: 'Original',
@@ -204,6 +268,9 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 <LocalizedLink href={`/authors/${authorSlug}`} rel="author" className="font-medium text-slate-800 hover:text-[#1d5c4f]">
                   {authorName}
                 </LocalizedLink>
+                <span className="rounded-full border border-[#d9d2c8] bg-white px-2 py-0.5 text-xs font-semibold text-[#1d5c4f]">
+                  {authorRole}
+                </span>
                 {sourceType !== 'original' ? (
                   <>
                     <span className="text-slate-400" aria-hidden>
@@ -263,6 +330,18 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                       {lang === 'en' ? 'Reviewed' : '已审核'}: <time dateTime={article.reviewed_at}>{formatDate(article.reviewed_at)}</time>
                     </span>
                   </>
+                ) : null}
+              </div>
+              <div className="mt-4 border-t border-[#e7dfd4] pt-4">
+                <p className="max-w-3xl text-sm leading-6 text-slate-600">{authorBio}</p>
+                {authorExpertise.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {authorExpertise.slice(0, 5).map(item => (
+                      <span key={item} className="rounded-full bg-[#f2ede9] px-2.5 py-0.5 text-xs font-medium text-[#4a5250]">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
                 ) : null}
               </div>
             </header>
@@ -330,26 +409,37 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <p className="yn-meta mb-2">{dict.article.disclaimerTitle}</p>
-                    {sourceName === 'YayaNews' || !sourceName ? (
-                      <p className="yn-body">{dict.article.disclaimerSelf}</p>
-                    ) : (
-                      <p className="yn-body">
-                        {dict.article.disclaimerOther}
-                        {sourceUrl ? (
-                          <a
-                            href={sourceUrl}
-                            target="_blank"
-                            rel="noopener noreferrer nofollow"
-                            className="yn-link"
-                          >
-                            {sourceName}
-                          </a>
-                        ) : (
-                          <span className="text-slate-800">{sourceName}</span>
-                        )}
-                        {dict.article.disclaimerSuffix}
-                      </p>
-                    )}
+                    <p className="yn-body">{sourceTypeNote}</p>
+                    <p className="yn-body mt-2">
+                      {sourceName && sourceName !== 'YayaNews' ? (
+                        <>
+                          {dict.article.disclaimerOther}
+                          {sourceUrl ? (
+                            <a
+                              href={sourceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer nofollow"
+                              className="yn-link"
+                            >
+                              {sourceName}
+                            </a>
+                          ) : (
+                            <span className="text-slate-800">{sourceName}</span>
+                          )}
+                          {licenseName ? ` (${licenseName})` : ''}
+                          {dict.article.disclaimerSuffix}
+                        </>
+                      ) : (
+                        dict.article.disclaimerSelf
+                      )}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                      {complianceLinks.map(link => (
+                        <LocalizedLink key={link.href} href={link.href} className="yn-link font-semibold">
+                          {link.label}
+                        </LocalizedLink>
+                      ))}
+                    </div>
                   </div>
                   <div className="shrink-0">
                     <ShareButtons title={article.title} url={articleUrl} lang={lang} />
@@ -434,6 +524,39 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                   <dt className="yn-meta !text-[10px]">{dict.article.publishedAt}</dt>
                   <dd className="text-right text-slate-700">{formatDate(article.published_at)}</dd>
                 </div>
+                <div className="flex items-start justify-between gap-4 border-b border-[#e5ddd2] pb-3">
+                  <dt className="yn-meta !text-[10px]">{dict.common.author || (lang === 'en' ? 'Author' : '作者')}</dt>
+                  <dd className="text-right text-slate-700">
+                    <LocalizedLink href={`/authors/${authorSlug}`} className="yn-link">
+                      {authorName}
+                    </LocalizedLink>
+                    <span className="mt-1 block text-xs text-slate-500">{authorRole}</span>
+                  </dd>
+                </div>
+                {article.updated_at && article.updated_at !== article.published_at ? (
+                  <div className="flex items-start justify-between gap-4 border-b border-[#e5ddd2] pb-3">
+                    <dt className="yn-meta !text-[10px]">{dict.article.updatedAt || (lang === 'en' ? 'Updated' : '更新')}</dt>
+                    <dd className="text-right text-slate-700">{formatDate(article.updated_at)}</dd>
+                  </div>
+                ) : null}
+                {article.reviewed_at ? (
+                  <div className="flex items-start justify-between gap-4 border-b border-[#e5ddd2] pb-3">
+                    <dt className="yn-meta !text-[10px]">{lang === 'en' ? 'Reviewed' : '审核时间'}</dt>
+                    <dd className="text-right text-slate-700">{formatDate(article.reviewed_at)}</dd>
+                  </div>
+                ) : null}
+                {editorName ? (
+                  <div className="flex items-start justify-between gap-4 border-b border-[#e5ddd2] pb-3">
+                    <dt className="yn-meta !text-[10px]">{lang === 'en' ? 'Editor' : '编辑'}</dt>
+                    <dd className="text-right text-slate-700">{editorName}</dd>
+                  </div>
+                ) : null}
+                {reviewerName ? (
+                  <div className="flex items-start justify-between gap-4 border-b border-[#e5ddd2] pb-3">
+                    <dt className="yn-meta !text-[10px]">{lang === 'en' ? 'Reviewed By' : '审核人'}</dt>
+                    <dd className="text-right text-slate-700">{reviewerName}</dd>
+                  </div>
+                ) : null}
                 {article.category_name ? (
                   <div className="flex items-start justify-between gap-4 border-b border-[#e5ddd2] pb-3">
                     <dt className="yn-meta !text-[10px]">{dict.article.channel}</dt>
@@ -458,14 +581,12 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                     <dd className="text-right text-slate-700">{tickers.map(t => `$${t}`).join(' ')}</dd>
                   </div>
                 ) : null}
-                {sourceType !== 'original' ? (
-                  <div className="flex items-start justify-between gap-4 border-b border-[#e5ddd2] pb-3">
-                    <dt className="yn-meta !text-[10px]">{lang === 'en' ? 'Source Type' : '来源类型'}</dt>
-                    <dd className="text-right text-slate-700">{sourceTypeLabel[sourceType] || sourceType}</dd>
-                  </div>
-                ) : null}
+                <div className="flex items-start justify-between gap-4 border-b border-[#e5ddd2] pb-3">
+                  <dt className="yn-meta !text-[10px]">{lang === 'en' ? 'Source Type' : '来源类型'}</dt>
+                  <dd className="text-right text-slate-700">{sourceTypeLabel[sourceType] || sourceType}</dd>
+                </div>
                 {sourceName ? (
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start justify-between gap-4 border-b border-[#e5ddd2] pb-3">
                     <dt className="yn-meta !text-[10px]">{dict.article.infoSource}</dt>
                     <dd className="text-right text-slate-700">
                       {sourceUrl ? (
@@ -478,6 +599,22 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                     </dd>
                   </div>
                 ) : null}
+                {licenseName ? (
+                  <div className="flex items-start justify-between gap-4 border-b border-[#e5ddd2] pb-3">
+                    <dt className="yn-meta !text-[10px]">{lang === 'en' ? 'License' : '授权'}</dt>
+                    <dd className="text-right text-slate-700">{licenseName}</dd>
+                  </div>
+                ) : null}
+                <div className="space-y-2 pt-1 text-xs leading-5 text-slate-600">
+                  <p>{sourceTypeNote}</p>
+                  <div className="flex flex-wrap gap-x-2 gap-y-1">
+                    {complianceLinks.map(link => (
+                      <LocalizedLink key={link.href} href={link.href} className="yn-link font-semibold">
+                        {link.label}
+                      </LocalizedLink>
+                    ))}
+                  </div>
+                </div>
               </dl>
             </RightRailPanel>
 

@@ -991,10 +991,11 @@ function assertArticleJsonLd(failures, html) {
     return;
   }
 
-  for (const field of ['headline', 'datePublished', 'dateModified', 'author', 'publisher', 'mainEntityOfPage']) {
+  for (const field of ['headline', 'url', 'datePublished', 'dateModified', 'author', 'publisher', 'mainEntityOfPage', 'articleBody']) {
     if (!articleSchema[field]) failures.push(`json-ld: missing ${field}`);
   }
   if (!articleSchema.image) failures.push('json-ld: missing image');
+  if (articleSchema.isAccessibleForFree !== true) failures.push('json-ld: isAccessibleForFree must be true');
 }
 
 function assertJsonLdTypes(failures, html, requiredTypes = []) {

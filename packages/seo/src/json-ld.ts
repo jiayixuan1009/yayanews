@@ -45,13 +45,30 @@ export function buildAuthorProfileUrl(author: Pick<NonNullable<Article['author_p
 }
 
 function buildAuthorEntity(author: Article['author_profile'] | undefined | null, fallbackName: string, lang?: string): Record<string, any> {
+  const expertise = author?.expertise
+    ? author.expertise.split(/[,;，、]/).map(item => item.trim()).filter(Boolean)
+    : [];
+
   return {
     '@type': author?.is_external_source ? 'Organization' : 'Person',
     name: author?.display_name || fallbackName,
     url: buildAuthorProfileUrl(author, lang) || buildAuthorUrl(fallbackName, lang),
     ...(author?.bio ? { description: author.bio } : {}),
+    ...(author?.role ? { jobTitle: author.role } : {}),
+    ...(expertise.length > 0 ? { knowsAbout: expertise } : {}),
     ...(author?.external_source_url ? { sameAs: [author.external_source_url] } : {}),
   };
+}
+
+function articleBodyText(content?: string | null): string | undefined {
+  if (!content) return undefined;
+  const text = content
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text ? text.slice(0, 12000) : undefined;
 }
 
 /** Strip HTML tags and count words for wordCount schema field */
@@ -71,6 +88,8 @@ export function buildNewsArticleJsonLd(article: Article, topic?: any, lang?: str
   const isEn = lang === 'en';
   const loc = localePrefix(lang);
   const inLanguage = isEn ? 'en' : 'zh-CN';
+  const articleUrl = `${siteConfig.siteUrl}${loc}/article/${article.slug}`;
+  const sourceUrl = article.original_url || article.source_url || undefined;
 
   const publisherDesc = isEn
     ? 'YayaNews — Asia\'s fastest financial news. 24/7 coverage of US stocks, HK markets, crypto and derivatives.'
@@ -88,6 +107,7 @@ export function buildNewsArticleJsonLd(article: Article, topic?: any, lang?: str
     '@type': articleType,
     headline: article.title,
     description: article.summary || article.title,
+    url: articleUrl,
     image: structuredDataImage(article.cover_image),
     inLanguage,
     datePublished: article.published_at ? new Date(article.published_at).toISOString() : undefined,
@@ -96,7 +116,9 @@ export function buildNewsArticleJsonLd(article: Article, topic?: any, lang?: str
       : article.updated_at
         ? new Date(article.updated_at).toISOString()
         : undefined,
+    articleBody: articleBodyText(article.content),
     wordCount: estimateWordCount(article.content),
+    ...(article.source_type ? { genre: article.source_type } : {}),
     ...(allKeywords.length > 0 ? { keywords: allKeywords.join(', ') } : {}),
     // speakable: helps Google Assistant and AI engines extract key content for voice / citations
     speakable: {
@@ -122,18 +144,35 @@ export function buildNewsArticleJsonLd(article: Article, topic?: any, lang?: str
       },
       url: siteConfig.siteUrl,
       sameAs: Object.values(siteConfig.socialLinks),
+      publishingPrinciples: `${siteConfig.siteUrl}${loc}/editorial-policy`,
+      ethicsPolicy: `${siteConfig.siteUrl}${loc}/editorial-policy`,
+      correctionsPolicy: `${siteConfig.siteUrl}${loc}/corrections`,
+      masthead: `${siteConfig.siteUrl}${loc}/authors`,
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `${siteConfig.siteUrl}${loc}/article/${article.slug}`,
+      '@id': articleUrl,
     },
     isAccessibleForFree: true,
     articleSection: article.category_name ? [article.category_name] : undefined,
+    ...(article.license_type ? { license: article.license_type } : {}),
+    ...(article.source && article.source !== 'YayaNews' ? {
+      provider: {
+        '@type': 'Organization',
+        name: article.source,
+        ...(sourceUrl ? { url: sourceUrl } : {}),
+      },
+    } : {}),
     // citation: if article cites an original source, expose it for AI engines
-    ...((article.original_url || article.source_url) ? {
+    ...(sourceUrl ? {
       citation: {
         '@type': 'CreativeWork',
-        url: article.original_url || article.source_url,
+        url: sourceUrl,
+        ...(article.source ? { name: article.source } : {}),
+      },
+      isBasedOn: {
+        '@type': 'CreativeWork',
+        url: sourceUrl,
         ...(article.source ? { name: article.source } : {}),
       },
     } : {}),
