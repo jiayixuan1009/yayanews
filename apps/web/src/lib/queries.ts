@@ -493,6 +493,58 @@ export async function getArticleBySlug(slug: string): Promise<(Article & { sibli
   return formatArticleDates(article);
 }
 
+export async function getArticleRedirectTargetByLegacySlug(
+  slug: string,
+  requestedLang: string,
+): Promise<{ lang: 'zh' | 'en'; slug: string } | null> {
+  const requestedLocale = requestedLang === 'en' ? 'en' : 'zh';
+  const candidates = [slug];
+  if (slug.endsWith('-en')) {
+    const baseSlug = slug.slice(0, -3);
+    if (baseSlug && baseSlug !== slug) candidates.push(baseSlug);
+  }
+
+  const row = await db.queryGet<{
+    slug: string;
+    lang: string | null;
+    sibling_slug?: string | null;
+    sibling_lang?: string | null;
+  }>(`
+    SELECT a.slug, COALESCE(a.lang, 'zh') as lang,
+           sib.slug as sibling_slug,
+           COALESCE(sib.lang, 'zh') as sibling_lang
+    FROM articles a
+    LEFT JOIN articles sib ON (
+      ((a.lang = 'zh' AND sib.parent_id = a.id) OR (a.lang = 'en' AND sib.id = a.parent_id))
+      AND sib.lang = $3::text
+      AND sib.status = 'published'
+      AND sib.audit_status = 'approved'
+      AND sib.deleted_at IS NULL
+      AND sib.is_indexable = TRUE
+    )
+    WHERE a.slug = ANY($1::text[])
+      AND a.status = 'published'
+      AND a.audit_status = 'approved'
+      AND a.deleted_at IS NULL
+      AND a.is_indexable = TRUE
+    ORDER BY
+      CASE WHEN a.slug = $2::text THEN 0 ELSE 1 END,
+      CASE WHEN a.lang = $3::text THEN 0 ELSE 1 END,
+      COALESCE(a.published_at, a.created_at) DESC
+    LIMIT 1
+  `, [candidates, slug, requestedLocale]);
+
+  if (!row) return null;
+
+  const articleLocale = row.lang === 'en' ? 'en' : 'zh';
+  if (articleLocale !== requestedLocale && row.sibling_slug) {
+    return { lang: requestedLocale, slug: row.sibling_slug };
+  }
+
+  if (articleLocale === requestedLocale && row.slug === slug) return null;
+  return { lang: articleLocale, slug: row.slug };
+}
+
 export async function incrementArticleViewCount(articleId: number): Promise<void> {
   await db.queryAll(
     `UPDATE articles
@@ -975,6 +1027,28 @@ export async function getPopularTags(limit = 15): Promise<Tag[]> {
 
 export async function getTagBySlug(slug: string): Promise<Tag | undefined> {
   return await db.queryGet<Tag>('SELECT * FROM tags WHERE slug = $1::text', [slug]);
+}
+
+export async function getTagBySlugOrName(value: string): Promise<Tag | undefined> {
+  const normalized = value.trim();
+  if (!normalized) return undefined;
+
+  return await db.queryGet<Tag>(`
+    SELECT *
+    FROM tags
+    WHERE slug = $1::text
+       OR LOWER(slug) = LOWER($1::text)
+       OR name = $1::text
+       OR LOWER(COALESCE(name_en, '')) = LOWER($1::text)
+    ORDER BY
+      CASE
+        WHEN slug = $1::text THEN 0
+        WHEN LOWER(slug) = LOWER($1::text) THEN 1
+        WHEN name = $1::text THEN 2
+        ELSE 3
+      END
+    LIMIT 1
+  `, [normalized]);
 }
 
 export async function getPublishedArticlesByTagSlug(tagSlug: string, limit = 48, offset = 0, lang?: string): Promise<Article[]> {
