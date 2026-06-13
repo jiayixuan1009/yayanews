@@ -53,6 +53,33 @@ const ARTICLE_AUTHOR_FIELDS = `
     ${authorProfileSelect('au', 'author_profile')}
 `;
 
+const ARTICLE_LIST_FIELDS = `
+    a.id,
+    a.title,
+    a.slug,
+    a.summary,
+    a.cover_image,
+    a.category_id,
+    a.author_id,
+    a.author,
+    a.status,
+    a.article_type,
+    a.sentiment,
+    a.tickers,
+    a.source,
+    a.source_url,
+    a.source_type,
+    a.view_count,
+    a.published_at,
+    a.created_at,
+    a.updated_at,
+    a.lang,
+    a.topic_id,
+    c.name as category_name,
+    c.slug as category_slug,
+    ${ARTICLE_AUTHOR_FIELDS}
+`;
+
 /**
  * Batch-load tags for a set of articles in ONE query, avoiding N+1.
  * Mutates nothing; returns a new array of articles with `tags` attached.
@@ -98,8 +125,7 @@ export async function getCategoriesOrdered(): Promise<Category[]> {
 
 export async function getPublishedArticles(lang: string = 'zh', limit = 20, offset = 0, categorySlug?: string, subcategory?: string, articleType?: string): Promise<Article[]> {
   let sql = `
-    SELECT a.*, c.name as category_name, c.slug as category_slug,
-      ${ARTICLE_AUTHOR_FIELDS}
+    SELECT ${ARTICLE_LIST_FIELDS}
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
     LEFT JOIN authors au ON au.id = a.author_id
@@ -491,8 +517,7 @@ export async function getArticleTags(articleId: number): Promise<Tag[]> {
 export async function getRelatedArticles(articleId: number, categoryId: number | null, limit = 5): Promise<Article[]> {
   if (categoryId) {
     const list = await db.queryAll(`
-      SELECT a.*, c.name as category_name, c.slug as category_slug,
-        ${ARTICLE_AUTHOR_FIELDS}
+      SELECT ${ARTICLE_LIST_FIELDS}
       FROM articles a
       LEFT JOIN categories c ON a.category_id = c.id
       LEFT JOIN authors au ON au.id = a.author_id
@@ -507,8 +532,7 @@ export async function getRelatedArticles(articleId: number, categoryId: number |
     return list.map(formatArticleDates);
   }
   const list2 = await db.queryAll(`
-    SELECT a.*, c.name as category_name, c.slug as category_slug,
-      ${ARTICLE_AUTHOR_FIELDS}
+    SELECT ${ARTICLE_LIST_FIELDS}
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
     LEFT JOIN authors au ON au.id = a.author_id
