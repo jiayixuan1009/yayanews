@@ -255,6 +255,20 @@ assert_standalone_smoke() {
         exit 1
     fi
 
+    cleanup_smoke() {
+        if [ -n "$smoke_pid" ] && kill -0 "$smoke_pid" 2>/dev/null; then
+            kill "$smoke_pid" 2>/dev/null || true
+            wait "$smoke_pid" 2>/dev/null || true
+        fi
+    }
+    trap cleanup_smoke RETURN
+
+    if command -v fuser >/dev/null 2>&1; then
+        fuser -k "${DEPLOY_SMOKE_PORT}/tcp" >/dev/null 2>&1 || true
+    elif command -v lsof >/dev/null 2>&1; then
+        lsof -ti "tcp:${DEPLOY_SMOKE_PORT}" | xargs -r kill >/dev/null 2>&1 || true
+    fi
+
     log "Running web standalone smoke test on port $DEPLOY_SMOKE_PORT..."
     rm -f "$smoke_log"
     (
@@ -263,13 +277,13 @@ assert_standalone_smoke() {
             node "$APP_DIR/scripts/ops/run-with-env.cjs" "$APP_DIR/.env" node "$server"
     ) >"$smoke_log" 2>&1 &
     smoke_pid="$!"
-
-    cleanup_smoke() {
-        if [ -n "$smoke_pid" ] && kill -0 "$smoke_pid" 2>/dev/null; then
-            kill "$smoke_pid" 2>/dev/null || true
-            wait "$smoke_pid" 2>/dev/null || true
-        fi
-    }
+    sleep 2
+    if ! kill -0 "$smoke_pid" 2>/dev/null; then
+        log "${RED}Web standalone smoke server exited before health checks${NC}; last log lines:"
+        tail -80 "$smoke_log" || true
+        trap - RETURN
+        return 1
+    fi
     local smoke_status=0
     assert_http_body_ready "web smoke /zh" "http://127.0.0.1:$DEPLOY_SMOKE_PORT/zh" || smoke_status=$?
     if [ "$smoke_status" -eq 0 ]; then
@@ -285,6 +299,7 @@ assert_standalone_smoke() {
         assert_http_body_ready "web smoke news sitemap" "http://127.0.0.1:$DEPLOY_SMOKE_PORT/sitemap-news.xml" || smoke_status=$?
     fi
     cleanup_smoke
+    trap - RETURN
     if [ "$smoke_status" -ne 0 ]; then
         log "${RED}Web standalone smoke test failed${NC}; last log lines:"
         tail -80 "$smoke_log" || true
