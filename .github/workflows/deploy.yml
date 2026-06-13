@@ -24,6 +24,15 @@ jobs:
             echo "Deploying tag: ${{ github.ref_name }}"
             if [ -n "$(git status --porcelain)" ]; then
               echo "Production worktree is dirty; snapshotting and aborting before checkout."
+              echo "::group::Production dirty status"
+              git status --branch --short || true
+              echo "::endgroup::"
+              echo "::group::Production tracked diff stat"
+              git diff --stat || true
+              echo "::endgroup::"
+              echo "::group::Production untracked files"
+              git ls-files --others --exclude-standard || true
+              echo "::endgroup::"
               if [ -f infra/scripts/snapshot-worktree.sh ]; then
                 bash infra/scripts/snapshot-worktree.sh
               else
