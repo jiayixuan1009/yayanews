@@ -2,6 +2,7 @@
 
 const DEFAULT_FETCH_BASE_URL = 'http://127.0.0.1:3000';
 const DEFAULT_EXPECTED_ORIGIN = 'https://yayanews.cryptooptiontool.com';
+const DEFAULT_FETCH_TIMEOUT_MS = 15_000;
 
 const CHECKS = [
   { path: '/zh', index: true, cache: 'cacheable' },
@@ -88,10 +89,11 @@ const NEWS_SITEMAP_MAX_ITEMS_PER_TITLE_PREFIX = 3;
 
 function usage() {
   return [
-    'Usage: node scripts/verify/seo-metadata-check.mjs [--base <url>] [--expected-origin <url>] [--paths <csv>] [--article-paths <csv>] [--sample-article-urls <n>] [--probe-sitemap-urls <n>] [--sample-sitemap-kinds <kind:n,...>]',
+    'Usage: node scripts/verify/seo-metadata-check.mjs [--base <url>] [--expected-origin <url>] [--paths <csv>] [--article-paths <csv>] [--sample-article-urls <n>] [--probe-sitemap-urls <n>] [--sample-sitemap-kinds <kind:n,...>] [--fetch-timeout-ms <n>]',
     '',
     `Default fetch base: ${DEFAULT_FETCH_BASE_URL}`,
     `Default expected origin: ${DEFAULT_EXPECTED_ORIGIN}`,
+    `Default fetch timeout: ${DEFAULT_FETCH_TIMEOUT_MS}ms`,
     'Example: npm run verify:seo -- --base https://yayanews.cryptooptiontool.com',
     'Example: npm run verify:seo -- --base http://127.0.0.1:3000 --expected-origin https://yayanews.cryptooptiontool.com',
     'Example: npm run verify:seo -- --paths /zh/privacy,/en/privacy,/brand/og-default.png',
@@ -125,6 +127,7 @@ function parseSitemapKindSamples(value) {
 function parseArgs(argv) {
   let fetchBase = process.env.SEO_BASE_URL || DEFAULT_FETCH_BASE_URL;
   let expectedOrigin = process.env.SEO_EXPECTED_ORIGIN || DEFAULT_EXPECTED_ORIGIN;
+  let fetchTimeoutMs = Number(process.env.SEO_FETCH_TIMEOUT_MS || DEFAULT_FETCH_TIMEOUT_MS);
   let paths = process.env.SEO_PATHS || '';
   let articlePaths = process.env.SEO_ARTICLE_PATHS || '';
   let sampleArticleUrls = Number(process.env.SEO_SAMPLE_ARTICLE_URLS || 0);
@@ -168,6 +171,17 @@ function parseArgs(argv) {
     }
     if (arg.startsWith('--paths=')) {
       paths = arg.slice('--paths='.length);
+      continue;
+    }
+    if (arg === '--fetch-timeout-ms') {
+      const value = argv[index + 1];
+      if (!value) throw new Error('Missing value for --fetch-timeout-ms');
+      fetchTimeoutMs = Number(value);
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith('--fetch-timeout-ms=')) {
+      fetchTimeoutMs = Number(arg.slice('--fetch-timeout-ms='.length));
       continue;
     }
     if (arg === '--article-paths') {
@@ -223,10 +237,14 @@ function parseArgs(argv) {
   if (!Number.isFinite(sampleArticleUrls) || sampleArticleUrls < 0) {
     throw new Error('--sample-article-urls must be a non-negative number');
   }
+  if (!Number.isFinite(fetchTimeoutMs) || fetchTimeoutMs < 1) {
+    throw new Error('--fetch-timeout-ms must be a positive number');
+  }
 
   return {
     fetchBaseUrl: new URL(fetchBase.replace(/\/+$/, '')),
     expectedBaseUrl: new URL(expectedOrigin.replace(/\/+$/, '')),
+    fetchTimeoutMs: Math.floor(fetchTimeoutMs),
     paths: paths
       .split(',')
       .map((path) => path.trim())
@@ -239,6 +257,46 @@ function parseArgs(argv) {
     probeSitemapUrls: Math.floor(probeSitemapUrls),
     sampleSitemapKindSpecs: parseSitemapKindSamples(sampleSitemapKinds),
   };
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_FETCH_TIMEOUT_MS) {
+  let timeout;
+  const controller = new AbortController();
+  try {
+    timeout = setTimeout(() => controller.abort(), timeoutMs);
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error(`fetch timed out after ${timeoutMs}ms: ${url.toString()}`);
+    }
+    throw error;
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
+async function fetchTextWithTimeout(url, options = {}, timeoutMs = DEFAULT_FETCH_TIMEOUT_MS) {
+  let timeout;
+  const controller = new AbortController();
+  try {
+    timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    const text = await response.text();
+    return { response, text };
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error(`fetch body timed out after ${timeoutMs}ms: ${url.toString()}`);
+    }
+    throw error;
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
 
 function selectChecks(paths, articlePaths) {
@@ -301,13 +359,13 @@ function dedupeChecks(checks) {
   });
 }
 
-async function sampleArticlePaths(fetchBaseUrl, limit) {
+async function sampleArticlePaths(fetchBaseUrl, limit, fetchTimeoutMs) {
   if (limit <= 0) return [];
 
   const fromNewsSitemap = [];
-  const newsResponse = await fetch(new URL('/sitemap-news.xml', fetchBaseUrl), { redirect: 'manual' });
+  const newsUrl = new URL('/sitemap-news.xml', fetchBaseUrl);
+  const { response: newsResponse, text: newsXml } = await fetchTextWithTimeout(newsUrl, { redirect: 'manual' }, fetchTimeoutMs);
   if (newsResponse.status === 200) {
-    const newsXml = await newsResponse.text();
     fromNewsSitemap.push(...xmlElementValues(newsXml, 'loc'));
   }
 
@@ -326,12 +384,12 @@ async function sampleArticlePaths(fetchBaseUrl, limit) {
 
   if (articlePaths.length > 0) return articlePaths;
 
-  const sitemapResponse = await fetch(new URL('/sitemap.xml', fetchBaseUrl), { redirect: 'manual' });
+  const sitemapUrl = new URL('/sitemap.xml', fetchBaseUrl);
+  const { response: sitemapResponse, text: sitemapIndex } = await fetchTextWithTimeout(sitemapUrl, { redirect: 'manual' }, fetchTimeoutMs);
   if (sitemapResponse.status !== 200) {
     throw new Error(`Unable to sample articles: /sitemap.xml returned ${sitemapResponse.status}`);
   }
 
-  const sitemapIndex = await sitemapResponse.text();
   const articleChunkUrls = xmlElementValues(sitemapIndex, 'loc')
     .map(decodeXmlEntities)
     .filter((loc) => {
@@ -344,9 +402,9 @@ async function sampleArticlePaths(fetchBaseUrl, limit) {
 
   for (const chunkUrl of articleChunkUrls.slice(0, 3)) {
     if (articlePaths.length >= limit) break;
-    const chunkResponse = await fetch(sameOriginPathUrl(chunkUrl, fetchBaseUrl), { redirect: 'manual' });
+    const chunkFetchUrl = sameOriginPathUrl(chunkUrl, fetchBaseUrl);
+    const { response: chunkResponse, text: chunkXml } = await fetchTextWithTimeout(chunkFetchUrl, { redirect: 'manual' }, fetchTimeoutMs);
     if (chunkResponse.status !== 200) continue;
-    const chunkXml = await chunkResponse.text();
     for (const loc of xmlElementValues(chunkXml, 'loc').map(decodeXmlEntities)) {
       try {
         const url = new URL(loc);
@@ -364,16 +422,16 @@ async function sampleArticlePaths(fetchBaseUrl, limit) {
   return articlePaths;
 }
 
-async function sampleSitemapKindPaths(fetchBaseUrl, specs) {
+async function sampleSitemapKindPaths(fetchBaseUrl, specs, fetchTimeoutMs) {
   const sampled = [];
   const skipped = [];
   const seen = new Set();
-  const sitemapResponse = await fetch(new URL('/sitemap.xml', fetchBaseUrl), { redirect: 'manual' });
+  const sitemapUrl = new URL('/sitemap.xml', fetchBaseUrl);
+  const { response: sitemapResponse, text: sitemapIndex } = await fetchTextWithTimeout(sitemapUrl, { redirect: 'manual' }, fetchTimeoutMs);
   if (sitemapResponse.status !== 200) {
     throw new Error(`Unable to sample sitemap kinds: /sitemap.xml returned ${sitemapResponse.status}`);
   }
 
-  const sitemapIndex = await sitemapResponse.text();
   const indexedKinds = new Set(
     xmlElementValues(sitemapIndex, 'loc')
       .map(decodeXmlEntities)
@@ -394,12 +452,12 @@ async function sampleSitemapKindPaths(fetchBaseUrl, specs) {
       continue;
     }
 
-    const response = await fetch(new URL(`/sitemap-chunk/${kind}/0`, fetchBaseUrl), { redirect: 'manual' });
+    const kindUrl = new URL(`/sitemap-chunk/${kind}/0`, fetchBaseUrl);
+    const { response, text: xml } = await fetchTextWithTimeout(kindUrl, { redirect: 'manual' }, fetchTimeoutMs);
     if (response.status !== 200) {
       throw new Error(`Unable to sample sitemap kind ${kind}: /sitemap-chunk/${kind}/0 returned ${response.status}`);
     }
 
-    const xml = await response.text();
     const paths = xmlElementValues(xml, 'loc')
       .map(decodeXmlEntities)
       .map((loc) => {
@@ -830,16 +888,16 @@ function sameOriginPathUrl(sourceUrl, targetBaseUrl) {
   return new URL(`${source.pathname}${source.search}`, targetBaseUrl);
 }
 
-async function probeSitemapUrls(fetchBaseUrl, expectedBaseUrl, limit) {
+async function probeSitemapUrls(fetchBaseUrl, expectedBaseUrl, limit, fetchTimeoutMs) {
   if (limit <= 0) return [];
 
   const failures = [];
-  const sitemapResponse = await fetch(new URL('/sitemap.xml', fetchBaseUrl), { redirect: 'manual' });
+  const sitemapUrl = new URL('/sitemap.xml', fetchBaseUrl);
+  const { response: sitemapResponse, text: sitemapIndex } = await fetchTextWithTimeout(sitemapUrl, { redirect: 'manual' }, fetchTimeoutMs);
   if (sitemapResponse.status !== 200) {
     return [`sitemap-probe: expected /sitemap.xml 200, got ${sitemapResponse.status}`];
   }
 
-  const sitemapIndex = await sitemapResponse.text();
   const chunkUrls = xmlElementValues(sitemapIndex, 'loc').map(decodeXmlEntities);
   if (chunkUrls.length === 0) return ['sitemap-probe: no sitemap chunks found'];
 
@@ -847,13 +905,13 @@ async function probeSitemapUrls(fetchBaseUrl, expectedBaseUrl, limit) {
   for (const chunkUrl of chunkUrls.slice(0, 5)) {
     if (targetUrls.length >= limit) break;
 
-    const chunkResponse = await fetch(sameOriginPathUrl(chunkUrl, fetchBaseUrl), { redirect: 'manual' });
+    const chunkFetchUrl = sameOriginPathUrl(chunkUrl, fetchBaseUrl);
+    const { response: chunkResponse, text: chunkXml } = await fetchTextWithTimeout(chunkFetchUrl, { redirect: 'manual' }, fetchTimeoutMs);
     if (chunkResponse.status !== 200) {
       failures.push(`sitemap-probe: chunk ${chunkUrl} expected 200, got ${chunkResponse.status}`);
       continue;
     }
 
-    const chunkXml = await chunkResponse.text();
     for (const loc of xmlElementValues(chunkXml, 'loc').map(decodeXmlEntities)) {
       targetUrls.push(loc);
       if (targetUrls.length >= limit) break;
@@ -868,7 +926,7 @@ async function probeSitemapUrls(fetchBaseUrl, expectedBaseUrl, limit) {
   for (const targetUrl of targetUrls.slice(0, limit)) {
     let response;
     try {
-      response = await fetch(sameOriginPathUrl(targetUrl, fetchBaseUrl), { redirect: 'manual' });
+      response = await fetchWithTimeout(sameOriginPathUrl(targetUrl, fetchBaseUrl), { redirect: 'manual' }, fetchTimeoutMs);
     } catch (error) {
       failures.push(`sitemap-probe: ${targetUrl} fetch failed: ${error instanceof Error ? error.message : String(error)}`);
       continue;
@@ -1013,9 +1071,9 @@ function assertAlternateLinks(failures, alternates, expected, expectedBaseUrl, c
   }
 }
 
-async function checkPage(fetchBaseUrl, expectedBaseUrl, check) {
+async function checkPage(fetchBaseUrl, expectedBaseUrl, check, fetchTimeoutMs) {
   const url = new URL(check.path, fetchBaseUrl);
-  const response = await fetch(url, { redirect: 'manual' });
+  const { response, text: html } = await fetchTextWithTimeout(url, { redirect: 'manual' }, fetchTimeoutMs);
   const failures = [];
 
   if (response.status !== 200) {
@@ -1023,7 +1081,6 @@ async function checkPage(fetchBaseUrl, expectedBaseUrl, check) {
     return { path: check.path, failures };
   }
 
-  const html = await response.text();
   const expected = pageExpectations(expectedBaseUrl, check.path);
   const title = pageTitle(html);
   const description = metaContent(html, 'name', 'description');
@@ -1050,9 +1107,9 @@ async function checkPage(fetchBaseUrl, expectedBaseUrl, check) {
   return { path: check.path, failures };
 }
 
-async function checkResource(fetchBaseUrl, expectedBaseUrl, check) {
+async function checkResource(fetchBaseUrl, expectedBaseUrl, check, fetchTimeoutMs) {
   const url = new URL(check.path, fetchBaseUrl);
-  const response = await fetch(url, { redirect: 'manual' });
+  const { response, text: body } = await fetchTextWithTimeout(url, { redirect: 'manual' }, fetchTimeoutMs);
   const failures = [];
 
   if (response.status !== 200) {
@@ -1063,7 +1120,7 @@ async function checkResource(fetchBaseUrl, expectedBaseUrl, check) {
   assertContentType(failures, response.headers.get('content-type'), check.contentType);
   assertCacheHeader(failures, response.headers.get('cache-control'), check.cache);
   if (check.resourceKind) {
-    assertResourceBody(failures, await response.text(), expectedBaseUrl, check);
+    assertResourceBody(failures, body, expectedBaseUrl, check);
   }
   return { path: check.path, failures };
 }
@@ -1072,6 +1129,7 @@ async function main() {
   const {
     fetchBaseUrl,
     expectedBaseUrl,
+    fetchTimeoutMs,
     paths,
     articlePaths,
     sampleArticleUrls: articleSampleLimit,
@@ -1079,10 +1137,10 @@ async function main() {
     sampleSitemapKindSpecs,
   } = parseArgs(process.argv.slice(2));
   const sampledArticlePaths = articleSampleLimit > 0
-    ? await sampleArticlePaths(fetchBaseUrl, articleSampleLimit)
+    ? await sampleArticlePaths(fetchBaseUrl, articleSampleLimit, fetchTimeoutMs)
     : [];
   const sitemapKindSamples = sampleSitemapKindSpecs.length > 0
-    ? await sampleSitemapKindPaths(fetchBaseUrl, sampleSitemapKindSpecs)
+    ? await sampleSitemapKindPaths(fetchBaseUrl, sampleSitemapKindSpecs, fetchTimeoutMs)
     : { sampled: [], skipped: [] };
   const sampledSitemapPaths = sitemapKindSamples.sampled;
   if (articleSampleLimit > 0 && sampledArticlePaths.length === 0) {
@@ -1095,6 +1153,7 @@ async function main() {
   ]);
   console.log(`Checking SEO metadata at ${fetchBaseUrl.origin}`);
   console.log(`Expected canonical origin: ${expectedBaseUrl.origin}`);
+  console.log(`Fetch timeout: ${fetchTimeoutMs}ms`);
   if (paths.length > 0) console.log(`Filtered paths: ${paths.join(', ')}`);
   if (articleSampleLimit > 0) console.log(`Sampled article paths: ${sampledArticlePaths.join(', ')}`);
   if (articlePaths.length > 0) console.log(`Article sample paths: ${articlePaths.join(', ')}`);
@@ -1110,8 +1169,8 @@ async function main() {
   for (const check of checks) {
     try {
       const result = 'index' in check
-        ? await checkPage(fetchBaseUrl, expectedBaseUrl, check)
-        : await checkResource(fetchBaseUrl, expectedBaseUrl, check);
+        ? await checkPage(fetchBaseUrl, expectedBaseUrl, check, fetchTimeoutMs)
+        : await checkResource(fetchBaseUrl, expectedBaseUrl, check, fetchTimeoutMs);
       if (result.failures.length > 0) {
         failed += 1;
         console.error(`FAIL ${result.path}`);
@@ -1127,7 +1186,7 @@ async function main() {
   }
 
   if (sitemapProbeLimit > 0) {
-    const failures = await probeSitemapUrls(fetchBaseUrl, expectedBaseUrl, sitemapProbeLimit);
+    const failures = await probeSitemapUrls(fetchBaseUrl, expectedBaseUrl, sitemapProbeLimit, fetchTimeoutMs);
     if (failures.length > 0) {
       failed += 1;
       console.error('FAIL sitemap URL probe');
