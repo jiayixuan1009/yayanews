@@ -32,11 +32,11 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
   return createMetadata({
     title: meta.title,
     description: meta.desc,
-    url: `/${lang}/news/${category}`,
+    url: `/news/${category}`,
+    lang: lang === 'en' ? 'en' : 'zh',
   });
 }
 
-export const dynamic = 'force-dynamic';
 export const revalidate = 60;
 
 export default async function CategoryPage({

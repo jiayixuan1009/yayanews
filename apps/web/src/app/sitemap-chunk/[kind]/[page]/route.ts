@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getAuthorsForSitemap, getCategories, getRecentArticlesForSitemap, getTagsForSitemap, getTopicsForSitemap } from '@/lib/queries';
+import { getAuthorsForSitemap, getCategories, getGuidesForSitemap, getIndexableFlashForSitemap, getRecentArticlesForSitemap, getTagsForSitemap, getTopicsForSitemap } from '@/lib/queries';
+import { encodeFlashSlug } from '@/lib/ui-utils';
 import { buildUrlset, type SitemapUrlEntry } from '@/lib/sitemap-xml';
 import { CATEGORY_DISPLAY_ORDER } from '@/lib/constants';
 import { siteConfig } from '@yayanews/types';
@@ -8,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
 
 const CHUNK_SIZE = 1000;
-const VALID_KINDS = new Set(['static', 'categories', 'articles', 'authors', 'topics', 'tags']);
+const VALID_KINDS = new Set(['static', 'categories', 'articles', 'authors', 'topics', 'tags', 'guides', 'flash']);
 const INDEXABLE_CATEGORY_SLUGS = new Set(CATEGORY_DISPLAY_ORDER);
 
 function baseUrl(): string {
@@ -84,6 +85,44 @@ function articleEntry(article: { slug: string; updated_at: string; lang: string;
   };
 }
 
+function tagEntries(tag: { slug: string; updated_at: string; langs: Array<'zh' | 'en'> }): SitemapUrlEntry[] {
+  const encodedPath = safeEncodeURI(`/tag/${tag.slug}`);
+  const langUrls = Object.fromEntries(
+    tag.langs.map(lang => [lang, `${baseUrl()}/${lang}${encodedPath}`])
+  ) as Partial<Record<'zh' | 'en', string>>;
+  const xDefault = langUrls.zh ?? langUrls.en;
+
+  return tag.langs.map(lang => {
+    const loc = langUrls[lang] as string;
+    return {
+      loc,
+      lastmod: safeDate(tag.updated_at),
+      changefreq: 'daily',
+      priority: 0.55,
+      alternates: {
+        ...langUrls,
+        ...(xDefault ? { 'x-default': xDefault } : {}),
+      },
+    };
+  });
+}
+
+function flashEntry(flash: { lang?: string | null; published_at?: string | null; updated_at?: string | null; created_at?: string | null; id?: unknown; title?: unknown }): SitemapUrlEntry {
+  const lang = flash.lang === 'en' ? 'en' : 'zh';
+  const path = safeEncodeURI(`/flash/${encodeFlashSlug(flash)}`);
+  const loc = `${baseUrl()}/${lang}${path}`;
+  return {
+    loc,
+    lastmod: safeDate(flash.updated_at || flash.published_at || flash.created_at),
+    changefreq: 'daily',
+    priority: 0.45,
+    alternates: {
+      [lang]: loc,
+      'x-default': loc,
+    },
+  };
+}
+
 async function entriesFor(kind: string, page: number): Promise<SitemapUrlEntry[]> {
   const offset = page * CHUNK_SIZE;
   switch (kind) {
@@ -110,6 +149,19 @@ async function entriesFor(kind: string, page: number): Promise<SitemapUrlEntry[]
         .filter(author => !author.slug.includes('&'))
         .flatMap(author => localize(`/authors/${author.slug}`, safeDate(author.latest_at), 'weekly', author.slug === 'yayanews-editorial' ? 0.55 : 0.45));
     }
+    case 'guides': {
+      if (page !== 0) return [];
+      const guides = await getGuidesForSitemap().catch(() => []);
+      return guides
+        .filter(guide => !guide.slug.includes('&'))
+        .flatMap(guide => localize(`/guide/${guide.slug}`, safeDate(guide.updated_at), 'monthly', 0.55));
+    }
+    case 'flash': {
+      const flashes = await getIndexableFlashForSitemap(CHUNK_SIZE).catch(() => []);
+      return flashes
+        .slice(offset, offset + CHUNK_SIZE)
+        .map(flashEntry);
+    }
     case 'topics': {
       const topics = await getTopicsForSitemap().catch(() => []);
       return topics
@@ -122,7 +174,7 @@ async function entriesFor(kind: string, page: number): Promise<SitemapUrlEntry[]
       return tags
         .filter(tag => !tag.slug.includes('&'))
         .slice(offset, offset + CHUNK_SIZE)
-        .flatMap(tag => localize(`/tag/${tag.slug}`, safeDate(tag.updated_at), 'daily', 0.55));
+        .flatMap(tagEntries);
     }
     default:
       return [];

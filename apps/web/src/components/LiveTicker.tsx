@@ -62,7 +62,7 @@ export default function LiveTicker({ title = 'Live Ticker', tickerUs = 'US Marke
         const [resUs, resApac, resCrypto] = await Promise.all([
           fetch(`/api/markets/yahoo?tickers=${US_TICKERS}`),
           fetch(`/api/markets/yahoo?tickers=${APAC_TICKERS}`),
-          fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${COIN_IDS}&sparkline=false`)
+          fetch(`/api/markets/coingecko?endpoint=coins/markets&vs_currency=usd&ids=${COIN_IDS}&sparkline=false`)
         ]);
 
         if (!mounted) return;

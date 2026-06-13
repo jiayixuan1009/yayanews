@@ -227,6 +227,24 @@ assert_recent_heartbeat() {
     return 1
 }
 
+report_search_console_env() {
+    local google_verification
+    local bing_verification
+
+    google_verification="$(read_env_value NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION 2>/dev/null || read_env_value GOOGLE_SITE_VERIFICATION 2>/dev/null || true)"
+    bing_verification="$(read_env_value NEXT_PUBLIC_BING_SITE_VERIFICATION 2>/dev/null || read_env_value BING_SITE_VERIFICATION 2>/dev/null || true)"
+
+    if [ -n "$google_verification" ]; then
+        log "   ${GREEN}Google Search Console verification token configured${NC}"
+    else
+        log "${YELLOW}   Google Search Console verification token is not configured; OK only if using DNS Domain property${NC}"
+    fi
+
+    if [ -n "$bing_verification" ]; then
+        log "   ${GREEN}Bing Webmaster verification token configured${NC}"
+    fi
+}
+
 assert_standalone_smoke() {
     local server="$APP_DIR/apps/web/.next/standalone/apps/web/server.js"
     local smoke_log="$APP_DIR/infra/deploy/web-smoke.log"
@@ -258,7 +276,13 @@ assert_standalone_smoke() {
         assert_http_body_ready "web smoke logo" "http://127.0.0.1:$DEPLOY_SMOKE_PORT/brand/logo-square.png" || smoke_status=$?
     fi
     if [ "$smoke_status" -eq 0 ]; then
+        assert_http_body_ready "web smoke default OG" "http://127.0.0.1:$DEPLOY_SMOKE_PORT/brand/og-default.png" || smoke_status=$?
+    fi
+    if [ "$smoke_status" -eq 0 ]; then
         assert_http_body_ready "web smoke sitemap" "http://127.0.0.1:$DEPLOY_SMOKE_PORT/sitemap.xml" || smoke_status=$?
+    fi
+    if [ "$smoke_status" -eq 0 ]; then
+        assert_http_body_ready "web smoke news sitemap" "http://127.0.0.1:$DEPLOY_SMOKE_PORT/sitemap-news.xml" || smoke_status=$?
     fi
     cleanup_smoke
     if [ "$smoke_status" -ne 0 ]; then
@@ -378,6 +402,7 @@ PYTHON_PM2_APPS=(yaya-finnhub-ws yaya-pipeline-daemon yaya-worker-flash yaya-wor
 log "${GREEN}Starting deploy${NC} commit=$CURRENT_COMMIT"
 assert_clean_worktree
 assert_disk_space
+report_search_console_env
 
 log "Backing up database..."
 BACKUP_FILE="$BACKUP_DIR/$(date '+%Y%m%d_%H%M%S')_pre_deploy.sql.gz"
@@ -421,10 +446,10 @@ fi
 assert_disk_space
 snapshot_standalone_dirs
 npm run build
-mkdir -p apps/web/.next/standalone/.next
+mkdir -p apps/web/.next/standalone/apps/web/.next
 mkdir -p apps/admin/.next/standalone/.next
-cp -r apps/web/public apps/web/.next/standalone/public
-cp -r apps/web/.next/static apps/web/.next/standalone/.next/static
+cp -r apps/web/public apps/web/.next/standalone/apps/web/public
+cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static
 cp -r apps/admin/.next/static apps/admin/.next/standalone/.next/static 2>/dev/null || true
 log "   ${GREEN}Build complete${NC}"
 assert_standalone_smoke

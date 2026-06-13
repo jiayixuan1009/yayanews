@@ -4,6 +4,21 @@ function localePrefix(lang?: string): '/zh' | '/en' {
   return lang === 'en' ? '/en' : '/zh';
 }
 
+const DEFAULT_STRUCTURED_DATA_IMAGE = '/brand/og-default.png';
+
+function absoluteSiteUrl(pathOrUrl: string): string {
+  const base = siteConfig.siteUrl.endsWith('/') ? siteConfig.siteUrl : `${siteConfig.siteUrl}/`;
+  try {
+    return new URL(pathOrUrl, base).toString();
+  } catch {
+    return new URL(DEFAULT_STRUCTURED_DATA_IMAGE, base).toString();
+  }
+}
+
+function structuredDataImage(image?: string | null): string {
+  return absoluteSiteUrl((image || '').trim() || DEFAULT_STRUCTURED_DATA_IMAGE);
+}
+
 export function buildAuthorSlug(author?: string | null): string {
   const raw = (author || 'YayaNews').trim() || 'YayaNews';
   const lower = raw.toLowerCase();
@@ -73,7 +88,7 @@ export function buildNewsArticleJsonLd(article: Article, topic?: any, lang?: str
     '@type': articleType,
     headline: article.title,
     description: article.summary || article.title,
-    image: article.cover_image || undefined,
+    image: structuredDataImage(article.cover_image),
     inLanguage,
     datePublished: article.published_at ? new Date(article.published_at).toISOString() : undefined,
     dateModified: article.reviewed_at
@@ -249,4 +264,3 @@ export function buildItemListJsonLd(
     })),
   };
 }
-

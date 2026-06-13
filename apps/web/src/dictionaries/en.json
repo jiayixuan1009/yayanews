@@ -61,7 +61,7 @@
   },
   "news": {
     "pageTitle": "Latest News",
-    "pageDescription": "Latest financial news covering US stocks, HK stocks, crypto, derivatives and commodities.",
+    "pageDescription": "Latest market news and analysis across US stocks, Hong Kong equities, crypto, derivatives, gold and oil.",
     "todayFocus": "Today's Focus",
     "newsList": "News List",
     "flashSnippets": "Flash Snippets",
@@ -88,8 +88,8 @@
   },
   "categoryMeta": {
     "us-stock": {
-      "title": "US Stocks & Wall Street News | NASDAQ, S&P 500, Dow Jones",
-      "desc": "YayaNews US equities desk: real-time coverage of NASDAQ, S&P 500 and Dow Jones index movements, deep earnings analysis of NVIDIA, Apple and Tesla, and expert breakdowns of Federal Reserve decisions, Wall Street positioning and key macro data impacting markets.",
+      "title": "US Stock Market News | YayaNews",
+      "desc": "Track US stock market news, Wall Street moves, Fed policy, earnings and macro data across NASDAQ, S&P 500 and Dow Jones with YayaNews.",
       "label": "Desk",
       "quote": "Price action is just the surface."
     },
@@ -162,7 +162,7 @@
   },
   "topics": {
     "pageTitle": "Trending Topics",
-    "pageDesc": "Deep tracking of major financial market events, building a knowledge graph of significance.",
+    "pageDesc": "Follow major market themes across US stocks, Hong Kong equities, crypto, derivatives and macro events with timelines, context and key articles.",
     "allTopics": "All Topics",
     "articleCount": "{count} articles",
     "readTopic": "Read topic →",

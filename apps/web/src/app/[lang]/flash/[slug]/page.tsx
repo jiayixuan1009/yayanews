@@ -18,6 +18,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!flashId) return {};
   const flash = await getFlashNewsById(flashId);
   if (!flash || (flash.lang && flash.lang !== lang)) return {};
+  const locale = lang === 'en' ? 'en' : 'zh';
+  const canonicalPath = `/${locale}/flash/${slug}`;
+
   return createMetadata({
     title: flash.title, // brand suffix auto-appended by title template
     description: (flash.content || flash.title).slice(0, 155),
@@ -26,7 +29,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     publishedTime: flash.published_at || undefined,
     modifiedTime: flash.published_at || undefined,
     section: flash.category_name || undefined,
-    lang: lang as 'zh' | 'en',
+    lang: locale,
+    alternatesLanguages: {
+      [locale]: canonicalPath,
+      'x-default': canonicalPath,
+    },
     // high/urgent = substantive breaking news worth indexing; low/normal = thin, keep noindex
     noIndex: !isIndexable(flash.importance),
   });

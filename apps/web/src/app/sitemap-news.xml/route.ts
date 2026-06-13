@@ -8,6 +8,10 @@ const log = baseLog.child({ route: '/sitemap-news.xml' });
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+const MAX_NEWS_SITEMAP_ITEMS = 100;
+const MAX_ITEMS_PER_TOPIC = 24;
+const MAX_ITEMS_PER_TITLE_PREFIX = 3;
+
 function escapeXml(s: any): string {
   if (!s) return '';
   return String(s)
@@ -46,6 +50,65 @@ function isErrorArticle(title: string): boolean {
     '无法生成',
   ];
   return errorPatterns.some(p => title.includes(p));
+}
+
+function normalizeTitleForGrouping(title: string): string {
+  return title
+    .replace(/^EN:\s*/i, '')
+    .replace(/[|｜].*$/g, '')
+    .replace(/[，,：:；;。.!！?？"'“”‘’()[\]【】《》\s-]+/g, '')
+    .toLowerCase();
+}
+
+function titlePrefixKey(title: string): string {
+  const normalized = normalizeTitleForGrouping(title);
+  return Array.from(normalized).slice(0, 8).join('');
+}
+
+function topicKey(article: { title?: unknown; category_name?: unknown; category_slug?: unknown; subcategory?: unknown }): string {
+  const title = typeof article.title === 'string' ? article.title : '';
+  const category = typeof article.category_slug === 'string'
+    ? article.category_slug
+    : typeof article.category_name === 'string'
+      ? article.category_name
+      : '';
+  const subcategory = typeof article.subcategory === 'string' ? article.subcategory : '';
+  const haystack = `${title} ${category} ${subcategory}`;
+
+  if (/黄金|金价|gold/i.test(haystack)) return 'gold';
+  if (/港股|恒指|腾讯|阿里|hk|hang\s*seng/i.test(haystack)) return 'hk-stock';
+  if (/美股|纳指|标普|道指|nasdaq|s&p|dow/i.test(haystack)) return 'us-stock';
+  if (/比特币|以太坊|加密|crypto|bitcoin|ethereum|btc|eth/i.test(haystack)) return 'crypto';
+  if (/原油|油价|crude|oil/i.test(haystack)) return 'oil';
+  if (/期权|期货|衍生品|derivative|option|future/i.test(haystack)) return 'derivatives';
+  return category || 'general';
+}
+
+function diversifyNewsArticles<T extends { title?: unknown; category_name?: unknown; category_slug?: unknown; subcategory?: unknown }>(
+  articles: T[]
+): T[] {
+  const topicCounts = new Map<string, number>();
+  const prefixCounts = new Map<string, number>();
+  const selected: T[] = [];
+
+  for (const article of articles) {
+    if (selected.length >= MAX_NEWS_SITEMAP_ITEMS) break;
+
+    const title = typeof article.title === 'string' ? article.title : '';
+    const prefix = titlePrefixKey(title);
+    const topic = topicKey(article);
+    const topicCount = topicCounts.get(topic) || 0;
+    const prefixCount = prefix ? (prefixCounts.get(prefix) || 0) : 0;
+
+    if (topicCount >= MAX_ITEMS_PER_TOPIC) continue;
+    if (prefix && prefixCount >= MAX_ITEMS_PER_TITLE_PREFIX) continue;
+
+    selected.push(article);
+    topicCounts.set(topic, topicCount + 1);
+    if (prefix) prefixCounts.set(prefix, prefixCount + 1);
+  }
+
+  return selected;
 }
 
 function buildNewsSitemapXml(articleUrls: string): string {
@@ -91,7 +154,8 @@ export async function GET() {
       return Boolean(slug) && Boolean(titleRaw.trim()) && !isErrorArticle(titleRaw);
     });
 
-    const articleUrls = validArticles.map(a => {
+    const diversifiedArticles = diversifyNewsArticles(validArticles);
+    const articleUrls = diversifiedArticles.map(a => {
       const title = (a.title as string).replace(/^EN:\s*/i, ''); // Remove EN: prefix
       const lang = detectLang(title, a.lang);
       const langPrefix = lang === 'en' ? 'en' : 'zh';
@@ -111,7 +175,7 @@ export async function GET() {
 
     // P0 SEO：快讯在 flash_news 表，此处 articles 已不含快讯；无新闻稿时勿输出空 news urlset
     const xml =
-      validArticles.length > 0 ? buildNewsSitemapXml(articleUrls) : buildStandardHomeSitemapXml(baseUrl);
+      diversifiedArticles.length > 0 ? buildNewsSitemapXml(articleUrls) : buildStandardHomeSitemapXml(baseUrl);
 
     return new NextResponse(xml, {
       headers: {

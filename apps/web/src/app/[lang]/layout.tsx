@@ -62,8 +62,6 @@ export default async function RootLayout({
   return (
     <html lang={locale} className={`${inter.variable} ${publicSans.variable} ${interTight.variable} ${notoSansSC.variable}`}>
       <head>
-        <link rel="preconnect" href="https://assets.coingecko.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://api.coingecko.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         <link rel="alternate" type="application/rss+xml" title={`${siteConfig.siteName} - News Feed`} href="/feed-news.xml" />
       </head>

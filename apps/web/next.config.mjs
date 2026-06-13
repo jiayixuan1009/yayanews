@@ -102,6 +102,15 @@ const contentSecurityPolicy = [
   "form-action 'self'",
 ].join('; ');
 
+const htmlCacheHeaders = {
+  live: 'public, max-age=30, s-maxage=30, stale-while-revalidate=120',
+  realtime: 'public, max-age=60, s-maxage=60, stale-while-revalidate=300',
+  topics: 'public, max-age=120, s-maxage=120, stale-while-revalidate=600',
+  standardDetail: 'public, max-age=300, s-maxage=300, stale-while-revalidate=900',
+  guide: 'public, max-age=600, s-maxage=600, stale-while-revalidate=3600',
+  staticPolicy: 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800',
+};
+
 const nextConfig = {
   output: 'standalone',
   compress: true,
@@ -153,9 +162,129 @@ const nextConfig = {
         ],
       },
       {
+        source: '/feed-news.xml',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=300, s-maxage=300, stale-while-revalidate=600' },
+        ],
+      },
+      {
         source: '/robots.txt',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=3600' },
+        ],
+      },
+      {
+        source: '/:lang(zh|en)',
+        headers: [
+          { key: 'Cache-Control', value: htmlCacheHeaders.realtime },
+        ],
+      },
+      {
+        source: '/:lang(zh|en)/news',
+        headers: [
+          { key: 'Cache-Control', value: htmlCacheHeaders.realtime },
+        ],
+      },
+      {
+        source: '/:lang(zh|en)/news/:path*',
+        headers: [
+          { key: 'Cache-Control', value: htmlCacheHeaders.realtime },
+        ],
+      },
+      {
+        source: '/:lang(zh|en)/flash',
+        headers: [
+          { key: 'Cache-Control', value: htmlCacheHeaders.live },
+        ],
+      },
+      {
+        source: '/:lang(zh|en)/flash/:path*',
+        headers: [
+          { key: 'Cache-Control', value: htmlCacheHeaders.realtime },
+        ],
+      },
+      {
+        source: '/:lang(zh|en)/markets',
+        headers: [
+          { key: 'Cache-Control', value: htmlCacheHeaders.realtime },
+        ],
+      },
+      {
+        source: '/:lang(zh|en)/topics',
+        headers: [
+          { key: 'Cache-Control', value: htmlCacheHeaders.topics },
+        ],
+      },
+      {
+        source: '/:lang(zh|en)/topics/:path*',
+        headers: [
+          { key: 'Cache-Control', value: htmlCacheHeaders.topics },
+        ],
+      },
+      {
+        source: '/:lang(zh|en)/article/:path*',
+        headers: [
+          { key: 'Cache-Control', value: htmlCacheHeaders.standardDetail },
+        ],
+      },
+      {
+        source: '/:lang(zh|en)/authors',
+        headers: [
+          { key: 'Cache-Control', value: htmlCacheHeaders.standardDetail },
+        ],
+      },
+      {
+        source: '/:lang(zh|en)/authors/:path*',
+        headers: [
+          { key: 'Cache-Control', value: htmlCacheHeaders.standardDetail },
+        ],
+      },
+      {
+        source: '/:lang(zh|en)/tag/:path*',
+        headers: [
+          { key: 'Cache-Control', value: htmlCacheHeaders.topics },
+        ],
+      },
+      {
+        source: '/:lang(zh|en)/guide',
+        headers: [
+          { key: 'Cache-Control', value: htmlCacheHeaders.guide },
+        ],
+      },
+      {
+        source: '/:lang(zh|en)/guide/:path*',
+        headers: [
+          { key: 'Cache-Control', value: htmlCacheHeaders.guide },
+        ],
+      },
+      {
+        source: '/:lang(zh|en)/price/:path*',
+        headers: [
+          { key: 'Cache-Control', value: htmlCacheHeaders.topics },
+        ],
+      },
+      {
+        source: '/:lang(zh|en)/:page(about|advertising-policy|contact|corrections|editorial|editorial-policy|privacy|risk-disclosure|terms)',
+        headers: [
+          { key: 'Cache-Control', value: htmlCacheHeaders.staticPolicy },
+        ],
+      },
+      {
+        source: '/brand/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=2592000, immutable' },
+        ],
+      },
+      {
+        source: '/images/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=2592000, immutable' },
+        ],
+      },
+      {
+        source: '/covers/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=2592000, immutable' },
         ],
       },
       {

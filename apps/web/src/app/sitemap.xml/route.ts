@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getArticleSitemapCount, getAuthorsForSitemap, getCategories, getTagsForSitemap, getTopicsForSitemap } from '@/lib/queries';
+import { getArticleSitemapCount, getAuthorsForSitemap, getCategories, getGuidesForSitemap, getIndexableFlashForSitemap, getTagsForSitemap, getTopicsForSitemap } from '@/lib/queries';
 import { buildSitemapIndex, type SitemapIndexEntry } from '@/lib/sitemap-xml';
 import { CATEGORY_DISPLAY_ORDER } from '@/lib/constants';
 import { siteConfig } from '@yayanews/types';
@@ -24,12 +24,14 @@ function chunkUrl(kind: string, page: number): string {
 
 export async function GET() {
   const now = new Date();
-  const [articleCount, categories, topics, tags, authors] = await Promise.all([
+  const [articleCount, categories, topics, tags, authors, guides, flashes] = await Promise.all([
     getArticleSitemapCount().catch(() => 0),
     getCategories().catch(() => []),
     getTopicsForSitemap().catch(() => []),
     getTagsForSitemap().catch(() => []),
     getAuthorsForSitemap().catch(() => []),
+    getGuidesForSitemap().catch(() => []),
+    getIndexableFlashForSitemap(1).catch(() => []),
   ]);
 
   const entries: SitemapIndexEntry[] = [
@@ -40,6 +42,8 @@ export async function GET() {
     entries.push({ loc: chunkUrl('categories', 0), lastmod: now });
   }
   if (authors.length > 0) entries.push({ loc: chunkUrl('authors', 0), lastmod: now });
+  if (guides.length > 0) entries.push({ loc: chunkUrl('guides', 0), lastmod: now });
+  if (flashes.length > 0) entries.push({ loc: chunkUrl('flash', 0), lastmod: now });
 
   for (let page = 0; page < chunkCount(articleCount); page += 1) {
     entries.push({ loc: chunkUrl('articles', page), lastmod: now });
