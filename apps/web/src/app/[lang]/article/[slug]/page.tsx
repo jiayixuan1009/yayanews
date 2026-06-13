@@ -171,7 +171,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         : { lang: currentLocale, slug: article.slug }
       : await getArticleRedirectTargetByLegacySlug(slug, lang);
     if (target && (target.lang !== requestedLocale || target.slug !== slug)) {
-      permanentRedirect(`/${target.lang}/article/${target.slug}`);
+      permanentRedirect(`/${target.lang}/article/${encodeURIComponent(target.slug)}`);
     }
     notFound();
   }
