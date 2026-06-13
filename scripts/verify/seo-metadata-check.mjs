@@ -3,10 +3,20 @@
 const DEFAULT_FETCH_BASE_URL = 'http://127.0.0.1:3000';
 const DEFAULT_EXPECTED_ORIGIN = 'https://yayanews.cryptooptiontool.com';
 const DEFAULT_FETCH_TIMEOUT_MS = 15_000;
+const GOOGLE_SITE_VERIFICATION_TOKEN = 'vG9GwN_MFqx35CiRPLw7POt6WxmCN0hllAizS6DwS3M';
+const GOOGLE_SITE_VERIFICATION_FILE = 'google557e7d124058718a.html';
+const GOOGLE_SITE_VERIFICATION_BODY = `google-site-verification: ${GOOGLE_SITE_VERIFICATION_FILE}`;
+const GA_MEASUREMENT_ID = 'G-M5TYCGL732';
+const REQUIRED_SCRIPT_SRC_ORIGINS = [
+  'https://www.googletagmanager.com',
+  'https://www.google-analytics.com',
+  'https://bat.bing.com',
+  'https://www.clarity.ms',
+];
 
 const CHECKS = [
-  { path: '/zh', index: true, cache: 'cacheable' },
-  { path: '/en', index: true, cache: 'cacheable' },
+  { path: '/zh', index: true, cache: 'cacheable', googleOwnershipSignals: true },
+  { path: '/en', index: true, cache: 'cacheable', googleOwnershipSignals: true },
   { path: '/zh/news', index: true, cache: 'cacheable' },
   { path: '/en/news', index: true, cache: 'cacheable' },
   { path: '/zh/news/us-stock', index: true, cache: 'cacheable' },
@@ -79,6 +89,18 @@ const RESOURCE_CHECKS = [
     cache: 'cacheable',
     resourceKind: 'robots',
   },
+  {
+    path: `/${GOOGLE_SITE_VERIFICATION_FILE}`,
+    contentType: 'text/html',
+    resourceKind: 'google-site-verification-file',
+  },
+];
+
+const REDIRECT_CHECKS = [
+  { path: '/', redirectStatus: 308, locationPath: '/zh' },
+  { path: '/news', redirectStatus: 308, locationPath: '/zh/news' },
+  { path: '/zh/', redirectStatus: 308, locationPath: '/zh' },
+  { path: '/en/', redirectStatus: 308, locationPath: '/en' },
 ];
 
 const DEFAULT_OG_PATH = '/brand/og-default.png';
@@ -300,7 +322,7 @@ async function fetchTextWithTimeout(url, options = {}, timeoutMs = DEFAULT_FETCH
 }
 
 function selectChecks(paths, articlePaths) {
-  const checks = [...CHECKS, ...RESOURCE_CHECKS];
+  const checks = [...REDIRECT_CHECKS, ...CHECKS, ...RESOURCE_CHECKS];
   const articleChecks = articlePaths.map((path) => ({
     path,
     index: true,
@@ -863,6 +885,50 @@ function assertRobotsTxt(failures, text, expectedBaseUrl) {
   assertExpectedOrigin(failures, 'robots.txt Sitemap', sitemapUrls, expectedBaseUrl);
 }
 
+function assertGoogleSiteVerificationFile(failures, text) {
+  if (text.trim() !== GOOGLE_SITE_VERIFICATION_BODY) {
+    failures.push(`google-site-verification file: expected "${GOOGLE_SITE_VERIFICATION_BODY}", got "${text.trim()}"`);
+  }
+}
+
+function assertCspAllowsScriptOrigins(failures, actual) {
+  if (!actual) {
+    failures.push('content-security-policy: missing');
+    return;
+  }
+
+  const lower = actual.toLowerCase();
+  const scriptSrc = lower
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith('script-src '));
+
+  if (!scriptSrc) {
+    failures.push('content-security-policy: missing script-src directive');
+    return;
+  }
+
+  for (const origin of REQUIRED_SCRIPT_SRC_ORIGINS) {
+    if (!scriptSrc.includes(origin.toLowerCase())) {
+      failures.push(`content-security-policy: script-src missing ${origin}`);
+    }
+  }
+}
+
+function assertGoogleOwnershipSignals(failures, html, csp) {
+  const verification = metaContent(html, 'name', 'google-site-verification');
+  assertEqual(failures, 'google-site-verification meta', verification, GOOGLE_SITE_VERIFICATION_TOKEN);
+
+  if (!html.includes(`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`)) {
+    failures.push(`google analytics: missing gtag loader for ${GA_MEASUREMENT_ID}`);
+  }
+  if (!html.includes(`gtag('config', '${GA_MEASUREMENT_ID}'`)) {
+    failures.push(`google analytics: missing gtag config for ${GA_MEASUREMENT_ID}`);
+  }
+
+  assertCspAllowsScriptOrigins(failures, csp);
+}
+
 function assertResourceBody(failures, body, expectedBaseUrl, check) {
   switch (check.resourceKind) {
     case 'sitemap-index':
@@ -880,7 +946,22 @@ function assertResourceBody(failures, body, expectedBaseUrl, check) {
     case 'robots':
       assertRobotsTxt(failures, body, expectedBaseUrl);
       break;
+    case 'google-site-verification-file':
+      assertGoogleSiteVerificationFile(failures, body);
+      break;
   }
+}
+
+function assertRedirectLocation(failures, actual, expectedPath, fetchBaseUrl, expectedBaseUrl) {
+  if (!actual) {
+    failures.push(`location: expected redirect to ${expectedPath}, got missing`);
+    return;
+  }
+
+  const target = new URL(actual, fetchBaseUrl);
+  const normalizedTarget = new URL(`${target.pathname}${target.search}`, expectedBaseUrl).toString();
+  const expected = new URL(expectedPath, expectedBaseUrl).toString();
+  assertUrlEqual(failures, 'location', normalizedTarget, expected);
 }
 
 function sameOriginPathUrl(sourceUrl, targetBaseUrl) {
@@ -1092,6 +1173,7 @@ async function checkPage(fetchBaseUrl, expectedBaseUrl, check, fetchTimeoutMs) {
   const robots = metaContent(html, 'name', 'robots');
   const alternates = alternateLinks(html);
   const cacheControl = response.headers.get('cache-control');
+  const csp = response.headers.get('content-security-policy');
 
   assertTitle(failures, title, { article: Boolean(check.article) });
   assertDescription(failures, description, expected.lang, { article: Boolean(check.article) });
@@ -1104,7 +1186,28 @@ async function checkPage(fetchBaseUrl, expectedBaseUrl, check, fetchTimeoutMs) {
   if (check.cache !== 'no-store-ok') assertCacheHeader(failures, cacheControl, check.cache);
   if (check.article) assertArticleJsonLd(failures, html);
   if (check.jsonLdTypes) assertJsonLdTypes(failures, html, check.jsonLdTypes);
+  if (check.googleOwnershipSignals) assertGoogleOwnershipSignals(failures, html, csp);
 
+  return { path: check.path, failures };
+}
+
+async function checkRedirect(fetchBaseUrl, expectedBaseUrl, check, fetchTimeoutMs) {
+  const url = new URL(check.path, fetchBaseUrl);
+  const response = await fetchWithTimeout(url, { redirect: 'manual' }, fetchTimeoutMs);
+  const failures = [];
+
+  if (response.status !== check.redirectStatus) {
+    failures.push(`status: expected ${check.redirectStatus}, got ${response.status}`);
+    return { path: check.path, failures };
+  }
+
+  assertRedirectLocation(
+    failures,
+    response.headers.get('location'),
+    check.locationPath,
+    fetchBaseUrl,
+    expectedBaseUrl
+  );
   return { path: check.path, failures };
 }
 
@@ -1171,6 +1274,8 @@ async function main() {
     try {
       const result = 'index' in check
         ? await checkPage(fetchBaseUrl, expectedBaseUrl, check, fetchTimeoutMs)
+        : 'redirectStatus' in check
+          ? await checkRedirect(fetchBaseUrl, expectedBaseUrl, check, fetchTimeoutMs)
         : await checkResource(fetchBaseUrl, expectedBaseUrl, check, fetchTimeoutMs);
       if (result.failures.length > 0) {
         failed += 1;

@@ -136,6 +136,8 @@ CREATE INDEX IF NOT EXISTS idx_articles_slug ON articles(slug);
 CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status);
 CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published_at);
 CREATE INDEX IF NOT EXISTS idx_flash_published ON flash_news(published_at);
+CREATE INDEX IF NOT EXISTS idx_tags_slug ON tags(slug);
+CREATE INDEX IF NOT EXISTS idx_article_tags_tag_article ON article_tags(tag_id, article_id);
 CREATE INDEX IF NOT EXISTS idx_topics_slug ON topics(slug);
 CREATE INDEX IF NOT EXISTS idx_authors_status ON authors(status);
 CREATE INDEX IF NOT EXISTS idx_authors_role ON authors(role);
@@ -189,6 +191,7 @@ ALTER TABLE flash_news ADD COLUMN IF NOT EXISTS subcategory TEXT;
 
 -- add missing columns for Next.js queries (fixes 3515754433 Server-Side Error)
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS audit_status TEXT DEFAULT 'approved';
+CREATE INDEX IF NOT EXISTS idx_articles_tag_page_feed ON articles(lang, published_at DESC, id) WHERE status = 'published' AND audit_status = 'approved' AND deleted_at IS NULL AND is_indexable = TRUE;
 ALTER TABLE topics ADD COLUMN IF NOT EXISTS name_zh TEXT;
 ALTER TABLE topics ADD COLUMN IF NOT EXISTS name_en TEXT;
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS name_zh TEXT;
