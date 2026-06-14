@@ -55,6 +55,15 @@ jobs:
             --sample-sitemap-kinds authors:2,topics:2,tags:2,guides:2 \
             2>&1 | tee "$OUTPUT_DIR/seo-check.log"
 
+      - name: Run redirect regression check
+        id: redirect_check
+        continue-on-error: true
+        run: |
+          mkdir -p "$OUTPUT_DIR"
+          npm run verify:redirects -- \
+            --base "$BASE_URL" \
+            2>&1 | tee "$OUTPUT_DIR/redirect-check.log"
+
       - name: Upload monitor logs
         uses: actions/upload-artifact@v4
         if: always()
@@ -63,7 +72,7 @@ jobs:
           path: monitor-output/*.log
 
       - name: Open or update alert issue
-        if: steps.public_health.outcome != 'success' || steps.seo_check.outcome != 'success'
+        if: steps.public_health.outcome != 'success' || steps.seo_check.outcome != 'success' || steps.redirect_check.outcome != 'success'
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -92,11 +101,17 @@ jobs:
             echo "- Workflow run: $RUN_URL"
             echo "- Public health outcome: ${{ steps.public_health.outcome }}"
             echo "- SEO check outcome: ${{ steps.seo_check.outcome }}"
+            echo "- Redirect check outcome: ${{ steps.redirect_check.outcome }}"
             echo "- Checked at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
             echo
             echo "## Public health log"
             echo '```text'
             tail -n 80 "$OUTPUT_DIR/public-health.log" || true
+            echo '```'
+            echo
+            echo "## Redirect check log"
+            echo '```text'
+            tail -n 120 "$OUTPUT_DIR/redirect-check.log" || true
             echo '```'
             echo
             echo "## SEO check log"
@@ -118,7 +133,7 @@ jobs:
           exit 1
 
       - name: Close recovered alert issue
-        if: steps.public_health.outcome == 'success' && steps.seo_check.outcome == 'success'
+        if: steps.public_health.outcome == 'success' && steps.seo_check.outcome == 'success' && steps.redirect_check.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}

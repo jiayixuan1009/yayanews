@@ -34,6 +34,8 @@
     "pipeline:translate-en:all": "node scripts/pipeline-translate-en.mjs --until-done",
     "ops:health": "node scripts/ops/health-report.mjs",
     "ops:public-health": "node scripts/ops/public-health.mjs",
+    "verify:gsc-export": "node scripts/verify/analyze-gsc-export.mjs",
+    "verify:redirects": "node scripts/verify/redirect-regression.mjs",
     "verify:seo": "node scripts/verify/seo-metadata-check.mjs"
   },
   "dependencies": {
