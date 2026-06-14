@@ -1,0 +1,144 @@
+name: SEO Production Monitor
+
+on:
+  schedule:
+    # 08:30 Singapore / China time.
+    - cron: '30 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: seo-production-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    name: Check production SEO health
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: https://yayanews.cryptooptiontool.com
+      ALERT_TITLE: SEO monitor alert: production crawl health
+      ALERT_LABEL: seo-monitor
+      OUTPUT_DIR: monitor-output
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.x'
+
+      - name: Run public health check
+        id: public_health
+        continue-on-error: true
+        run: |
+          mkdir -p "$OUTPUT_DIR"
+          npm run ops:public-health 2>&1 | tee "$OUTPUT_DIR/public-health.log"
+
+      - name: Run deep SEO check
+        id: seo_check
+        continue-on-error: true
+        run: |
+          mkdir -p "$OUTPUT_DIR"
+          npm run verify:seo -- \
+            --base "$BASE_URL" \
+            --sample-article-urls 10 \
+            --probe-sitemap-urls 30 \
+            --sample-sitemap-kinds authors:2,topics:2,tags:2,guides:2 \
+            2>&1 | tee "$OUTPUT_DIR/seo-check.log"
+
+      - name: Upload monitor logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: seo-monitor-logs
+          path: monitor-output/*.log
+
+      - name: Open or update alert issue
+        if: steps.public_health.outcome != 'success' || steps.seo_check.outcome != 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          gh label create "$ALERT_LABEL" \
+            --repo "$REPO" \
+            --description "Automated production SEO monitor alerts" \
+            --color "d73a4a" \
+            --force
+
+          issue_number="$(gh issue list \
+            --repo "$REPO" \
+            --state open \
+            --label "$ALERT_LABEL" \
+            --search "$ALERT_TITLE in:title" \
+            --json number \
+            --jq '.[0].number // empty')"
+
+          {
+            echo "Production SEO monitor detected a crawl-health issue."
+            echo
+            echo "- Base URL: $BASE_URL"
+            echo "- Workflow run: $RUN_URL"
+            echo "- Public health outcome: ${{ steps.public_health.outcome }}"
+            echo "- SEO check outcome: ${{ steps.seo_check.outcome }}"
+            echo "- Checked at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo
+            echo "## Public health log"
+            echo '```text'
+            tail -n 80 "$OUTPUT_DIR/public-health.log" || true
+            echo '```'
+            echo
+            echo "## SEO check log"
+            echo '```text'
+            tail -n 120 "$OUTPUT_DIR/seo-check.log" || true
+            echo '```'
+          } > "$OUTPUT_DIR/issue-body.md"
+
+          if [ -n "$issue_number" ]; then
+            gh issue comment "$issue_number" --repo "$REPO" --body-file "$OUTPUT_DIR/issue-body.md"
+          else
+            gh issue create \
+              --repo "$REPO" \
+              --title "$ALERT_TITLE" \
+              --label "$ALERT_LABEL" \
+              --body-file "$OUTPUT_DIR/issue-body.md"
+          fi
+
+          exit 1
+
+      - name: Close recovered alert issue
+        if: steps.public_health.outcome == 'success' && steps.seo_check.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          gh label create "$ALERT_LABEL" \
+            --repo "$REPO" \
+            --description "Automated production SEO monitor alerts" \
+            --color "d73a4a" \
+            --force
+
+          issue_number="$(gh issue list \
+            --repo "$REPO" \
+            --state open \
+            --label "$ALERT_LABEL" \
+            --search "$ALERT_TITLE in:title" \
+            --json number \
+            --jq '.[0].number // empty')"
+
+          if [ -n "$issue_number" ]; then
+            gh issue comment "$issue_number" \
+              --repo "$REPO" \
+              --body "Production SEO monitor recovered at $(date -u '+%Y-%m-%d %H:%M:%S UTC'). Closing this alert."
+            gh issue close "$issue_number" --repo "$REPO" --comment "Recovered."
+          fi
