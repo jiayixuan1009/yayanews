@@ -59,6 +59,17 @@ CREATE TABLE IF NOT EXISTS article_tags (
     tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE,
     PRIMARY KEY (article_id, tag_id)
 );
+CREATE TABLE IF NOT EXISTS article_slug_redirects (
+    id SERIAL PRIMARY KEY,
+    old_slug TEXT NOT NULL UNIQUE,
+    article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+    new_slug TEXT NOT NULL,
+    lang TEXT NOT NULL DEFAULT 'zh',
+    reason TEXT NOT NULL DEFAULT 'slug_backfill',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT article_slug_redirects_changed CHECK (old_slug <> new_slug)
+);
 CREATE TABLE IF NOT EXISTS flash_news (
     id SERIAL PRIMARY KEY, title TEXT NOT NULL, content TEXT NOT NULL,
     source TEXT, source_url TEXT, category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
@@ -138,6 +149,8 @@ CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published_at);
 CREATE INDEX IF NOT EXISTS idx_flash_published ON flash_news(published_at);
 CREATE INDEX IF NOT EXISTS idx_tags_slug ON tags(slug);
 CREATE INDEX IF NOT EXISTS idx_article_tags_tag_article ON article_tags(tag_id, article_id);
+CREATE INDEX IF NOT EXISTS idx_article_slug_redirects_article_id ON article_slug_redirects(article_id);
+CREATE INDEX IF NOT EXISTS idx_article_slug_redirects_new_slug ON article_slug_redirects(new_slug);
 CREATE INDEX IF NOT EXISTS idx_topics_slug ON topics(slug);
 CREATE INDEX IF NOT EXISTS idx_authors_status ON authors(status);
 CREATE INDEX IF NOT EXISTS idx_authors_role ON authors(role);

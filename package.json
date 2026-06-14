@@ -30,6 +30,7 @@
     "db:report:seed": "node scripts/report-seed-en-stats.mjs",
     "db:restore:recommended": "node scripts/restore-recommended.mjs",
     "db:gap-report": "node scripts/content-gap-report.mjs",
+    "db:backfill:en-slugs": "node scripts/maintenance/backfill-english-article-slugs.mjs",
     "pipeline:translate-en": "node scripts/pipeline-translate-en.mjs",
     "pipeline:translate-en:all": "node scripts/pipeline-translate-en.mjs --until-done",
     "ops:health": "node scripts/ops/health-report.mjs",

@@ -1,0 +1,53 @@
+name: Backfill English Article Slugs
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Apply slug updates. Leave false for dry-run."
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      limit:
+        description: "Maximum English articles to scan."
+        required: true
+        default: "10000"
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  backfill:
+    name: Backfill English slug redirects
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.x'
+
+      - name: Run backfill
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          APPLY: ${{ inputs.apply }}
+          LIMIT: ${{ inputs.limit }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL secret is required."
+            exit 1
+          fi
+          args=(--limit "$LIMIT")
+          if [ "$APPLY" = "true" ]; then
+            args+=(--apply)
+          fi
+          npm run db:backfill:en-slugs -- "${args[@]}"
