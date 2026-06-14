@@ -16,6 +16,14 @@ function flashLocale(value?: string | null): 'zh' | 'en' {
   return value === 'en' ? 'en' : 'zh';
 }
 
+function normalizeRouteSlug(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; lang: string }> }): Promise<Metadata> {
   const { slug, lang } = await params;
   const flashId = decodeFlashSlug(slug);
@@ -56,8 +64,8 @@ export default async function FlashDetailPage({ params }: { params: Promise<{ sl
 
   const flashLang = flashLocale(flash.lang);
   const canonicalSlug = encodeFlashSlug(flash);
-  if (flashLang !== lang || canonicalSlug !== slug) {
-    permanentRedirect(`/${flashLang}/flash/${encodeURIComponent(canonicalSlug)}`);
+  if (flashLang !== lang || canonicalSlug !== normalizeRouteSlug(slug)) {
+    permanentRedirect(`/${flashLang}/flash/${canonicalSlug}`);
   }
 
   const dict = await getDictionary(lang);
