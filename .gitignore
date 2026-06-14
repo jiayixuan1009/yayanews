@@ -50,6 +50,9 @@ logs/
 *.log
 !CHANGELOG.md
 
+# Local audit exports and generated reports.
+outputs/
+
 # ── 操作系统文件 ──
 .DS_Store
 Thumbs.db

@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 0.0.0.0 -p 3003",
-    "build": "next build",
-    "start": "next start -H 0.0.0.0 -p 3003",
+    "dev": "node ../../scripts/verify/check-node-version.mjs && next dev -H 0.0.0.0 -p 3003",
+    "build": "node ../../scripts/verify/check-node-version.mjs && next build",
+    "start": "node ../../scripts/verify/check-node-version.mjs && next start -H 0.0.0.0 -p 3003",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
   },
   "dependencies": {
