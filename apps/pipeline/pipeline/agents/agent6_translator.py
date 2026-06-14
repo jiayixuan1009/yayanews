@@ -5,10 +5,10 @@ Agent 6: 英文双语翻译 (English Translator)
 """
 import json
 import os
-from slugify import slugify
 from pipeline.utils.llm import chat
 from pipeline.utils.logger import get_logger, step_print
 from pipeline.utils.database import get_pool, insert_article, insert_tags, slug_exists
+from pipeline.utils.slug_policy import make_article_slug, with_unique_slug_suffix
 from pipeline.utils.fetch_english_source import (
     fetch_english_from_newsapi,
     fetch_english_from_polygon,
@@ -16,6 +16,11 @@ from pipeline.utils.fetch_english_source import (
 )
 from psycopg2.extras import RealDictCursor
 log = get_logger("agent6")
+
+
+def _generate_english_slug(title: str) -> str:
+    base = make_article_slug(title, lang="en", max_length=80)
+    return with_unique_slug_suffix(base, slug_exists, max_length=80)
 
 def _get_translation_candidates(limit: int = 5, min_views: int = 0) -> list[dict]:
     """
@@ -82,15 +87,7 @@ Output JSON Format ONLY:
         if start >= 0 and end > start:
             data = json.loads(result[start:end])
             
-            en_slug_base = slugify(data.get("title", f"EN {zh_article['title'][:30]}"), max_length=80)
-            if not en_slug_base:
-                en_slug_base = f"{zh_article['slug']}-en"
-            
-            en_slug = en_slug_base
-            counter = 1
-            while slug_exists(en_slug):
-                en_slug = f"{en_slug_base}-{counter}"
-                counter += 1
+            en_slug = _generate_english_slug(data.get("title") or f"EN {zh_article['id']}")
 
             # Map back required fields from zh_article and translated data
             return {
@@ -111,14 +108,7 @@ Output JSON Format ONLY:
 
 def _en_draft_from_api_blob(zh_article: dict, blob: dict) -> dict:
     """将 fetch_english_source 结果整理为与 _translate_article 相同下游字段。"""
-    en_slug_base = slugify(blob.get("title") or f"EN {zh_article['title'][:30]}", max_length=80)
-    if not en_slug_base:
-        en_slug_base = f"{zh_article['slug']}-en"
-    en_slug = en_slug_base
-    counter = 1
-    while slug_exists(en_slug):
-        en_slug = f"{en_slug_base}-{counter}"
-        counter += 1
+    en_slug = _generate_english_slug(blob.get("title") or f"EN {zh_article['id']}")
     tickers = (zh_article.get("tickers") or "").strip()
     tags = [t.strip() for t in tickers.replace(";", ",").split(",") if t.strip()][:10]
     if not tags:

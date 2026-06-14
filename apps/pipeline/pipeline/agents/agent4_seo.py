@@ -5,10 +5,9 @@ import copy
 import json
 from concurrent.futures import ThreadPoolExecutor
 
-from slugify import slugify
-
 from pipeline.utils.llm import chat
 from pipeline.utils.database import slug_exists
+from pipeline.utils.slug_policy import make_article_slug, with_unique_slug_suffix
 from pipeline.utils.logger import get_logger, step_print
 from pipeline.config.settings import SITE_URL, TRADING_SITE, PIPELINE_LLM_WORKERS
 
@@ -18,18 +17,9 @@ SYSTEM_PROMPT = """你是 SEO 专家兼金融分析师，精通 Google 搜索引
 你的任务是优化金融新闻文章的 SEO 元素，并分析市场情感倾向。"""
 
 
-def _generate_slug(title: str) -> str:
-    base = slugify(title, max_length=80)
-    if not base:
-        import hashlib
-        base = hashlib.md5(title.encode()).hexdigest()[:12]
-
-    slug = base
-    counter = 1
-    while slug_exists(slug):
-        slug = f"{base}-{counter}"
-        counter += 1
-    return slug
+def _generate_slug(title: str, lang: str = "zh") -> str:
+    base = make_article_slug(title, lang=lang, max_length=80)
+    return with_unique_slug_suffix(base, slug_exists, max_length=80)
 
 
 def _writer_seo_complete(draft: dict) -> bool:
@@ -191,7 +181,7 @@ def optimize(drafts: list[dict]) -> list[dict]:
         d["key_points"] = m.get("key_points", [])
         title = d.get("title", "?")[:40]
         try:
-            d["slug"] = _generate_slug(d["title"])
+            d["slug"] = _generate_slug(d["title"], d.get("lang", "zh"))
             d["content"] = _insert_internal_links(d.get("content", ""))
             d["content"] = _add_disclaimer(d["content"], d.get("source", ""))
             d["content"] = _add_cta(d["content"])

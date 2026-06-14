@@ -10,6 +10,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ENV_PATH = path.resolve(__dirname, '..', '..', '.env');
 const DEFAULT_LIMIT = 200;
 const DEFAULT_MAX_SLUG_LENGTH = 88;
+const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/g;
 const PINYIN_HINTS = new Set([
   'a', 'ai', 'an', 'ba', 'bao', 'bei', 'bi', 'biao', 'bo', 'bu',
   'cai', 'cang', 'ce', 'cha', 'chang', 'chao', 'cheng', 'chi', 'chu',
@@ -106,8 +107,27 @@ function stripBrandSuffix(title) {
     .trim();
 }
 
-function slugifyTitle(title) {
-  const normalized = stripBrandSuffix(title)
+function stableDigest(value) {
+  let hash = 2166136261;
+  for (const char of String(value || 'english-article')) {
+    hash ^= char.codePointAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+function hasMeaningfulEnglishSlug(slug) {
+  const parts = tokens(slug).filter((part) => /[a-z]/.test(part));
+  const letters = String(slug || '').replace(/[^a-z]/g, '');
+  return letters.length >= 8 && parts.length >= 2;
+}
+
+function slugifyTitle(title, rowId = '') {
+  const stripped = stripBrandSuffix(title);
+  const hadCjk = CJK_RE.test(stripped);
+  CJK_RE.lastIndex = 0;
+  const normalized = stripped
+    .replace(CJK_RE, ' ')
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/&/g, ' and ')
@@ -117,7 +137,8 @@ function slugifyTitle(title) {
     .replace(/-{2,}/g, '-')
     .toLowerCase();
   const clipped = normalized.slice(0, DEFAULT_MAX_SLUG_LENGTH).replace(/-+$/g, '');
-  return clipped || '';
+  if (/[a-z]/.test(clipped) && (!hadCjk || hasMeaningfulEnglishSlug(clipped))) return clipped;
+  return `english-article-${stableDigest(`${rowId}:${title}`)}`;
 }
 
 function tokens(slug) {
@@ -129,11 +150,11 @@ function hasNonAsciiOrMojibake(value) {
 }
 
 function looksLikePinyinSlug(slug) {
-  const parts = tokens(slug);
-  if (parts.length < 8) return false;
+  const parts = tokens(slug).map((part) => part.replace(/^\d+|\d+$/g, '')).filter(Boolean);
+  if (parts.length < 6) return false;
   const hintCount = parts.filter((part) => PINYIN_HINTS.has(part)).length;
   const shortCount = parts.filter((part) => part.length <= 4).length;
-  return hintCount >= 6 && hintCount / parts.length >= 0.4 && shortCount / parts.length >= 0.65;
+  return hintCount >= 4 && hintCount / parts.length >= 0.4 && shortCount / parts.length >= 0.6;
 }
 
 function slugQualityReasons(slug) {
@@ -242,7 +263,7 @@ async function main() {
       const reasons = slugQualityReasons(row.slug);
       if (!options.includeOk && reasons.length === 0) continue;
 
-      const baseSlug = slugifyTitle(row.title);
+      const baseSlug = slugifyTitle(row.title, row.id);
       if (!baseSlug || sameSlug(baseSlug, row.slug)) continue;
 
       const unique = await uniqueSlug(client, baseSlug, row.id);

@@ -28,6 +28,7 @@
     "db:seed": "dotenv -e .env -- npm run db:seed -w @yayanews/database",
     "db:migrate": "dotenv -e .env -- npm run db:migrate -w @yayanews/database",
     "db:migrate:status": "dotenv -e .env -- npm run db:migrate:status -w @yayanews/database",
+    "db:migrate:repair-known-drift": "dotenv -e .env -- node packages/database/scripts/repair-known-migration-drift.mjs",
     "db:restore:cloud-seed": "dotenv -e .env -- psql -v ON_ERROR_STOP=1 -f data/cloud_seed.sql",
     "db:report:seed": "node scripts/report-seed-en-stats.mjs",
     "db:restore:recommended": "node scripts/restore-recommended.mjs",
@@ -38,6 +39,7 @@
     "ops:health": "node scripts/ops/health-report.mjs",
     "ops:public-health": "node scripts/ops/public-health.mjs",
     "verify:gsc-export": "node scripts/verify/analyze-gsc-export.mjs",
+    "verify:article-slugs": "node scripts/verify/check-article-slug-policy.mjs",
     "verify:redirects": "node scripts/verify/redirect-regression.mjs",
     "verify:seo": "node scripts/verify/seo-metadata-check.mjs"
   },

@@ -9,6 +9,7 @@ from psycopg2.extras import RealDictCursor
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 from pipeline.utils.logger import get_logger
+from pipeline.utils.slug_policy import normalize_article_slug_for_storage
 import redis
 
 log = get_logger("db")
@@ -89,6 +90,25 @@ def get_conn():
         conn = pool.getconn()
     return conn
 
+
+def _unique_article_slug(cur, slug: str, exclude_article_id: Optional[int] = None, max_length: int = 88) -> str:
+    base = (slug or "article").strip("-")[:max_length].strip("-") or "article"
+    candidate = base
+    counter = 1
+    while True:
+        if exclude_article_id is None:
+            cur.execute("SELECT id FROM articles WHERE slug = %s", (candidate,))
+        else:
+            cur.execute(
+                "SELECT id FROM articles WHERE slug = %s AND id <> %s",
+                (candidate, exclude_article_id),
+            )
+        if not cur.fetchone():
+            return candidate
+        suffix = f"-{counter}"
+        candidate = f"{base[:max_length - len(suffix)].rstrip('-')}{suffix}"
+        counter += 1
+
 def insert_article(
     title: str,
     slug: str,
@@ -135,15 +155,13 @@ def insert_article(
                     log.warning(f"Article title already exists: id={existing[0]}, title={normalized_title[:80]}")
                     return -1
 
-            # Check slug uniqueness and mutate if collision exists
-            original_slug = slug
-            counter = 1
-            while True:
-                cur.execute("SELECT id FROM articles WHERE slug = %s", (slug,))
-                if not cur.fetchone():
-                    break
-                slug = f"{original_slug}-{counter}"
-                counter += 1
+            slug = normalize_article_slug_for_storage(
+                slug=slug,
+                title=title,
+                lang=lang,
+                status=status,
+            )
+            slug = _unique_article_slug(cur, slug)
                 
             cur.execute(
                 """INSERT INTO articles
@@ -232,6 +250,14 @@ def update_article_full(
                         f"Article title already exists: id={existing[0]}, title={normalized_title[:80]}"
                     )
                     return False
+
+            slug = normalize_article_slug_for_storage(
+                slug=slug,
+                title=title,
+                lang=lang,
+                status=status,
+            )
+            slug = _unique_article_slug(cur, slug, exclude_article_id=article_id)
 
             cur.execute("""
                 UPDATE articles SET
