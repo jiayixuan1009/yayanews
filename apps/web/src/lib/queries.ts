@@ -498,6 +498,40 @@ export async function getArticleRedirectTargetByLegacySlug(
   requestedLang: string,
 ): Promise<{ lang: 'zh' | 'en'; slug: string } | null> {
   const requestedLocale = requestedLang === 'en' ? 'en' : 'zh';
+  const redirectRow = await db.queryGet<{
+    slug: string;
+    lang: string | null;
+    sibling_slug?: string | null;
+  }>(`
+    SELECT target.slug, COALESCE(target.lang, r.lang, 'zh') as lang,
+           sib.slug as sibling_slug
+    FROM article_slug_redirects r
+    JOIN articles target ON target.id = r.article_id
+    LEFT JOIN articles sib ON (
+      ((target.lang = 'zh' AND sib.parent_id = target.id) OR (target.lang = 'en' AND sib.id = target.parent_id))
+      AND sib.lang = $2::text
+      AND sib.status = 'published'
+      AND sib.audit_status = 'approved'
+      AND sib.deleted_at IS NULL
+      AND sib.is_indexable = TRUE
+    )
+    WHERE r.old_slug = $1::text
+      AND target.status = 'published'
+      AND target.audit_status = 'approved'
+      AND target.deleted_at IS NULL
+      AND target.is_indexable = TRUE
+    ORDER BY r.updated_at DESC, r.id DESC
+    LIMIT 1
+  `, [slug, requestedLocale]);
+
+  if (redirectRow) {
+    const targetLocale = redirectRow.lang === 'en' ? 'en' : 'zh';
+    if (targetLocale !== requestedLocale && redirectRow.sibling_slug) {
+      return { lang: requestedLocale, slug: redirectRow.sibling_slug };
+    }
+    return { lang: targetLocale, slug: redirectRow.slug };
+  }
+
   const candidates = [slug];
   if (slug.endsWith('-en')) {
     const baseSlug = slug.slice(0, -3);
