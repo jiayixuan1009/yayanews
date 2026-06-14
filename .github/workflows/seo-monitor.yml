@@ -4,7 +4,7 @@ on:
   schedule:
     # 08:30 Singapore / China time.
     - cron: '30 0 * * *'
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -19,10 +19,10 @@ jobs:
     name: Check production SEO health
     runs-on: ubuntu-latest
     env:
-      BASE_URL: https://yayanews.cryptooptiontool.com
-      ALERT_TITLE: SEO monitor alert: production crawl health
-      ALERT_LABEL: seo-monitor
-      OUTPUT_DIR: monitor-output
+      BASE_URL: "https://yayanews.cryptooptiontool.com"
+      ALERT_TITLE: "SEO monitor alert: production crawl health"
+      ALERT_LABEL: "seo-monitor"
+      OUTPUT_DIR: "monitor-output"
 
     steps:
       - name: Checkout repository
