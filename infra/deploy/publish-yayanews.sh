@@ -454,6 +454,8 @@ log "   ${GREEN}Dependencies ready${NC}"
 
 log "Running database init..."
 npm run db:init
+log "Repairing known migration drift..."
+npm run db:migrate:repair-known-drift
 log "Running database migrations..."
 npm run db:migrate
 
