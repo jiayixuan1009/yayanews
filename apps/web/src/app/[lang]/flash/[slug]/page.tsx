@@ -24,6 +24,10 @@ function normalizeRouteSlug(value: string): string {
   }
 }
 
+function encodeRouteSegment(value: string): string {
+  return encodeURIComponent(value).replace(/%2F/gi, '/');
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; lang: string }> }): Promise<Metadata> {
   const { slug, lang } = await params;
   const flashId = decodeFlashSlug(slug);
@@ -65,7 +69,7 @@ export default async function FlashDetailPage({ params }: { params: Promise<{ sl
   const flashLang = flashLocale(flash.lang);
   const canonicalSlug = encodeFlashSlug(flash);
   if (flashLang !== lang || canonicalSlug !== normalizeRouteSlug(slug)) {
-    permanentRedirect(`/${flashLang}/flash/${canonicalSlug}`);
+    permanentRedirect(`/${flashLang}/flash/${encodeRouteSegment(canonicalSlug)}`);
   }
 
   const dict = await getDictionary(lang);
