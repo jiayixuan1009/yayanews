@@ -100,9 +100,9 @@ const REDIRECT_CASES = [
     name: 'legacy article slug may resolve through suffixed redirect map',
     path: '/en/article/fang-cheng-shi-xin-wen-bwenews',
     expectedStatus: [200, 308, 404],
-    expectedLocation: '/zh/article/english-article-3e2470f8',
+    expectedLocation: '/en/article/english-article-3e2470f8',
     finalStatus: [200, 404],
-    finalPath: '/zh/article/english-article-3e2470f8',
+    finalPath: '/en/article/english-article-3e2470f8',
     allowMissingLocationWhenStatus: [200, 404],
   },
   {
