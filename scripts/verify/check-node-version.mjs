@@ -31,7 +31,7 @@ if (unsupported || windowsNextBuildHangRisk) {
   console.error([
     `Unsupported Node.js runtime: ${process.version}`,
     reason,
-    `Use Node ${REQUIRED_MAJOR}.${REQUIRED_MINOR}.x before running install, dev, build, or start commands on Windows.`,
+    `Use Node ${REQUIRED_MAJOR}.${REQUIRED_MINOR}.x before running install, dev, build, start, or verify commands on Windows.`,
     '',
     'Windows examples:',
     '  nvm install 20.19.0',

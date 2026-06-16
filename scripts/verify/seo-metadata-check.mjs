@@ -3,6 +3,7 @@
 const DEFAULT_FETCH_BASE_URL = 'http://127.0.0.1:3000';
 const DEFAULT_EXPECTED_ORIGIN = 'https://yayanews.cryptooptiontool.com';
 const DEFAULT_FETCH_TIMEOUT_MS = 15_000;
+const DEFAULT_CHECK_CONCURRENCY = 6;
 const GOOGLE_SITE_VERIFICATION_TOKEN = 'vG9GwN_MFqx35CiRPLw7POt6WxmCN0hllAizS6DwS3M';
 const GOOGLE_SITE_VERIFICATION_FILE = 'google557e7d124058718a.html';
 const GOOGLE_SITE_VERIFICATION_BODY = `google-site-verification: ${GOOGLE_SITE_VERIFICATION_FILE}`;
@@ -112,11 +113,12 @@ const ASCII_SITEMAP_PATH_RE = /^\/[A-Za-z0-9._~!$&'()*+,;=:@/%-]*$/;
 
 function usage() {
   return [
-    'Usage: node scripts/verify/seo-metadata-check.mjs [--base <url>] [--expected-origin <url>] [--paths <csv>] [--article-paths <csv>] [--sample-article-urls <n>] [--probe-sitemap-urls <n>] [--sample-sitemap-kinds <kind:n,...>] [--fetch-timeout-ms <n>]',
+    'Usage: node scripts/verify/seo-metadata-check.mjs [--base <url>] [--expected-origin <url>] [--paths <csv>] [--article-paths <csv>] [--sample-article-urls <n>] [--probe-sitemap-urls <n>] [--sample-sitemap-kinds <kind:n,...>] [--fetch-timeout-ms <n>] [--check-concurrency <n>]',
     '',
     `Default fetch base: ${DEFAULT_FETCH_BASE_URL}`,
     `Default expected origin: ${DEFAULT_EXPECTED_ORIGIN}`,
     `Default fetch timeout: ${DEFAULT_FETCH_TIMEOUT_MS}ms`,
+    `Default check concurrency: ${DEFAULT_CHECK_CONCURRENCY}`,
     'Example: npm run verify:seo -- --base https://yayanews.cryptooptiontool.com',
     'Example: npm run verify:seo -- --base http://127.0.0.1:3000 --expected-origin https://yayanews.cryptooptiontool.com',
     'Example: npm run verify:seo -- --paths /zh/privacy,/en/privacy,/brand/og-default.png',
@@ -156,6 +158,7 @@ function parseArgs(argv) {
   let sampleArticleUrls = Number(process.env.SEO_SAMPLE_ARTICLE_URLS || 0);
   let probeSitemapUrls = Number(process.env.SEO_PROBE_SITEMAP_URLS || 0);
   let sampleSitemapKinds = process.env.SEO_SAMPLE_SITEMAP_KINDS || '';
+  let checkConcurrency = Number(process.env.SEO_CHECK_CONCURRENCY || DEFAULT_CHECK_CONCURRENCY);
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -251,6 +254,17 @@ function parseArgs(argv) {
       sampleSitemapKinds = arg.slice('--sample-sitemap-kinds='.length);
       continue;
     }
+    if (arg === '--check-concurrency') {
+      const value = argv[index + 1];
+      if (!value) throw new Error('Missing value for --check-concurrency');
+      checkConcurrency = Number(value);
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith('--check-concurrency=')) {
+      checkConcurrency = Number(arg.slice('--check-concurrency='.length));
+      continue;
+    }
     throw new Error(`Unknown argument: ${arg}`);
   }
 
@@ -262,6 +276,9 @@ function parseArgs(argv) {
   }
   if (!Number.isFinite(fetchTimeoutMs) || fetchTimeoutMs < 1) {
     throw new Error('--fetch-timeout-ms must be a positive number');
+  }
+  if (!Number.isFinite(checkConcurrency) || checkConcurrency < 1) {
+    throw new Error('--check-concurrency must be a positive number');
   }
 
   return {
@@ -279,6 +296,7 @@ function parseArgs(argv) {
     sampleArticleUrls: Math.floor(sampleArticleUrls),
     probeSitemapUrls: Math.floor(probeSitemapUrls),
     sampleSitemapKindSpecs: parseSitemapKindSamples(sampleSitemapKinds),
+    checkConcurrency: Math.floor(checkConcurrency),
   };
 }
 
@@ -1003,7 +1021,7 @@ function sameOriginPathUrl(sourceUrl, targetBaseUrl) {
   return new URL(`${source.pathname}${source.search}`, targetBaseUrl);
 }
 
-async function probeSitemapUrls(fetchBaseUrl, expectedBaseUrl, limit, fetchTimeoutMs) {
+async function probeSitemapUrls(fetchBaseUrl, expectedBaseUrl, limit, fetchTimeoutMs, concurrency = DEFAULT_CHECK_CONCURRENCY) {
   if (limit <= 0) return [];
 
   const failures = [];
@@ -1038,11 +1056,18 @@ async function probeSitemapUrls(fetchBaseUrl, expectedBaseUrl, limit, fetchTimeo
     return failures;
   }
 
-  for (const targetUrl of targetUrls.slice(0, limit)) {
-    const expectedOriginUrl = new URL(targetUrl);
+  const probeResults = await runChecksWithConcurrency(targetUrls.slice(0, limit), concurrency, async (targetUrl) => {
+    const probeFailures = [];
+    let expectedOriginUrl;
+    try {
+      expectedOriginUrl = new URL(targetUrl);
+    } catch (error) {
+      return [`sitemap-probe: invalid URL ${targetUrl}: ${error instanceof Error ? error.message : String(error)}`];
+    }
+
     if (!isAsciiSitemapPath(expectedOriginUrl.pathname)) {
-      failures.push(`sitemap-probe: ${targetUrl} path contains non-ASCII or unsafe characters`);
-      continue;
+      probeFailures.push(`sitemap-probe: ${targetUrl} path contains non-ASCII or unsafe characters`);
+      return probeFailures;
     }
 
     let response;
@@ -1052,19 +1077,21 @@ async function probeSitemapUrls(fetchBaseUrl, expectedBaseUrl, limit, fetchTimeo
       response = result.response;
       html = result.text;
     } catch (error) {
-      failures.push(`sitemap-probe: ${targetUrl} fetch failed: ${error instanceof Error ? error.message : String(error)}`);
-      continue;
+      probeFailures.push(`sitemap-probe: ${targetUrl} fetch failed: ${error instanceof Error ? error.message : String(error)}`);
+      return probeFailures;
     }
 
     if (response.status !== 200) {
-      failures.push(`sitemap-probe: ${targetUrl} expected 200, got ${response.status}`);
-      continue;
+      probeFailures.push(`sitemap-probe: ${targetUrl} expected 200, got ${response.status}`);
+      return probeFailures;
     }
 
     const robots = metaContent(html, 'name', 'robots');
-    assertSitemapRobots(failures, targetUrl, robots);
-    assertUrlEqual(failures, `sitemap-probe canonical origin ${targetUrl}`, expectedOriginUrl.origin, expectedBaseUrl.origin);
-  }
+    assertSitemapRobots(probeFailures, targetUrl, robots);
+    assertUrlEqual(probeFailures, `sitemap-probe canonical origin ${targetUrl}`, expectedOriginUrl.origin, expectedBaseUrl.origin);
+    return probeFailures;
+  });
+  for (const probeFailures of probeResults) failures.push(...probeFailures);
 
   return failures;
 }
@@ -1273,6 +1300,29 @@ async function checkResource(fetchBaseUrl, expectedBaseUrl, check, fetchTimeoutM
   return { path: check.path, failures };
 }
 
+async function runCheck(fetchBaseUrl, expectedBaseUrl, fetchTimeoutMs, check) {
+  if ('index' in check) return checkPage(fetchBaseUrl, expectedBaseUrl, check, fetchTimeoutMs);
+  if ('redirectStatus' in check) return checkRedirect(fetchBaseUrl, expectedBaseUrl, check, fetchTimeoutMs);
+  return checkResource(fetchBaseUrl, expectedBaseUrl, check, fetchTimeoutMs);
+}
+
+async function runChecksWithConcurrency(checks, concurrency, worker) {
+  const results = new Array(checks.length);
+  let cursor = 0;
+
+  async function runNext() {
+    while (cursor < checks.length) {
+      const index = cursor;
+      cursor += 1;
+      results[index] = await worker(checks[index]);
+    }
+  }
+
+  const workerCount = Math.min(concurrency, checks.length);
+  await Promise.all(Array.from({ length: workerCount }, runNext));
+  return results;
+}
+
 async function main() {
   const {
     fetchBaseUrl,
@@ -1283,6 +1333,7 @@ async function main() {
     sampleArticleUrls: articleSampleLimit,
     probeSitemapUrls: sitemapProbeLimit,
     sampleSitemapKindSpecs,
+    checkConcurrency,
   } = parseArgs(process.argv.slice(2));
   const sampledArticlePaths = articleSampleLimit > 0
     ? await sampleArticlePaths(fetchBaseUrl, articleSampleLimit, fetchTimeoutMs)
@@ -1302,6 +1353,7 @@ async function main() {
   console.log(`Checking SEO metadata at ${fetchBaseUrl.origin}`);
   console.log(`Expected canonical origin: ${expectedBaseUrl.origin}`);
   console.log(`Fetch timeout: ${fetchTimeoutMs}ms`);
+  console.log(`Check concurrency: ${checkConcurrency}`);
   if (paths.length > 0) console.log(`Filtered paths: ${paths.join(', ')}`);
   if (articleSampleLimit > 0) console.log(`Sampled article paths: ${sampledArticlePaths.join(', ')}`);
   if (articlePaths.length > 0) console.log(`Article sample paths: ${articlePaths.join(', ')}`);
@@ -1314,29 +1366,29 @@ async function main() {
   if (sitemapProbeLimit > 0) console.log(`Sitemap URL probe limit: ${sitemapProbeLimit}`);
 
   let failed = 0;
-  for (const check of checks) {
+  const results = await runChecksWithConcurrency(checks, checkConcurrency, async (check) => {
     try {
-      const result = 'index' in check
-        ? await checkPage(fetchBaseUrl, expectedBaseUrl, check, fetchTimeoutMs)
-        : 'redirectStatus' in check
-          ? await checkRedirect(fetchBaseUrl, expectedBaseUrl, check, fetchTimeoutMs)
-        : await checkResource(fetchBaseUrl, expectedBaseUrl, check, fetchTimeoutMs);
-      if (result.failures.length > 0) {
-        failed += 1;
-        console.error(`FAIL ${result.path}`);
-        for (const failure of result.failures) console.error(`  - ${failure}`);
-      } else {
-        console.log(`OK   ${result.path}`);
-      }
+      return await runCheck(fetchBaseUrl, expectedBaseUrl, fetchTimeoutMs, check);
     } catch (error) {
+      return {
+        path: check.path,
+        failures: [error instanceof Error ? error.message : String(error)],
+      };
+    }
+  });
+
+  for (const result of results) {
+    if (result.failures.length > 0) {
       failed += 1;
-      console.error(`FAIL ${check.path}`);
-      console.error(`  - ${error instanceof Error ? error.message : String(error)}`);
+      console.error(`FAIL ${result.path}`);
+      for (const failure of result.failures) console.error(`  - ${failure}`);
+    } else {
+      console.log(`OK   ${result.path}`);
     }
   }
 
   if (sitemapProbeLimit > 0) {
-    const failures = await probeSitemapUrls(fetchBaseUrl, expectedBaseUrl, sitemapProbeLimit, fetchTimeoutMs);
+    const failures = await probeSitemapUrls(fetchBaseUrl, expectedBaseUrl, sitemapProbeLimit, fetchTimeoutMs, checkConcurrency);
     if (failures.length > 0) {
       failed += 1;
       console.error('FAIL sitemap URL probe');
