@@ -507,6 +507,7 @@ snapshot_standalone_dirs
 npm run build
 mkdir -p apps/web/.next/standalone/apps/web/.next
 mkdir -p apps/admin/.next/standalone/.next
+rm -rf apps/web/.next/standalone/apps/web/public
 cp -r apps/web/public apps/web/.next/standalone/apps/web/public
 cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static
 cp -r apps/admin/.next/static apps/admin/.next/standalone/.next/static 2>/dev/null || true
