@@ -42,6 +42,7 @@ function processApp(appName) {
   const publicDest = path.join(standaloneDir, 'apps', appName, 'public');
   if (fs.existsSync(publicSrc)) {
     console.log(`[${appName}] Copying public assets to standalone...`);
+    fs.rmSync(publicDest, { recursive: true, force: true });
     copyRecursiveSync(publicSrc, publicDest);
   }
 
