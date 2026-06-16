@@ -4,6 +4,22 @@ import type { NextRequest } from 'next/server';
 const locales = ['zh', 'en'];
 const defaultLocale = 'zh';
 const fallbackOrigin = 'https://yayanews.cryptooptiontool.com';
+const verificationFiles = new Map([
+  [
+    '/google557e7d124058718a.html',
+    {
+      body: 'google-site-verification: google557e7d124058718a.html',
+      contentType: 'text/html; charset=utf-8',
+    },
+  ],
+  [
+    '/db1162aa32014bba89ab29ba04a5ddba.txt',
+    {
+      body: 'db1162aa32014bba89ab29ba04a5ddba',
+      contentType: 'text/plain; charset=utf-8',
+    },
+  ],
+]);
 
 function getLocale(request: NextRequest): string {
   // 1. Respect explicit user choice (set by LangSwitcher)
@@ -27,6 +43,16 @@ function getLocale(request: NextRequest): string {
 export function middleware(request: NextRequest) {
   // Check if there is any supported locale in the pathname
   const { pathname, search } = request.nextUrl;
+  const verificationFile = verificationFiles.get(pathname);
+
+  if (verificationFile) {
+    return new NextResponse(verificationFile.body, {
+      headers: {
+        'Content-Type': verificationFile.contentType,
+        'Cache-Control': 'public, max-age=86400, s-maxage=86400',
+      },
+    });
+  }
 
   const pathnameHasLocale = locales.some(
     (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
@@ -50,6 +76,8 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/google557e7d124058718a.html',
+    '/db1162aa32014bba89ab29ba04a5ddba.txt',
     // Skip all internal paths (_next) and api routes
     '/((?!api|admin|_next/static|_next/image|images|favicon.ico|robots.txt|sitemap.xml|sitemap-news.xml|sitemap-chunk|news.xml|feed-news.xml|.*\\..*).*)',
   ],

@@ -13,7 +13,12 @@ const DEFAULT_PATHS = [
   '/sitemap-news.xml',
   '/brand/logo-square.png',
   '/google557e7d124058718a.html',
+  '/db1162aa32014bba89ab29ba04a5ddba.txt',
 ];
+const EXPECTED_BODIES = new Map([
+  ['/google557e7d124058718a.html', 'google-site-verification: google557e7d124058718a.html'],
+  ['/db1162aa32014bba89ab29ba04a5ddba.txt', 'db1162aa32014bba89ab29ba04a5ddba'],
+]);
 const MAX_REDIRECTS = 5;
 const TIMEOUT_MS = Number(process.env.PUBLIC_HEALTH_TIMEOUT_MS || 15000);
 
@@ -27,7 +32,7 @@ let failed = false;
 
 for (const path of paths) {
   const target = new URL(path, baseUrl);
-  const result = await checkUrl(target);
+  const result = await checkUrl(target, EXPECTED_BODIES.get(target.pathname));
   const chain = result.chain.map(item => `${item.status} ${item.url}`).join(' -> ');
   if (result.ok) {
     console.log(`OK   ${target.pathname || '/'} - ${result.finalStatus} ${result.finalUrl}`);
@@ -53,42 +58,48 @@ function normalizeBaseUrl(value) {
   }
 }
 
-async function checkUrl(startUrl) {
+async function checkUrl(startUrl, expectedBody) {
   const chain = [];
   let current = startUrl;
+  const shouldReadBody = typeof expectedBody === 'string';
 
   for (let i = 0; i <= MAX_REDIRECTS; i += 1) {
-    const response = await requestUrl(current, 'HEAD').catch(async err => {
+    const response = await requestUrl(current, shouldReadBody ? 'GET' : 'HEAD', shouldReadBody).catch(async err => {
       if (err?.code === 'HEAD_UNSUPPORTED') {
-        return requestUrl(current, 'GET');
+        return requestUrl(current, 'GET', shouldReadBody);
       }
       return {
         status: 0,
         headers: {},
+        body: '',
         error: err,
       };
     });
 
     if (response.status === 405 || response.status === 501) {
-      const fallback = await requestUrl(current, 'GET').catch(err => ({
+      const fallback = await requestUrl(current, 'GET', shouldReadBody).catch(err => ({
         status: 0,
         headers: {},
+        body: '',
         error: err,
       }));
       response.status = fallback.status;
       response.headers = fallback.headers;
+      response.body = fallback.body;
       response.error = fallback.error;
     }
 
     if (response.status >= 500 && response.status < 600) {
-      const fallback = await requestUrl(current, 'GET').catch(err => ({
+      const fallback = await requestUrl(current, 'GET', shouldReadBody).catch(err => ({
         status: 0,
         headers: {},
+        body: '',
         error: err,
       }));
       if (!fallback.error) {
         response.status = fallback.status;
         response.headers = fallback.headers;
+        response.body = fallback.body;
       }
     }
 
@@ -125,6 +136,16 @@ async function checkUrl(startUrl) {
     }
 
     const ok = response.status >= 200 && response.status < 400;
+    if (ok && shouldReadBody && response.body.trim() !== expectedBody) {
+      return {
+        ok: false,
+        finalStatus: response.status,
+        finalUrl: current.toString(),
+        reason: `${current.toString()} body mismatch`,
+        chain,
+      };
+    }
+
     return {
       ok,
       finalStatus: response.status,
@@ -141,7 +162,7 @@ async function checkUrl(startUrl) {
   };
 }
 
-function requestUrl(url, method) {
+function requestUrl(url, method, readBody = false) {
   return new Promise((resolve, reject) => {
     const client = url.protocol === 'http:' ? http : https;
     const req = client.request(
@@ -154,11 +175,19 @@ function requestUrl(url, method) {
         },
       },
       res => {
-        res.resume();
-        resolve({
-          status: res.statusCode || 0,
-          headers: res.headers,
+        let body = '';
+        if (readBody) res.setEncoding('utf8');
+        res.on('data', chunk => {
+          if (readBody) body += chunk;
         });
+        res.on('end', () => {
+          resolve({
+            status: res.statusCode || 0,
+            headers: res.headers,
+            body,
+          });
+        });
+        if (!readBody) res.resume();
       },
     );
 

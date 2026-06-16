@@ -18,6 +18,10 @@ MIN_FREE_MB="${MIN_FREE_MB:-3072}"
 ALLOW_DIRTY_DEPLOY="${ALLOW_DIRTY_DEPLOY:-0}"
 STANDALONE_ROLLBACK_DIR=""
 DEPLOY_RELOADED=0
+GOOGLE_VERIFICATION_PATH="/google557e7d124058718a.html"
+GOOGLE_VERIFICATION_BODY="google-site-verification: google557e7d124058718a.html"
+TEXT_VERIFICATION_PATH="/db1162aa32014bba89ab29ba04a5ddba.txt"
+TEXT_VERIFICATION_BODY="db1162aa32014bba89ab29ba04a5ddba"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -119,6 +123,34 @@ assert_http_body_ready() {
     done
 
     log "${RED}${name} body health check failed${NC}: $url"
+    return 1
+}
+
+assert_http_exact_body_ready() {
+    local name="$1"
+    local url="$2"
+    local expected="$3"
+    local response
+    local code
+    local body
+
+    for i in $(seq 1 "$HEALTH_RETRIES"); do
+        sleep "$HEALTH_INTERVAL"
+        response="$(curl -sS -w '\n%{http_code}' "$url" 2>/dev/null || true)"
+        code="${response##*$'\n'}"
+        body="${response%$'\n'*}"
+        if [ "$code" = "200" ] && [ "$body" = "$expected" ]; then
+            log "   ${GREEN}${name} ready${NC} (HTTP $code, exact body, attempt $i/$HEALTH_RETRIES)"
+            return 0
+        fi
+        if [ "$code" = "200" ]; then
+            log "   ${YELLOW}Waiting for ${name}${NC} (body mismatch, attempt $i/$HEALTH_RETRIES)"
+        else
+            log "   ${YELLOW}Waiting for ${name}${NC} (HTTP $code, attempt $i/$HEALTH_RETRIES)"
+        fi
+    done
+
+    log "${RED}${name} exact body health check failed${NC}: $url"
     return 1
 }
 
@@ -291,6 +323,12 @@ assert_standalone_smoke() {
     fi
     if [ "$smoke_status" -eq 0 ]; then
         assert_http_body_ready "web smoke default OG" "http://127.0.0.1:$DEPLOY_SMOKE_PORT/brand/og-default.png" || smoke_status=$?
+    fi
+    if [ "$smoke_status" -eq 0 ]; then
+        assert_http_exact_body_ready "web smoke google verification" "http://127.0.0.1:$DEPLOY_SMOKE_PORT$GOOGLE_VERIFICATION_PATH" "$GOOGLE_VERIFICATION_BODY" || smoke_status=$?
+    fi
+    if [ "$smoke_status" -eq 0 ]; then
+        assert_http_exact_body_ready "web smoke text verification" "http://127.0.0.1:$DEPLOY_SMOKE_PORT$TEXT_VERIFICATION_PATH" "$TEXT_VERIFICATION_BODY" || smoke_status=$?
     fi
     if [ "$smoke_status" -eq 0 ]; then
         assert_http_body_ready "web smoke sitemap" "http://127.0.0.1:$DEPLOY_SMOKE_PORT/sitemap.xml" || smoke_status=$?
@@ -498,6 +536,8 @@ log "Running post-deploy health checks..."
 assert_http_ready "web" "$WEB_HEALTH_URL"
 assert_http_body_ready "web /zh" "$WEB_HEALTH_URL/zh"
 assert_http_body_ready "web logo" "$WEB_HEALTH_URL/brand/logo-square.png"
+assert_http_exact_body_ready "web google verification" "$WEB_HEALTH_URL$GOOGLE_VERIFICATION_PATH" "$GOOGLE_VERIFICATION_BODY"
+assert_http_exact_body_ready "web text verification" "$WEB_HEALTH_URL$TEXT_VERIFICATION_PATH" "$TEXT_VERIFICATION_BODY"
 assert_http_body_ready "web sitemap" "$WEB_HEALTH_URL/sitemap.xml"
 assert_http_ready "admin" "$ADMIN_HEALTH_URL"
 assert_recent_heartbeat "$PREVIOUS_HEARTBEAT_TS"

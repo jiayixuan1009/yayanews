@@ -124,6 +124,7 @@ const DIRECT_CASES = [
   { name: 'sitemap chunk stays direct', path: '/sitemap-chunk/static/0', expectedStatus: 200 },
   { name: 'brand asset stays direct', path: '/brand/og-default.png', expectedStatus: 200 },
   { name: 'google verification file stays direct', path: '/google557e7d124058718a.html', expectedStatus: 200 },
+  { name: 'text verification file stays direct', path: '/db1162aa32014bba89ab29ba04a5ddba.txt', expectedStatus: 200 },
   { name: 'admin is not localized', path: '/admin', expectedStatus: [200, 302, 401, 403, 404, 405] },
   { name: 'api is not localized', path: '/api/articles', expectedStatus: [200, 400, 401, 404, 405] },
 ];

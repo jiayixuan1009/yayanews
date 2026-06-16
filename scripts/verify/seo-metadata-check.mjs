@@ -7,6 +7,8 @@ const DEFAULT_CHECK_CONCURRENCY = 6;
 const GOOGLE_SITE_VERIFICATION_TOKEN = 'vG9GwN_MFqx35CiRPLw7POt6WxmCN0hllAizS6DwS3M';
 const GOOGLE_SITE_VERIFICATION_FILE = 'google557e7d124058718a.html';
 const GOOGLE_SITE_VERIFICATION_BODY = `google-site-verification: ${GOOGLE_SITE_VERIFICATION_FILE}`;
+const DB_SITE_VERIFICATION_FILE = 'db1162aa32014bba89ab29ba04a5ddba.txt';
+const DB_SITE_VERIFICATION_BODY = 'db1162aa32014bba89ab29ba04a5ddba';
 const GA_MEASUREMENT_ID = 'G-M5TYCGL732';
 const REQUIRED_SCRIPT_SRC_ORIGINS = [
   'https://www.googletagmanager.com',
@@ -93,7 +95,14 @@ const RESOURCE_CHECKS = [
   {
     path: `/${GOOGLE_SITE_VERIFICATION_FILE}`,
     contentType: 'text/html',
+    cache: 'cacheable',
     resourceKind: 'google-site-verification-file',
+  },
+  {
+    path: `/${DB_SITE_VERIFICATION_FILE}`,
+    contentType: 'text/plain',
+    cache: 'cacheable',
+    resourceKind: 'db-site-verification-file',
   },
 ];
 
@@ -943,6 +952,12 @@ function assertGoogleSiteVerificationFile(failures, text) {
   }
 }
 
+function assertDbSiteVerificationFile(failures, text) {
+  if (text.trim() !== DB_SITE_VERIFICATION_BODY) {
+    failures.push(`db site verification file: expected "${DB_SITE_VERIFICATION_BODY}", got "${text.trim()}"`);
+  }
+}
+
 function assertCspAllowsScriptOrigins(failures, actual) {
   if (!actual) {
     failures.push('content-security-policy: missing');
@@ -1000,6 +1015,9 @@ function assertResourceBody(failures, body, expectedBaseUrl, check) {
       break;
     case 'google-site-verification-file':
       assertGoogleSiteVerificationFile(failures, body);
+      break;
+    case 'db-site-verification-file':
+      assertDbSiteVerificationFile(failures, body);
       break;
   }
 }
