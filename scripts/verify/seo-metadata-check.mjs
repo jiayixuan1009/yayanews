@@ -95,13 +95,11 @@ const RESOURCE_CHECKS = [
   {
     path: `/${GOOGLE_SITE_VERIFICATION_FILE}`,
     contentType: 'text/html',
-    cache: 'cacheable',
     resourceKind: 'google-site-verification-file',
   },
   {
     path: `/${DB_SITE_VERIFICATION_FILE}`,
     contentType: 'text/plain',
-    cache: 'cacheable',
     resourceKind: 'db-site-verification-file',
   },
 ];
