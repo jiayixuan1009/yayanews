@@ -498,11 +498,21 @@ export async function getArticleRedirectTargetByLegacySlug(
   requestedLang: string,
 ): Promise<{ lang: 'zh' | 'en'; slug: string } | null> {
   const requestedLocale = requestedLang === 'en' ? 'en' : 'zh';
-  const redirectRow = await db.queryGet<{
+  type RedirectRow = {
     slug: string;
     lang: string | null;
     sibling_slug?: string | null;
-  }>(`
+  };
+
+  const toRedirectTarget = (row: RedirectRow): { lang: 'zh' | 'en'; slug: string } => {
+    const targetLocale = row.lang === 'en' ? 'en' : 'zh';
+    if (targetLocale !== requestedLocale && row.sibling_slug) {
+      return { lang: requestedLocale, slug: row.sibling_slug };
+    }
+    return { lang: targetLocale, slug: row.slug };
+  };
+
+  const redirectRow = await db.queryGet<RedirectRow>(`
     SELECT target.slug, COALESCE(target.lang, r.lang, 'zh') as lang,
            sib.slug as sibling_slug
     FROM article_slug_redirects r
@@ -525,11 +535,7 @@ export async function getArticleRedirectTargetByLegacySlug(
   `, [slug, requestedLocale]);
 
   if (redirectRow) {
-    const targetLocale = redirectRow.lang === 'en' ? 'en' : 'zh';
-    if (targetLocale !== requestedLocale && redirectRow.sibling_slug) {
-      return { lang: requestedLocale, slug: redirectRow.sibling_slug };
-    }
-    return { lang: targetLocale, slug: redirectRow.slug };
+    return toRedirectTarget(redirectRow);
   }
 
   const candidates = [slug];
@@ -568,15 +574,48 @@ export async function getArticleRedirectTargetByLegacySlug(
     LIMIT 1
   `, [candidates, slug, requestedLocale]);
 
-  if (!row) return null;
+  if (row) {
+    const articleLocale = row.lang === 'en' ? 'en' : 'zh';
+    if (articleLocale !== requestedLocale && row.sibling_slug) {
+      return { lang: requestedLocale, slug: row.sibling_slug };
+    }
 
-  const articleLocale = row.lang === 'en' ? 'en' : 'zh';
-  if (articleLocale !== requestedLocale && row.sibling_slug) {
-    return { lang: requestedLocale, slug: row.sibling_slug };
+    if (articleLocale === requestedLocale && row.slug === slug) return null;
+    return { lang: articleLocale, slug: row.slug };
   }
 
-  if (articleLocale === requestedLocale && row.slug === slug) return null;
-  return { lang: articleLocale, slug: row.slug };
+  const suffixedCandidates = /\-\d+$/.test(slug)
+    ? []
+    : Array.from({ length: 5 }, (_, index) => `${slug}-${index + 1}`);
+  if (suffixedCandidates.length === 0) return null;
+
+  const redirectRows = await db.queryAll<RedirectRow>(`
+    SELECT target.slug, COALESCE(target.lang, r.lang, 'zh') as lang,
+           sib.slug as sibling_slug
+    FROM article_slug_redirects r
+    JOIN articles target ON target.id = r.article_id
+    LEFT JOIN articles sib ON (
+      ((target.lang = 'zh' AND sib.parent_id = target.id) OR (target.lang = 'en' AND sib.id = target.parent_id))
+      AND sib.lang = $2::text
+      AND sib.status = 'published'
+      AND sib.audit_status = 'approved'
+      AND sib.deleted_at IS NULL
+      AND sib.is_indexable = TRUE
+    )
+    WHERE r.old_slug = ANY($1::text[])
+      AND target.status = 'published'
+      AND target.audit_status = 'approved'
+      AND target.deleted_at IS NULL
+      AND target.is_indexable = TRUE
+    ORDER BY r.old_slug ASC, r.updated_at DESC, r.id DESC
+    LIMIT 2
+  `, [suffixedCandidates, requestedLocale]);
+
+  if (redirectRows.length === 1) {
+    return toRedirectTarget(redirectRows[0]);
+  }
+
+  return null;
 }
 
 export async function incrementArticleViewCount(articleId: number): Promise<void> {
@@ -1128,6 +1167,8 @@ export async function getArticleCountByTagSlug(tagSlug: string, lang?: string): 
 }
 
 /** 有已发布稿件关联的标签，用于 sitemap（仅含当前语言下 ≥3 篇文章的标签页） */
+const ASCII_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 export async function getTagsForSitemap(): Promise<{ slug: string; updated_at: string; langs: Array<'zh' | 'en'> }[]> {
   const rows = await db.queryAll<{ slug: string; lang: string; updated_at: Date | string }>(
     `
@@ -1142,6 +1183,7 @@ export async function getTagsForSitemap(): Promise<{ slug: string; updated_at: s
   );
   const bySlug = new Map<string, { slug: string; updated_at: string; langs: Set<'zh' | 'en'> }>();
   for (const row of rows) {
+    if (!ASCII_SLUG_RE.test(row.slug)) continue;
     const lang = row.lang === 'en' ? 'en' : 'zh';
     const existing = bySlug.get(row.slug);
     const updatedAt = safeDateStr(row.updated_at);

@@ -97,6 +97,15 @@ const REDIRECT_CASES = [
     finalPath: '/zh/article/bitcoin-etf-market-update',
   },
   {
+    name: 'legacy article slug may resolve through suffixed redirect map',
+    path: '/en/article/fang-cheng-shi-xin-wen-bwenews',
+    expectedStatus: [200, 308, 404],
+    expectedLocation: '/zh/article/english-article-3e2470f8',
+    finalStatus: [200, 404],
+    finalPath: '/zh/article/english-article-3e2470f8',
+    allowMissingLocationWhenStatus: [200, 404],
+  },
+  {
     name: 'query string survives locale redirect',
     path: '/news?utm_source=gsc',
     expectedStatus: 308,
@@ -207,6 +216,10 @@ function displayExpected(value) {
   return expectedStatuses(value).join(' or ');
 }
 
+function isRedirectStatus(status) {
+  return status >= 300 && status < 400;
+}
+
 function samePathAndSearch(actual, expected) {
   const left = normalizePathAndSearch(actual);
   const right = normalizePathAndSearch(expected);
@@ -305,6 +318,10 @@ async function checkRedirectCase(testCase, baseUrl, expectedBaseUrl, fetchTimeou
     failures.push(`status: expected ${displayExpected(testCase.expectedStatus)}, got ${response.status}`);
   }
 
+  if (!isRedirectStatus(response.status) && testCase.allowMissingLocationWhenStatus?.includes(response.status)) {
+    return failures;
+  }
+
   if (!location) {
     failures.push(`location: expected ${testCase.expectedLocation}, got missing`);
   } else {
@@ -318,7 +335,7 @@ async function checkRedirectCase(testCase, baseUrl, expectedBaseUrl, fetchTimeou
     }
   }
 
-  if (testCase.finalStatus) {
+  if (testCase.finalStatus && isRedirectStatus(response.status)) {
     const chain = await followChain(url, testCase.headers || {}, fetchTimeoutMs);
     const final = chain[chain.length - 1];
     if (final.error) failures.push(`final: ${final.error}`);

@@ -108,6 +108,7 @@ const JSON_LD_SELECTOR = /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>
 const NEWS_SITEMAP_MAX_ITEMS = 100;
 const NEWS_SITEMAP_MAX_ITEMS_PER_TOPIC = 24;
 const NEWS_SITEMAP_MAX_ITEMS_PER_TITLE_PREFIX = 3;
+const ASCII_SITEMAP_PATH_RE = /^\/[A-Za-z0-9._~!$&'()*+,;=:@/%-]*$/;
 
 function usage() {
   return [
@@ -371,6 +372,11 @@ function checkFromSitemapPath(path) {
   return check;
 }
 
+function isAsciiSitemapPath(pathname) {
+  const decodedPath = decodeURIComponentSafe(pathname);
+  return ASCII_SITEMAP_PATH_RE.test(pathname) && ASCII_SITEMAP_PATH_RE.test(decodedPath);
+}
+
 function dedupeChecks(checks) {
   const seen = new Set();
   return checks.filter((check) => {
@@ -396,8 +402,12 @@ async function sampleArticlePaths(fetchBaseUrl, limit, fetchTimeoutMs) {
     .map((loc) => {
       try {
         const url = new URL(loc);
+        if (!isAsciiSitemapPath(url.pathname)) {
+          throw new Error(`non-ASCII or unsafe sitemap path: ${url.pathname}`);
+        }
         return `${url.pathname}${url.search}`;
-      } catch {
+      } catch (error) {
+        if (error instanceof Error && error.message.startsWith('non-ASCII')) throw error;
         return null;
       }
     })
@@ -430,11 +440,15 @@ async function sampleArticlePaths(fetchBaseUrl, limit, fetchTimeoutMs) {
     for (const loc of xmlElementValues(chunkXml, 'loc').map(decodeXmlEntities)) {
       try {
         const url = new URL(loc);
+        if (!isAsciiSitemapPath(url.pathname)) {
+          throw new Error(`non-ASCII or unsafe sitemap path: ${url.pathname}`);
+        }
         const path = `${url.pathname}${url.search}`;
         if (/^\/(zh|en)\/article\//.test(path) && !articlePaths.includes(path)) {
           articlePaths.push(path);
         }
-      } catch {
+      } catch (error) {
+        if (error instanceof Error && error.message.startsWith('non-ASCII')) throw error;
         // Ignore malformed sitemap URLs; resource checks report structure issues.
       }
       if (articlePaths.length >= limit) break;
@@ -485,8 +499,12 @@ async function sampleSitemapKindPaths(fetchBaseUrl, specs, fetchTimeoutMs) {
       .map((loc) => {
         try {
           const url = new URL(loc);
+          if (!isAsciiSitemapPath(url.pathname)) {
+            throw new Error(`non-ASCII or unsafe sitemap path in ${kind}: ${url.pathname}`);
+          }
           return `${url.pathname}${url.search}`;
-        } catch {
+        } catch (error) {
+          if (error instanceof Error && error.message.startsWith('non-ASCII')) throw error;
           return null;
         }
       })
@@ -632,6 +650,14 @@ function assertRobots(failures, actual, shouldIndex) {
   if (!tokens.has('follow')) failures.push(`robots: expected follow, got ${actual}`);
 }
 
+function assertSitemapRobots(failures, targetUrl, actual) {
+  const before = failures.length;
+  assertRobots(failures, actual, true);
+  for (let index = before; index < failures.length; index += 1) {
+    failures[index] = `sitemap-probe ${targetUrl} ${failures[index]}`;
+  }
+}
+
 function assertCacheHeader(failures, actual, policy) {
   if (!policy) return;
   if (!actual) {
@@ -715,6 +741,14 @@ function decodeXmlEntities(value) {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&apos;/g, "'");
+}
+
+function decodeURIComponentSafe(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }
 
 function normalizeNewsTitleForGrouping(title) {
@@ -1005,9 +1039,18 @@ async function probeSitemapUrls(fetchBaseUrl, expectedBaseUrl, limit, fetchTimeo
   }
 
   for (const targetUrl of targetUrls.slice(0, limit)) {
+    const expectedOriginUrl = new URL(targetUrl);
+    if (!isAsciiSitemapPath(expectedOriginUrl.pathname)) {
+      failures.push(`sitemap-probe: ${targetUrl} path contains non-ASCII or unsafe characters`);
+      continue;
+    }
+
     let response;
+    let html = '';
     try {
-      response = await fetchWithTimeout(sameOriginPathUrl(targetUrl, fetchBaseUrl), { redirect: 'manual' }, fetchTimeoutMs);
+      const result = await fetchTextWithTimeout(sameOriginPathUrl(targetUrl, fetchBaseUrl), { redirect: 'manual' }, fetchTimeoutMs);
+      response = result.response;
+      html = result.text;
     } catch (error) {
       failures.push(`sitemap-probe: ${targetUrl} fetch failed: ${error instanceof Error ? error.message : String(error)}`);
       continue;
@@ -1018,7 +1061,8 @@ async function probeSitemapUrls(fetchBaseUrl, expectedBaseUrl, limit, fetchTimeo
       continue;
     }
 
-    const expectedOriginUrl = new URL(targetUrl);
+    const robots = metaContent(html, 'name', 'robots');
+    assertSitemapRobots(failures, targetUrl, robots);
     assertUrlEqual(failures, `sitemap-probe canonical origin ${targetUrl}`, expectedOriginUrl.origin, expectedBaseUrl.origin);
   }
 
