@@ -34,6 +34,7 @@
     "db:restore:recommended": "node scripts/restore-recommended.mjs",
     "db:gap-report": "node scripts/content-gap-report.mjs",
     "db:backfill:en-slugs": "node scripts/maintenance/backfill-english-article-slugs.mjs",
+    "db:backfill:review-metadata": "node scripts/maintenance/backfill-review-metadata.mjs",
     "pipeline:translate-en": "node scripts/pipeline-translate-en.mjs",
     "pipeline:translate-en:all": "node scripts/pipeline-translate-en.mjs --until-done",
     "ops:health": "node scripts/ops/health-report.mjs",
