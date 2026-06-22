@@ -951,27 +951,30 @@ export async function getArticleCount(lang?: string): Promise<number> {
 export async function getArticleSitemapCount(): Promise<number> {
   const row = await db.queryGet<{ count: number }>(`
     SELECT COUNT(*)::int as count
-    FROM articles a
-    LEFT JOIN articles sib ON (
-      ((a.lang = 'zh' AND sib.parent_id = a.id) OR (a.lang = 'en' AND sib.id = a.parent_id))
-      AND sib.status = 'published'
-      AND sib.audit_status = 'approved'
-      AND sib.deleted_at IS NULL
-      AND sib.is_indexable = TRUE
-      AND COALESCE(sib.article_type, '') <> 'short'
-      AND NULLIF(TRIM(sib.title), '') IS NOT NULL
-      AND NULLIF(TRIM(sib.content), '') IS NOT NULL
-    )
-    WHERE a.status = 'published'
-      AND a.audit_status = 'approved'
-      AND a.deleted_at IS NULL
-      AND a.is_indexable = TRUE
-      AND COALESCE(a.published_at, a.created_at) <= NOW()
-      AND COALESCE(a.article_type, '') <> 'short'
-      AND NULLIF(TRIM(a.title), '') IS NOT NULL
-      AND NULLIF(TRIM(a.content), '') IS NOT NULL
-      AND a.slug NOT LIKE '%&%'
-      AND (sib.slug IS NULL OR sib.slug NOT LIKE '%&%')
+    FROM (
+      SELECT DISTINCT COALESCE(a.lang, 'zh') AS lang, a.slug
+      FROM articles a
+      LEFT JOIN articles sib ON (
+        ((a.lang = 'zh' AND sib.parent_id = a.id) OR (a.lang = 'en' AND sib.id = a.parent_id))
+        AND sib.status = 'published'
+        AND sib.audit_status = 'approved'
+        AND sib.deleted_at IS NULL
+        AND sib.is_indexable = TRUE
+        AND COALESCE(sib.article_type, '') <> 'short'
+        AND NULLIF(TRIM(sib.title), '') IS NOT NULL
+        AND NULLIF(TRIM(sib.content), '') IS NOT NULL
+      )
+      WHERE a.status = 'published'
+        AND a.audit_status = 'approved'
+        AND a.deleted_at IS NULL
+        AND a.is_indexable = TRUE
+        AND COALESCE(a.published_at, a.created_at) <= NOW()
+        AND COALESCE(a.article_type, '') <> 'short'
+        AND NULLIF(TRIM(a.title), '') IS NOT NULL
+        AND NULLIF(TRIM(a.content), '') IS NOT NULL
+        AND a.slug NOT LIKE '%&%'
+        AND (sib.slug IS NULL OR sib.slug NOT LIKE '%&%')
+    ) sitemap_urls
   `);
   return row?.count || 0;
 }
@@ -981,30 +984,40 @@ export async function getRecentArticlesForSitemap(
   offset = 0
 ): Promise<{ slug: string; updated_at: string; lang: string; article_type?: string; sibling_slug?: string }[]> {
   const articles = await db.queryAll<{ slug: string; updated_at: Date | string; lang: string; article_type?: string; sibling_slug?: string }>(`
-    SELECT a.slug, a.updated_at, a.lang, a.article_type,
-           sib.slug as sibling_slug
-    FROM articles a
-    LEFT JOIN articles sib ON (
-      ((a.lang = 'zh' AND sib.parent_id = a.id) OR (a.lang = 'en' AND sib.id = a.parent_id))
-      AND sib.status = 'published'
-      AND sib.audit_status = 'approved'
-      AND sib.deleted_at IS NULL
-      AND sib.is_indexable = TRUE
-      AND COALESCE(sib.article_type, '') <> 'short'
-      AND NULLIF(TRIM(sib.title), '') IS NOT NULL
-      AND NULLIF(TRIM(sib.content), '') IS NOT NULL
-    )
-    WHERE a.status = 'published'
-      AND a.audit_status = 'approved'
-      AND a.deleted_at IS NULL
-      AND a.is_indexable = TRUE
-      AND COALESCE(a.published_at, a.created_at) <= NOW()
-      AND COALESCE(a.article_type, '') <> 'short'
-      AND NULLIF(TRIM(a.title), '') IS NOT NULL
-      AND NULLIF(TRIM(a.content), '') IS NOT NULL
-      AND a.slug NOT LIKE '%&%'
-      AND (sib.slug IS NULL OR sib.slug NOT LIKE '%&%')
-    ORDER BY a.published_at DESC
+    SELECT slug, updated_at, lang, article_type, sibling_slug
+    FROM (
+      SELECT a.slug, a.updated_at, COALESCE(a.lang, 'zh') AS lang, a.article_type,
+             sib.slug as sibling_slug,
+             COALESCE(a.published_at, a.created_at) AS sitemap_sort_at,
+             a.id AS sitemap_sort_id,
+             ROW_NUMBER() OVER (
+               PARTITION BY COALESCE(a.lang, 'zh'), a.slug
+               ORDER BY COALESCE(a.published_at, a.created_at) DESC, a.id DESC
+             ) AS sitemap_url_rank
+      FROM articles a
+      LEFT JOIN articles sib ON (
+        ((a.lang = 'zh' AND sib.parent_id = a.id) OR (a.lang = 'en' AND sib.id = a.parent_id))
+        AND sib.status = 'published'
+        AND sib.audit_status = 'approved'
+        AND sib.deleted_at IS NULL
+        AND sib.is_indexable = TRUE
+        AND COALESCE(sib.article_type, '') <> 'short'
+        AND NULLIF(TRIM(sib.title), '') IS NOT NULL
+        AND NULLIF(TRIM(sib.content), '') IS NOT NULL
+      )
+      WHERE a.status = 'published'
+        AND a.audit_status = 'approved'
+        AND a.deleted_at IS NULL
+        AND a.is_indexable = TRUE
+        AND COALESCE(a.published_at, a.created_at) <= NOW()
+        AND COALESCE(a.article_type, '') <> 'short'
+        AND NULLIF(TRIM(a.title), '') IS NOT NULL
+        AND NULLIF(TRIM(a.content), '') IS NOT NULL
+        AND a.slug NOT LIKE '%&%'
+        AND (sib.slug IS NULL OR sib.slug NOT LIKE '%&%')
+    ) ranked_articles
+    WHERE sitemap_url_rank = 1
+    ORDER BY sitemap_sort_at DESC, sitemap_sort_id DESC
     LIMIT $1::int OFFSET $2::int
   `, [limit, offset]);
   return articles.map(a => ({

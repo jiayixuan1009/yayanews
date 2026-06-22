@@ -39,8 +39,11 @@ function usage() {
     '  --output <path>         Write the Markdown report to a file as well as stdout.',
     '  -h, --help              Show this help.',
     '',
+    'This script supports both Page indexing/Coverage exports and Search results Performance exports.',
+    '',
     'Examples:',
     '  npm run verify:gsc-export -- outputs/gsc-coverage-2026-06-14',
+    '  npm run verify:gsc-export -- outputs/gsc-performance-2026-06-22 --output outputs/gsc-performance-analysis.md',
     '  npm run verify:gsc-export -- C:/Users/admin/Downloads/coverage.zip --output outputs/gsc-analysis.md',
   ].join('\n');
 }
@@ -320,6 +323,100 @@ function chartSummary(chartCsv) {
   };
 }
 
+function analyzePerformanceTables(files, siteOriginUrl) {
+  return files
+    .map((file) => analyzePerformanceTable(file, siteOriginUrl))
+    .filter(Boolean);
+}
+
+function analyzePerformanceTable(file, siteOriginUrl) {
+  const { headers, records } = parseCsvRecords(file.text);
+  if (headers.length === 0 || records.length === 0) return null;
+
+  const clicksColumn = findColumn(headers, ['Clicks']);
+  const impressionsColumn = findColumn(headers, ['Impressions']);
+  if (!clicksColumn || !impressionsColumn) return null;
+
+  const ctrColumn = findColumn(headers, ['CTR', 'Click-through rate', 'Click through rate']);
+  const positionColumn = findColumn(headers, ['Position', 'Average position', 'Avg position']);
+  const dimensionColumn = findPerformanceDimensionColumn(headers);
+  if (!dimensionColumn) return null;
+
+  const dimension = performanceDimensionName(file.name, dimensionColumn);
+  const rows = records
+    .map((record) => {
+      const label = String(record[dimensionColumn] || '').trim();
+      const clicks = numericMetric(record[clicksColumn]);
+      const impressions = numericMetric(record[impressionsColumn]);
+      const ctr = ctrMetric(record[ctrColumn], clicks, impressions);
+      const position = positionColumn ? numericMetric(record[positionColumn], NaN) : NaN;
+      if (!label && clicks === 0 && impressions === 0) return null;
+
+      return {
+        label,
+        clicks,
+        impressions,
+        ctr,
+        position,
+        urlAnalysis: dimension === 'Pages' ? analyzeUrl(label, '', siteOriginUrl) : null,
+      };
+    })
+    .filter(Boolean);
+
+  if (rows.length === 0) return null;
+  return { name: file.name, dimension, dimensionColumn, rows };
+}
+
+function findPerformanceDimensionColumn(headers) {
+  return findColumn(headers, [
+    'Top pages',
+    'Page',
+    'Pages',
+    'URL',
+    'Top queries',
+    'Query',
+    'Queries',
+    'Date',
+    'Country',
+    'Device',
+    'Search appearance',
+  ]) || headers.find((header) => {
+    const normalized = normalizeHeader(header);
+    return !['clicks', 'impressions', 'ctr', 'click-through rate', 'click through rate', 'position', 'average position', 'avg position'].includes(normalized);
+  }) || null;
+}
+
+function performanceDimensionName(fileName, dimensionColumn) {
+  const base = path.basename(fileName).toLowerCase();
+  const column = normalizeHeader(dimensionColumn);
+  if (base.includes('quer') || column.includes('quer')) return 'Queries';
+  if (base.includes('page') || column.includes('page') || column === 'url') return 'Pages';
+  if (base.includes('date') || column === 'date') return 'Dates';
+  if (base.includes('countr') || column === 'country') return 'Countries';
+  if (base.includes('device') || column === 'device') return 'Devices';
+  if (base.includes('appearance') || column.includes('appearance')) return 'Search Appearance';
+  return dimensionColumn;
+}
+
+function numericMetric(value, fallback = 0) {
+  const normalized = String(value ?? '')
+    .trim()
+    .replace(/,/g, '')
+    .replace(/%$/, '');
+  if (!normalized) return fallback;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function ctrMetric(value, clicks, impressions) {
+  const raw = String(value ?? '').trim();
+  if (raw) {
+    const parsed = numericMetric(raw, NaN);
+    if (Number.isFinite(parsed)) return raw.endsWith('%') || parsed > 1 ? parsed / 100 : parsed;
+  }
+  return impressions > 0 ? clicks / impressions : 0;
+}
+
 function analyzeTable(tableCsv, siteOriginUrl) {
   const { headers, records } = parseCsvRecords(tableCsv.text);
   const urlColumn = findColumn(headers, ['URL', 'Page', 'Submitted URL']);
@@ -564,6 +661,166 @@ function buildReport({ input, metadata, chart, analyses, siteOriginUrl, maxExamp
   return lines.join('\n');
 }
 
+function buildPerformanceReport({ input, metadata, chart, performanceTables, siteOriginUrl, maxExamples }) {
+  const lines = [];
+  const pageTable = performanceTables.find((table) => table.dimension === 'Pages');
+  const queryTable = performanceTables.find((table) => table.dimension === 'Queries');
+  const primaryTable = pageTable || performanceTables[0];
+  const totals = performanceTotals(primaryTable.rows);
+
+  lines.push('# GSC Performance Export Analysis');
+  lines.push('');
+  lines.push(`- Input: \`${input}\``);
+  lines.push(`- Expected site origin: \`${siteOriginUrl.origin}\``);
+  lines.push(`- Generated at: ${new Date().toISOString()}`);
+  lines.push(`- Tables detected: ${performanceTables.map((table) => `${table.dimension} (${table.rows.length})`).join(', ')}`);
+  lines.push(`- Primary table: ${primaryTable.dimension}`);
+  lines.push(`- Primary clicks: ${totals.clicks}`);
+  lines.push(`- Primary impressions: ${totals.impressions}`);
+  lines.push(`- Weighted CTR: ${formatPct(totals.ctr)}`);
+  if (Number.isFinite(totals.averagePosition)) lines.push(`- Weighted average position: ${totals.averagePosition.toFixed(1)}`);
+  lines.push('');
+
+  if (metadata.length > 0) {
+    lines.push('## Metadata');
+    lines.push('');
+    lines.push('| Property | Value |');
+    lines.push('| --- | --- |');
+    for (const entry of metadata) {
+      lines.push(`| ${md(entry.property)} | ${md(entry.value)} |`);
+    }
+    lines.push('');
+  }
+
+  if (chart) {
+    lines.push('## Trend');
+    lines.push('');
+    if (chart.firstNonZero) lines.push(`- First non-zero chart date: ${chart.firstNonZero.date} (${chart.firstNonZero.count})`);
+    lines.push(`- Latest chart date: ${chart.latest.date} (${chart.latest.count})`);
+    lines.push(`- Previous delta: ${chart.deltaFromPrevious >= 0 ? '+' : ''}${chart.deltaFromPrevious}`);
+    lines.push(`- Peak: ${chart.peak.date} (${chart.peak.count})`);
+    lines.push('');
+  }
+
+  if (pageTable) addPerformancePageSections(lines, pageTable, maxExamples);
+  if (queryTable) addPerformanceQuerySections(lines, queryTable, maxExamples);
+
+  for (const table of performanceTables.filter((item) => item !== pageTable && item !== queryTable)) {
+    addPerformanceGenericSection(lines, table, maxExamples);
+  }
+
+  lines.push('## Recommended Follow-up');
+  lines.push('');
+  lines.push('- Export the same date range by Pages and Queries, then rewrite titles/descriptions only for URLs with real impressions and low CTR.');
+  lines.push('- Prioritize pages with position 1-10 and CTR below 1%; these are visibility-without-click problems, not crawlability problems.');
+  lines.push('- For pages with impressions but zero clicks, inspect the SERP query intent before changing the article body or canonical.');
+  lines.push('- Keep Page indexing exports separate from Performance exports; they answer different questions.');
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+function performanceTotals(rows) {
+  const clicks = rows.reduce((sum, row) => sum + row.clicks, 0);
+  const impressions = rows.reduce((sum, row) => sum + row.impressions, 0);
+  const positionWeight = rows.reduce((sum, row) => {
+    if (!Number.isFinite(row.position)) return sum;
+    return sum + row.position * row.impressions;
+  }, 0);
+  return {
+    clicks,
+    impressions,
+    ctr: impressions > 0 ? clicks / impressions : 0,
+    averagePosition: impressions > 0 && positionWeight > 0 ? positionWeight / impressions : NaN,
+  };
+}
+
+function addPerformancePageSections(lines, table, maxExamples) {
+  const rows = table.rows.filter((row) => row.impressions > 0);
+  const zeroClickHighImpression = rows
+    .filter((row) => row.clicks === 0)
+    .sort(sortByImpressionsThenPosition)
+    .slice(0, maxExamples);
+  const lowCtrTopPosition = rows
+    .filter((row) => row.impressions >= 20 && row.ctr < 0.01 && Number.isFinite(row.position) && row.position <= 10)
+    .sort(sortByImpressionsThenPosition)
+    .slice(0, maxExamples);
+
+  lines.push('## Pages: High Impressions With No Clicks');
+  lines.push('');
+  addPerformanceRows(lines, zeroClickHighImpression, true);
+
+  lines.push('## Pages: Low CTR In Reachable Positions');
+  lines.push('');
+  addPerformanceRows(lines, lowCtrTopPosition, true);
+
+  const routeCounts = countBy(rows.map((row) => row.urlAnalysis).filter(Boolean), (item) => item.kind);
+  addCountTable(lines, 'Page URL Kinds', topEntries(routeCounts));
+}
+
+function addPerformanceQuerySections(lines, table, maxExamples) {
+  const rows = table.rows.filter((row) => row.impressions > 0);
+  const zeroClickQueries = rows
+    .filter((row) => row.clicks === 0)
+    .sort(sortByImpressionsThenPosition)
+    .slice(0, maxExamples);
+  const lowCtrQueries = rows
+    .filter((row) => row.impressions >= 20 && row.ctr < 0.01 && Number.isFinite(row.position) && row.position <= 10)
+    .sort(sortByImpressionsThenPosition)
+    .slice(0, maxExamples);
+
+  lines.push('## Queries: High Impressions With No Clicks');
+  lines.push('');
+  addPerformanceRows(lines, zeroClickQueries, false);
+
+  lines.push('## Queries: Low CTR In Reachable Positions');
+  lines.push('');
+  addPerformanceRows(lines, lowCtrQueries, false);
+}
+
+function addPerformanceGenericSection(lines, table, maxExamples) {
+  const rows = table.rows
+    .filter((row) => row.impressions > 0)
+    .sort(sortByImpressionsThenPosition)
+    .slice(0, maxExamples);
+  lines.push(`## ${table.dimension}`);
+  lines.push('');
+  addPerformanceRows(lines, rows, false);
+}
+
+function addPerformanceRows(lines, rows, includeUrlKind) {
+  if (rows.length === 0) {
+    lines.push('_No matching rows._');
+    lines.push('');
+    return;
+  }
+
+  lines.push(includeUrlKind
+    ? '| Clicks | Impressions | CTR | Position | Kind | Value |'
+    : '| Clicks | Impressions | CTR | Position | Value |');
+  lines.push(includeUrlKind ? '| ---: | ---: | ---: | ---: | --- | --- |' : '| ---: | ---: | ---: | ---: | --- |');
+  for (const row of rows) {
+    const position = Number.isFinite(row.position) ? row.position.toFixed(1) : 'n/a';
+    if (includeUrlKind) {
+      lines.push(`| ${row.clicks} | ${row.impressions} | ${formatPct(row.ctr)} | ${position} | ${md(row.urlAnalysis?.kind || 'unknown')} | ${md(row.label)} |`);
+    } else {
+      lines.push(`| ${row.clicks} | ${row.impressions} | ${formatPct(row.ctr)} | ${position} | ${md(row.label)} |`);
+    }
+  }
+  lines.push('');
+}
+
+function sortByImpressionsThenPosition(a, b) {
+  const positionA = Number.isFinite(a.position) ? a.position : Number.POSITIVE_INFINITY;
+  const positionB = Number.isFinite(b.position) ? b.position : Number.POSITIVE_INFINITY;
+  return b.impressions - a.impressions || positionA - positionB || a.label.localeCompare(b.label);
+}
+
+function formatPct(value) {
+  if (!Number.isFinite(value)) return 'n/a';
+  return `${(value * 100).toFixed(2)}%`;
+}
+
 function addCountTable(lines, title, entries) {
   lines.push(`## ${title}`);
   lines.push('');
@@ -602,11 +859,30 @@ function md(value) {
 function main() {
   const options = parseArgs(process.argv.slice(2));
   const files = loadExport(options.input);
+  const metadata = metadataEntries(pickCsv(files, 'Metadata.csv'));
+  const chart = chartSummary(pickCsv(files, 'Chart.csv'));
+  const performanceTables = analyzePerformanceTables(files, options.siteOriginUrl);
+  if (performanceTables.length > 0) {
+    const report = buildPerformanceReport({
+      input: options.input,
+      metadata,
+      chart,
+      performanceTables,
+      siteOriginUrl: options.siteOriginUrl,
+      maxExamples: Math.floor(options.maxExamples),
+    });
+
+    console.log(report);
+    if (options.output) {
+      fs.mkdirSync(path.dirname(path.resolve(options.output)), { recursive: true });
+      fs.writeFileSync(options.output, `${report}\n`, 'utf8');
+    }
+    return;
+  }
+
   const tableCsv = pickCsv(files, 'Table.csv') || files.find((file) => /table/i.test(file.name)) || files[0];
   if (!tableCsv) throw new Error('No CSV files found in GSC export.');
 
-  const metadata = metadataEntries(pickCsv(files, 'Metadata.csv'));
-  const chart = chartSummary(pickCsv(files, 'Chart.csv'));
   const analyses = analyzeTable(tableCsv, options.siteOriginUrl);
   const report = buildReport({
     input: options.input,
