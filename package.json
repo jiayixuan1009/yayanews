@@ -42,7 +42,8 @@
     "verify:gsc-export": "npm run check:node && node scripts/verify/analyze-gsc-export.mjs",
     "verify:article-slugs": "npm run check:node && node scripts/verify/check-article-slug-policy.mjs",
     "verify:redirects": "npm run check:node && node scripts/verify/redirect-regression.mjs",
-    "verify:seo": "npm run check:node && node scripts/verify/seo-metadata-check.mjs"
+    "verify:seo": "npm run check:node && node scripts/verify/seo-metadata-check.mjs",
+    "verify:tag-quality": "npm run check:node && node scripts/verify/tag-quality-audit.mjs"
   },
   "dependencies": {
     "pg": "^8.20.0"

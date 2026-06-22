@@ -745,6 +745,11 @@ function addPerformancePageSections(lines, table, maxExamples) {
     .filter((row) => row.impressions >= 20 && row.ctr < 0.01 && Number.isFinite(row.position) && row.position <= 10)
     .sort(sortByImpressionsThenPosition)
     .slice(0, maxExamples);
+  const ctrActionQueue = buildCtrActionQueue(rows).slice(0, maxExamples);
+
+  lines.push('## Pages: CTR Optimization Queue');
+  lines.push('');
+  addPerformanceActionRows(lines, ctrActionQueue);
 
   lines.push('## Pages: High Impressions With No Clicks');
   lines.push('');
@@ -756,6 +761,27 @@ function addPerformancePageSections(lines, table, maxExamples) {
 
   const routeCounts = countBy(rows.map((row) => row.urlAnalysis).filter(Boolean), (item) => item.kind);
   addCountTable(lines, 'Page URL Kinds', topEntries(routeCounts));
+}
+
+function buildCtrActionQueue(rows) {
+  return rows
+    .filter((row) => {
+      if (row.impressions < 20) return false;
+      if (row.clicks === 0) return true;
+      return Number.isFinite(row.position) && row.position <= 15 && row.ctr < 0.02;
+    })
+    .map((row) => ({ ...row, action: ctrAction(row) }))
+    .sort(sortByImpressionsThenPosition);
+}
+
+function ctrAction(row) {
+  const kind = row.urlAnalysis?.kind || 'unknown';
+  if (kind === 'article-detail') return 'Rewrite title/meta description around the top matching query intent; keep canonical unchanged.';
+  if (kind === 'news-list' || kind === 'news-category') return 'Tune channel title/description and above-fold headline mix for the visible query intent.';
+  if (kind === 'tag-detail') return 'Check whether the tag has enough useful articles; improve title/name_en or keep thin tags noindex.';
+  if (kind === 'topic-detail') return 'Refresh topic summary and internal links to current high-quality articles.';
+  if (kind === 'home') return 'Inspect branded and generic query mix before changing homepage title.';
+  return 'Inspect SERP and page intent before changing metadata.';
 }
 
 function addPerformanceQuerySections(lines, table, maxExamples) {
@@ -806,6 +832,22 @@ function addPerformanceRows(lines, rows, includeUrlKind) {
     } else {
       lines.push(`| ${row.clicks} | ${row.impressions} | ${formatPct(row.ctr)} | ${position} | ${md(row.label)} |`);
     }
+  }
+  lines.push('');
+}
+
+function addPerformanceActionRows(lines, rows) {
+  if (rows.length === 0) {
+    lines.push('_No matching rows._');
+    lines.push('');
+    return;
+  }
+
+  lines.push('| Clicks | Impressions | CTR | Position | Kind | Action | URL |');
+  lines.push('| ---: | ---: | ---: | ---: | --- | --- | --- |');
+  for (const row of rows) {
+    const position = Number.isFinite(row.position) ? row.position.toFixed(1) : 'n/a';
+    lines.push(`| ${row.clicks} | ${row.impressions} | ${formatPct(row.ctr)} | ${position} | ${md(row.urlAnalysis?.kind || 'unknown')} | ${md(row.action)} | ${md(row.label)} |`);
   }
   lines.push('');
 }
