@@ -16,14 +16,17 @@ const REQUIRED_SCRIPT_SRC_ORIGINS = [
   'https://bat.bing.com',
   'https://www.clarity.ms',
 ];
+const CORE_NEWS_CATEGORY_SLUGS = ['us-stock', 'hk-stock', 'derivatives', 'crypto', 'ai', 'other'];
 
 const CHECKS = [
   { path: '/zh', index: true, cache: 'cacheable', googleOwnershipSignals: true },
   { path: '/en', index: true, cache: 'cacheable', googleOwnershipSignals: true },
   { path: '/zh/news', index: true, cache: 'cacheable' },
   { path: '/en/news', index: true, cache: 'cacheable' },
-  { path: '/zh/news/us-stock', index: true, cache: 'cacheable' },
-  { path: '/en/news/us-stock', index: true, cache: 'cacheable' },
+  ...CORE_NEWS_CATEGORY_SLUGS.flatMap((slug) => [
+    { path: `/zh/news/${slug}`, index: true, cache: 'cacheable' },
+    { path: `/en/news/${slug}`, index: true, cache: 'cacheable' },
+  ]),
   { path: '/zh/flash', index: true, cache: 'cacheable' },
   { path: '/en/flash', index: true, cache: 'cacheable' },
   { path: '/zh/markets', index: true, cache: 'cacheable' },

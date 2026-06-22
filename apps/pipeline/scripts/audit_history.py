@@ -43,12 +43,14 @@ def upgrade_schema():
                 FROM information_schema.columns 
                 WHERE table_name='articles' AND column_name='audit_status';
             """)
-            if cur.fetchone():
-                log.info("Schema already upgraded.")
-            else:
+            has_audit_status = bool(cur.fetchone())
+            if not has_audit_status:
                 log.info("Upgrading articles schema (adding audit_status & audit_reason)...")
                 cur.execute("ALTER TABLE articles ADD COLUMN audit_status VARCHAR(20) DEFAULT 'approved';")
-                cur.execute("ALTER TABLE articles ADD COLUMN audit_reason TEXT;")
+            else:
+                log.info("audit_status column already exists.")
+
+            cur.execute("ALTER TABLE articles ADD COLUMN IF NOT EXISTS audit_reason TEXT;")
                 
             # Always ensure English articles have cover_images populated from their parent
             cur.execute("""

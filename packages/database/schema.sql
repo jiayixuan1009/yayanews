@@ -50,6 +50,8 @@ CREATE TABLE IF NOT EXISTS articles (
     deleted_at TIMESTAMP,
     is_indexable BOOLEAN NOT NULL DEFAULT TRUE,
     canonical_url TEXT,
+    audit_status TEXT DEFAULT 'approved',
+    audit_reason TEXT,
     view_count INTEGER DEFAULT 0, published_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     collected_at TIMESTAMP, lang TEXT DEFAULT 'zh' NOT NULL
@@ -189,6 +191,7 @@ ALTER TABLE articles ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS is_indexable BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS canonical_url TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS audit_reason TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS subcategory TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES articles(id) ON DELETE CASCADE;
 -- ALTER TABLE articles ADD COLUMN IF NOT EXISTS embedding vector(1536);
