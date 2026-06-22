@@ -858,6 +858,30 @@ function assertExpectedOrigin(failures, label, urls, expectedBaseUrl) {
   }
 }
 
+function duplicateXmlLocs(locs) {
+  const counts = new Map();
+  for (const loc of locs.map(decodeXmlEntities)) {
+    const normalized = loc.trim();
+    if (!normalized) continue;
+    counts.set(normalized, (counts.get(normalized) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .filter(([, count]) => count > 1)
+    .sort((a, b) => b[1] - a[1]);
+}
+
+function assertNoDuplicateLocs(failures, label, locs) {
+  const duplicates = duplicateXmlLocs(locs);
+  if (duplicates.length === 0) return;
+
+  failures.push(
+    `${label}: duplicate <loc> values found (${duplicates.length}), examples: ${duplicates
+      .slice(0, 3)
+      .map(([loc, count]) => `${loc} x${count}`)
+      .join(', ')}`
+  );
+}
+
 function assertSitemapIndex(failures, xml, expectedBaseUrl) {
   if (!xml.includes('<sitemapindex')) failures.push('sitemap-index: missing <sitemapindex>');
   const locs = xmlElementValues(xml, 'loc');
@@ -868,6 +892,7 @@ function assertSitemapIndex(failures, xml, expectedBaseUrl) {
   if (!locs.some((loc) => decodeXmlEntities(loc).includes('/sitemap-chunk/static/0'))) {
     failures.push('sitemap-index: missing static chunk');
   }
+  assertNoDuplicateLocs(failures, 'sitemap-index loc', locs);
   assertExpectedOrigin(failures, 'sitemap-index loc', locs, expectedBaseUrl);
 }
 
@@ -878,6 +903,7 @@ function assertSitemapUrlset(failures, xml, expectedBaseUrl) {
     failures.push('sitemap-urlset: missing URL <loc>');
     return;
   }
+  assertNoDuplicateLocs(failures, 'sitemap-urlset loc', locs);
   assertExpectedOrigin(failures, 'sitemap-urlset loc', locs, expectedBaseUrl);
 }
 
@@ -900,6 +926,7 @@ function assertNewsSitemap(failures, xml, expectedBaseUrl) {
     failures.push('news-sitemap: expected news entries or standard homepage fallback');
   }
 
+  assertNoDuplicateLocs(failures, 'news-sitemap loc', locs);
   assertExpectedOrigin(failures, 'news-sitemap loc', locs, expectedBaseUrl);
   if (hasNewsEntries) assertNewsSitemapDiversity(failures, xml);
 }
@@ -1035,6 +1062,71 @@ function assertRedirectLocation(failures, actual, expectedPath, fetchBaseUrl, ex
 function sameOriginPathUrl(sourceUrl, targetBaseUrl) {
   const source = new URL(decodeXmlEntities(sourceUrl));
   return new URL(`${source.pathname}${source.search}`, targetBaseUrl);
+}
+
+function sitemapPathLabel(sourceUrl) {
+  try {
+    return new URL(decodeXmlEntities(sourceUrl)).pathname;
+  } catch {
+    return decodeXmlEntities(sourceUrl);
+  }
+}
+
+async function assertSitemapChunkDuplicateLocs(fetchBaseUrl, expectedBaseUrl, fetchTimeoutMs) {
+  const failures = [];
+  const sitemapUrl = new URL('/sitemap.xml', fetchBaseUrl);
+  const { response: sitemapResponse, text: sitemapIndex } = await fetchTextWithTimeout(
+    sitemapUrl,
+    { redirect: 'manual' },
+    fetchTimeoutMs
+  );
+
+  if (sitemapResponse.status !== 200) {
+    return [`sitemap-duplicates: expected /sitemap.xml 200, got ${sitemapResponse.status}`];
+  }
+
+  const chunkUrls = xmlElementValues(sitemapIndex, 'loc');
+  if (chunkUrls.length === 0) return ['sitemap-duplicates: no sitemap chunks found'];
+
+  assertNoDuplicateLocs(failures, 'sitemap-duplicates chunk loc', chunkUrls);
+  assertExpectedOrigin(failures, 'sitemap-duplicates chunk loc', chunkUrls, expectedBaseUrl);
+
+  const allUrlLocs = [];
+  for (const chunkUrl of chunkUrls) {
+    let chunkFetchUrl;
+    try {
+      chunkFetchUrl = sameOriginPathUrl(chunkUrl, fetchBaseUrl);
+    } catch (error) {
+      failures.push(
+        `sitemap-duplicates: invalid chunk URL ${decodeXmlEntities(chunkUrl)}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+      continue;
+    }
+
+    const { response: chunkResponse, text: chunkXml } = await fetchTextWithTimeout(
+      chunkFetchUrl,
+      { redirect: 'manual' },
+      fetchTimeoutMs
+    );
+    if (chunkResponse.status !== 200) {
+      failures.push(`sitemap-duplicates: chunk ${decodeXmlEntities(chunkUrl)} expected 200, got ${chunkResponse.status}`);
+      continue;
+    }
+
+    const chunkLocs = xmlElementValues(chunkXml, 'loc');
+    assertNoDuplicateLocs(failures, `sitemap-duplicates ${sitemapPathLabel(chunkUrl)}`, chunkLocs);
+    allUrlLocs.push(...chunkLocs);
+  }
+
+  if (allUrlLocs.length === 0) {
+    failures.push('sitemap-duplicates: no URL <loc> entries found in sitemap chunks');
+    return failures;
+  }
+
+  assertNoDuplicateLocs(failures, 'sitemap-duplicates all URL loc', allUrlLocs);
+  return failures;
 }
 
 async function probeSitemapUrls(fetchBaseUrl, expectedBaseUrl, limit, fetchTimeoutMs, concurrency = DEFAULT_CHECK_CONCURRENCY) {
@@ -1411,6 +1503,15 @@ async function main() {
       for (const failure of failures) console.error(`  - ${failure}`);
     } else {
       console.log(`OK   sitemap URL probe (${sitemapProbeLimit} URLs)`);
+    }
+
+    const duplicateFailures = await assertSitemapChunkDuplicateLocs(fetchBaseUrl, expectedBaseUrl, fetchTimeoutMs);
+    if (duplicateFailures.length > 0) {
+      failed += 1;
+      console.error('FAIL sitemap duplicate loc check');
+      for (const failure of duplicateFailures) console.error(`  - ${failure}`);
+    } else {
+      console.log('OK   sitemap duplicate loc check');
     }
   }
 
