@@ -60,6 +60,47 @@ function buildAuthorEntity(author: Article['author_profile'] | undefined | null,
   };
 }
 
+function buildEditorialReviewEntity(lang?: string): Record<string, any> {
+  return {
+    '@type': 'Organization',
+    name: 'YayaNews Editorial Desk',
+    url: `${siteConfig.siteUrl}${localePrefix(lang)}/authors/yayanews-editorial`,
+    parentOrganization: {
+      '@type': 'NewsMediaOrganization',
+      name: siteConfig.siteName,
+      url: siteConfig.siteUrl,
+    },
+  };
+}
+
+function isOwnNewsroomSource(source?: string | null): boolean {
+  const normalized = (source || '').trim().toLowerCase();
+  return normalized === '' || normalized === 'yayanews' || normalized === 'yaya financial news';
+}
+
+function buildSourceOrganizationEntity(article: Article, lang?: string): Record<string, any> {
+  const sourceUrl = article.original_url || article.source_url || article.author_profile?.external_source_url || undefined;
+  const sourceName = (article.source || '').trim();
+
+  if (article.author_profile?.is_external_source) {
+    return buildAuthorEntity(article.author_profile, article.author_profile.display_name, lang);
+  }
+
+  if (!isOwnNewsroomSource(sourceName)) {
+    return {
+      '@type': 'Organization',
+      name: sourceName,
+      ...(sourceUrl ? { url: sourceUrl } : {}),
+    };
+  }
+
+  return {
+    '@type': 'NewsMediaOrganization',
+    name: siteConfig.siteName,
+    url: siteConfig.siteUrl,
+  };
+}
+
 function articleBodyText(content?: string | null): string | undefined {
   if (!content) return undefined;
   const text = content
@@ -101,6 +142,12 @@ export function buildNewsArticleJsonLd(article: Article, topic?: any, lang?: str
     ? article.tickers.split(',').map(t => t.trim()).filter(Boolean)
     : [];
   const allKeywords = [...new Set([...tagKeywords, ...tickerKeywords])];
+  const reviewedByEntity = article.reviewer_profile
+    ? buildAuthorEntity(article.reviewer_profile, article.reviewer_profile.display_name, lang)
+    : (article.reviewed_at || article.audit_status === 'approved')
+      ? buildEditorialReviewEntity(lang)
+      : undefined;
+  const sourceOrganizationEntity = buildSourceOrganizationEntity(article, lang);
 
   const jsonLd: Record<string, any> = {
     '@context': 'https://schema.org',
@@ -129,9 +176,8 @@ export function buildNewsArticleJsonLd(article: Article, topic?: any, lang?: str
     ...(article.editor_profile ? {
       editor: buildAuthorEntity(article.editor_profile, article.editor_profile.display_name, lang),
     } : {}),
-    ...(article.reviewer_profile ? {
-      reviewedBy: buildAuthorEntity(article.reviewer_profile, article.reviewer_profile.display_name, lang),
-    } : {}),
+    ...(reviewedByEntity ? { reviewedBy: reviewedByEntity } : {}),
+    sourceOrganization: sourceOrganizationEntity,
     publisher: {
       '@type': 'NewsMediaOrganization',
       name: siteConfig.siteName,

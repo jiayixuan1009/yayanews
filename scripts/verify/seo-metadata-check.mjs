@@ -1258,7 +1258,16 @@ function assertArticleJsonLd(failures, html) {
     if (!articleSchema[field]) failures.push(`json-ld: missing ${field}`);
   }
   if (!articleSchema.image) failures.push('json-ld: missing image');
+  if (!entityName(articleSchema.reviewedBy)) failures.push('json-ld: missing reviewedBy.name');
+  if (!entityName(articleSchema.sourceOrganization)) failures.push('json-ld: missing sourceOrganization.name');
   if (articleSchema.isAccessibleForFree !== true) failures.push('json-ld: isAccessibleForFree must be true');
+}
+
+function entityName(value) {
+  if (!value) return '';
+  if (Array.isArray(value)) return value.map(entityName).find(Boolean) || '';
+  if (typeof value === 'object') return String(value.name || '').trim();
+  return '';
 }
 
 function assertJsonLdTypes(failures, html, requiredTypes = []) {

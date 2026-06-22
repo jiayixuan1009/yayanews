@@ -97,6 +97,14 @@ const REDIRECT_CASES = [
     finalPath: '/zh/article/bitcoin-etf-market-update',
   },
   {
+    name: 'no-locale tag slug is safely localized',
+    path: '/tag/bitcoin',
+    expectedStatus: 308,
+    expectedLocation: '/zh/tag/bitcoin',
+    finalStatus: [200, 404],
+    finalPath: '/zh/tag/bitcoin',
+  },
+  {
     name: 'legacy article slug may resolve through suffixed redirect map',
     path: '/en/article/fang-cheng-shi-xin-wen-bwenews',
     expectedStatus: [200, 308, 404],
