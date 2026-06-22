@@ -27,7 +27,7 @@ def audit_article(article_id: int, title: str, content: str, source: str) -> boo
     """对生成的文章进行事后审核，更新 audit_status"""
     if not source or len(str(source).strip()) < 20:
         # 无原始素材的原创文章直接批准（确保写入 DB，不留 pending）
-        _update_db(article_id, "approved", "AI原创内容，无需素材比对")
+        _update_db(article_id, "approved", "AI原创内容，无需素材比对", mark_reviewed=True)
         return True
         
     prompt = PROMPT_TEMPLATE.format(source=str(source)[:2500], content=str(content)[:2500])
@@ -41,7 +41,7 @@ def audit_article(article_id: int, title: str, content: str, source: str) -> boo
             status = data.get("status", "approved")
             reason = data.get("reason", "")
             
-            _update_db(article_id, status, reason)
+            _update_db(article_id, status, reason, mark_reviewed=(status == "approved"))
             
             if status == "rejected":
                 log.warning(f"[Audit Reject] ID:{article_id} '{title}' - {reason}")
@@ -59,16 +59,47 @@ def audit_article(article_id: int, title: str, content: str, source: str) -> boo
         _update_db(article_id, "approved", f"审核异常兜底通过: {str(e)[:100]}")
         return True
 
-def _update_db(a_id: int, status: str, reason: str):
+def _update_db(a_id: int, status: str, reason: str, mark_reviewed: bool = False):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
+            reviewer_id = None
+            if mark_reviewed and status == "approved":
+                cur.execute("SELECT id FROM authors WHERE slug = %s", ("yayanews-editorial",))
+                row = cur.fetchone()
+                reviewer_id = row[0] if row else None
+
             try:
-                cur.execute("UPDATE articles SET audit_status=%s, audit_reason=%s WHERE id=%s", (status, reason, a_id))
+                if reviewer_id:
+                    cur.execute(
+                        """
+                        UPDATE articles
+                        SET audit_status=%s,
+                            audit_reason=%s,
+                            reviewer_id=COALESCE(reviewer_id, %s),
+                            reviewed_at=COALESCE(reviewed_at, CURRENT_TIMESTAMP)
+                        WHERE id=%s
+                        """,
+                        (status, reason, reviewer_id, a_id),
+                    )
+                else:
+                    cur.execute("UPDATE articles SET audit_status=%s, audit_reason=%s WHERE id=%s", (status, reason, a_id))
             except Exception:
                 # Fallback: audit_reason column may not exist yet
                 conn.rollback()
-                cur.execute("UPDATE articles SET audit_status=%s WHERE id=%s", (status, a_id))
+                if reviewer_id:
+                    cur.execute(
+                        """
+                        UPDATE articles
+                        SET audit_status=%s,
+                            reviewer_id=COALESCE(reviewer_id, %s),
+                            reviewed_at=COALESCE(reviewed_at, CURRENT_TIMESTAMP)
+                        WHERE id=%s
+                        """,
+                        (status, reviewer_id, a_id),
+                    )
+                else:
+                    cur.execute("UPDATE articles SET audit_status=%s WHERE id=%s", (status, a_id))
         conn.commit()
     except Exception as e:
         conn.rollback()
