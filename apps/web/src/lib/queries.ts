@@ -988,11 +988,10 @@ export async function getRecentArticlesForSitemap(
     FROM (
       SELECT a.slug, a.updated_at, COALESCE(a.lang, 'zh') AS lang, a.article_type,
              sib.slug as sibling_slug,
-             COALESCE(a.published_at, a.created_at) AS sitemap_sort_at,
              a.id AS sitemap_sort_id,
              ROW_NUMBER() OVER (
                PARTITION BY COALESCE(a.lang, 'zh'), a.slug
-               ORDER BY COALESCE(a.published_at, a.created_at) DESC, a.id DESC
+               ORDER BY a.id DESC
              ) AS sitemap_url_rank
       FROM articles a
       LEFT JOIN articles sib ON (
@@ -1017,7 +1016,7 @@ export async function getRecentArticlesForSitemap(
         AND (sib.slug IS NULL OR sib.slug NOT LIKE '%&%')
     ) ranked_articles
     WHERE sitemap_url_rank = 1
-    ORDER BY sitemap_sort_at DESC, sitemap_sort_id DESC
+    ORDER BY sitemap_sort_id DESC
     LIMIT $1::int OFFSET $2::int
   `, [limit, offset]);
   return articles.map(a => ({
