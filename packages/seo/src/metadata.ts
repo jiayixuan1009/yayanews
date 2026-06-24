@@ -122,6 +122,9 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
       languages: options.alternatesLanguages || {
         'zh': `/zh${cleanUrl}`,
         'en': `/en${cleanUrl}`,
+        // x-default points to the English edition as the international fallback
+        // for users whose language matches neither zh nor en.
+        'x-default': `/en${cleanUrl}`,
       },
     },
     openGraph: {
