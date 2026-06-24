@@ -979,6 +979,28 @@ export async function getArticleSitemapCount(): Promise<number> {
   return row?.count || 0;
 }
 
+/**
+ * Most recent updated_at across indexable published articles.
+ * Used to give the sitemap index a truthful <lastmod> instead of "now",
+ * so Google keeps trusting our lastmod signals.
+ */
+export async function getLatestArticleUpdatedAt(): Promise<string | null> {
+  try {
+    const row = await db.queryGet<{ latest_at: Date | string | null }>(`
+      SELECT MAX(updated_at) AS latest_at
+      FROM articles
+      WHERE status = 'published'
+        AND audit_status = 'approved'
+        AND deleted_at IS NULL
+        AND is_indexable = TRUE
+        AND COALESCE(published_at, created_at) <= NOW()
+    `);
+    return row?.latest_at ? safeDateStr(row.latest_at) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getRecentArticlesForSitemap(
   limit = 50000,
   offset = 0
