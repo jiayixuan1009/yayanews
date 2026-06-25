@@ -250,7 +250,7 @@ export default async function CategoryPage({
                 {/* Feed Section: Standard 2-col masonry or list */}
                 <section className="pt-8">
                   <SectionHeader title={dict.home.newestTitle} emphasis="default" className="mb-6" />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+                  <div className="flex flex-col">
                     {feed.map(a => (
                       <ArticleCard key={a.id} article={a} />
                     ))}
