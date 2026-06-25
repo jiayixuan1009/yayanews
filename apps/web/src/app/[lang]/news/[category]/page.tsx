@@ -129,25 +129,6 @@ export default async function CategoryPage({
         featured={lead}
       />
 
-      <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-[#ddd5ca] pb-4 lg:mb-8">
-        <LocalizedLink href="/news" className="border border-[#ddd5ca] bg-white px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-[#667067] hover:text-[#14261f]">
-          {locale === 'zh' ? '全部分类' : 'All desks'}
-        </LocalizedLink>
-        {categories.map(c => (
-          <LocalizedLink
-            key={c.slug}
-            href={`/news/${c.slug}`}
-            className={`border px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] ${
-              c.slug === category
-                ? 'border-[#14261f] bg-white text-[#14261f]'
-                : 'border-[#ddd5ca] bg-[#f7f4ee] text-[#667067] hover:text-[#14261f]'
-            }`}
-          >
-            {c.name}
-          </LocalizedLink>
-        ))}
-      </div>
-
       <DepthTabs
         baseUrl={`/news/${category}`}
         current={depthFilter}
