@@ -194,7 +194,7 @@ export default async function CategoryPage({
                           <span>{lead.article_type === 'deep' ? dict.news.deepDive : dict.news.briefing}</span>
                         </div>
                         <LocalizedLink href={`/article/${lead.slug}`} className="group block">
-                          <h2 className="yn-title-xl mt-2 text-[#111713] group-hover:text-[#1d5c4f]">
+                          <h2 className="yn-title-xl mt-2 text-[#111713] group-hover:text-[#1d5c4f] [text-wrap:wrap]">
                             {lead.title}
                           </h2>
                           {lead.summary && (

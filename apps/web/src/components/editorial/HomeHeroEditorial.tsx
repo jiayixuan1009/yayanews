@@ -77,7 +77,7 @@ export default function HomeHeroEditorial({ lead, secondaries, dict = {}, rightR
                     {lead.article_type === 'deep' ? (dict.home?.investigativeFeature || 'Investigative feature') : (dict.home?.featuredReport || 'Featured report')}
                   </div>
                   <LocalizedLink href={`/article/${lead.slug}`} className="group block mb-2">
-                    <h1 className="yn-title-xl text-[#111713] group-hover:text-[#1d5c4f]">
+                    <h1 className="yn-title-xl text-[#111713] group-hover:text-[#1d5c4f] [text-wrap:wrap]">
                       {lead.title}
                     </h1>
                   </LocalizedLink>
