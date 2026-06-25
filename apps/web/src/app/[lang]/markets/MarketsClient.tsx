@@ -143,10 +143,10 @@ function SectionHeader({ emoji, title, subtitle }: { emoji: string; title: strin
     <div className="flex items-center gap-3 mt-10 mb-4 first:mt-0">
       <span className="text-2xl">{emoji}</span>
       <div>
-        <h2 className="text-lg font-bold text-white leading-none">{title}</h2>
-        <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>
+        <h2 className="text-lg font-bold text-[#14261f] leading-none">{title}</h2>
+        <p className="text-xs text-[#667067] mt-0.5">{subtitle}</p>
       </div>
-      <div className="flex-1 h-px bg-gradient-to-r from-slate-700 to-transparent ml-2" />
+      <div className="flex-1 h-px bg-gradient-to-r from-[#d8d1c5] to-transparent ml-2" />
     </div>
   );
 }
@@ -326,10 +326,10 @@ export default function MarketsClient() {
       {/* ── Page Header ── */}
       <div className="flex items-start justify-between mb-7">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow-sm">
+          <h1 className="text-3xl font-extrabold tracking-tight text-[#14261f]">
             全球市场行情
           </h1>
-          <p className="mt-1.5 text-sm text-slate-300">
+          <p className="mt-1.5 text-sm text-[#667067]">
             {tab === 'all'    && '宏观指数 · 美股 · 港股 · 加密货币 — 实时综合行情'}
             {tab === 'macro'  && '全球宏观 — 指数、商品与外汇'}
             {tab === 'us'     && '美股 — 科技与重要成长股'}
@@ -338,7 +338,7 @@ export default function MarketsClient() {
           </p>
         </div>
         {lastUpdate && (
-          <div className="flex items-center gap-2 text-xs text-slate-400 mt-1 shrink-0">
+          <div className="flex items-center gap-2 text-xs text-[#667067] mt-1 shrink-0">
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]" />
             更新于 {lastUpdate}
           </div>
@@ -346,7 +346,7 @@ export default function MarketsClient() {
       </div>
 
       {/* ── Tabs ── */}
-      <div className="flex items-center gap-2 mb-6 border-b border-slate-700 pb-3 overflow-x-auto">
+      <div className="flex items-center gap-2 mb-6 border-b border-[#ddd5ca] pb-3 overflow-x-auto">
         {TABS.map(t => (
           <button
             key={t.id}
@@ -354,8 +354,8 @@ export default function MarketsClient() {
             className={`
               inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold transition-all whitespace-nowrap
               ${tab === t.id
-                ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/50 shadow-sm'
-                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                ? 'bg-[#1d5c4f] text-white shadow-sm'
+                : 'text-[#667067] hover:bg-[#ece6dc] hover:text-[#14261f]'
               }
             `}
           >
@@ -398,9 +398,9 @@ export default function MarketsClient() {
       )}
 
       {/* ── CTA ── */}
-      <div className="mt-10 rounded-2xl bg-gradient-to-r from-emerald-900/40 to-teal-900/30 border border-emerald-700/40 p-6 text-center shadow-inner">
+      <div className="mt-10 rounded-2xl bg-[#004c39] border border-[#1d5c4f] p-6 text-center shadow-md">
         <h3 className="text-xl font-bold text-white">想交易这些资产？</h3>
-        <p className="mt-2 text-sm text-slate-300">支持加密货币、美股、港股一站式交易</p>
+        <p className="mt-2 text-sm text-white/80">支持加密货币、美股、港股一站式交易</p>
         <a
           href={siteConfig.tradingSite}
           target="_blank"
