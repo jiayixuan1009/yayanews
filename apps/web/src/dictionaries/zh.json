@@ -91,37 +91,37 @@
       "title": "美股市场资讯 | 纳斯达克・标普500・道琼斯",
       "desc": "鸭鸭财经美股频道：实时追踪纳斯达克、标普500、道琼斯指数涨跌，深度解析NVIDIA、苹果、特斯拉等科技巨头财报，同步呈现美联储利率决议、华尔街机构持仓及宏观经济关键数据对市场的影响。",
       "label": "专栏",
-      "quote": "Price action is just the surface."
+      "quote": "价格波动只是表象。"
     },
     "hk-stock": {
       "title": "港股及亚太市场资讯 | 恒生指数・南向资金",
       "desc": "鸭鸭财经港股频道：洞悉恒生指数、国企指数走势，实时追踪南向资金流入流出与互联互通动态。深度覆盖腾讯、阿里、美团等核心蓝筹动态，并解析中概股、新能源汽车及亚太核心资产的宏观交易逻辑。",
       "label": "专栏",
-      "quote": "Capital leaves fingerprints."
+      "quote": "资本流动，必留痕迹。"
     },
     "crypto": {
       "title": "加密货币资讯 | 比特币・以太坊・DeFi・NFT",
       "desc": "鸭鸭财经加密频道：全面覆盖比特币BTC宏观周期与链上资金流动、以太坊ETH生态升级与ETF资金流入，深度分析DeFi协议、NFT市场、稳定币政策及机构持仓变化，为加密资产投资者提供最快情报。",
       "label": "专栏",
-      "quote": "Narratives move faster than protocols."
+      "quote": "叙事的速度，永远快于协议。"
     },
     "derivatives": {
       "title": "衍生品与大宗商品资讯 | 期权・黄金・原油・外汇",
       "desc": "鸭鸭财经衍生品频道：深度覆盖期权持仓异动、隐含波动率VIX走势，实时追踪黄金现货、布伦特原油及铜等大宗商品价格，同步解析美元指数、主要汇率对及全球央行政策对衍生品市场的宏观影响。",
       "label": "专栏",
-      "quote": "Volatility is a language of its own."
+      "quote": "波动率，是一门独特的语言。"
     },
     "ai": {
       "title": "AI与前沿科技资讯 | 大模型・算力・商业落地",
       "desc": "鸭鸭财经科技频道：持续追踪OpenAI、Anthropic、谷歌Gemini等大模型最新进展，深度分析英伟达算力资本开支及AI芯片产业链动态，关注生成式AI在金融、医疗、制造领域的真实商业落地与投资机遇。",
       "label": "专栏",
-      "quote": "Automation always arrives in layers."
+      "quote": "自动化，总是层层递进而来。"
     },
     "other": {
       "title": "综合财经简报 | 跨市场资讯整合",
       "desc": "鸭鸭财经综合频道：汇聚跨市场、跨主题的补充财经档案与编辑综合整理，涵盖宏观经济政策解读、地缘政治对市场的影响分析、以及不被单一频道覆盖的新兴市场与行业层面的核心资讯。",
       "label": "专栏",
-      "quote": "What matters rarely fits one beat."
+      "quote": "真正重要的事，往往超越单一领域。"
     }
   },
   "article": {
