@@ -85,10 +85,10 @@ export default function ArticleCard({ article, featured = false, priority = fals
           <DepthBadge type={article.article_type} dict={dict} />
           {!hasRealCover && <span className="yn-tag bg-amber-50 text-amber-700">{dict.article?.noImage || '待配图'}</span>}
         </div>
-        <h3 className="yn-card-title-lg mt-3 max-w-[28ch] text-[#13211b] group-hover:text-[#1d5c4f] line-clamp-3">
+        <h3 className="yn-card-title-lg mt-3 text-[#13211b] group-hover:text-[#1d5c4f] line-clamp-3 [text-wrap:wrap]">
           {article.title}
         </h3>
-        {article.summary && <p className="mt-3 max-w-[56ch] yn-body text-slate-600 line-clamp-3">{article.summary}</p>}
+        {article.summary && <p className="mt-3 max-w-[72ch] yn-body text-slate-600 line-clamp-3">{article.summary}</p>}
         <div className="mt-3 sm:mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[#ece4d8] pt-3 yn-meta">
           <span className="font-semibold text-[#14261f]">{article.author}</span>
           <span>{article.published_at?.slice(0, 16)}</span>
