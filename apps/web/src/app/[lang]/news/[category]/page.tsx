@@ -114,6 +114,55 @@ export default async function CategoryPage({
     { name: meta.title, url: `/${locale}/news/${category}` },
   ]);
 
+  const rightRail = (
+    <aside className="lg:col-span-4 xl:col-span-3 lg:border-l border-[#ddd5ca] lg:pl-8 space-y-8">
+      <RightRailPanel title={dict.news.flashSnippets} actionHref="/flash" actionLabel={dict.news.live} accent className="bg-white">
+        {flashMini.length === 0 ? (
+          <p className="yn-meta text-[#667067]">{dict.news.noFlash}</p>
+        ) : (
+          <ul className="space-y-4">
+            {flashMini.slice(0, 5).map(f => (
+              <li key={f.id} className="border-b border-dashed border-[#ece4d9] pb-3 last:border-b-0 last:pb-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#cc3333] shrink-0"></span>
+                  <span className="yn-meta tabular-nums text-[#cc3333]">{f.published_at?.slice(11, 16) ?? '—'}</span>
+                </div>
+                <LocalizedLink href={`/flash/${encodeFlashSlug(f)}`} className="group block">
+                  <p className="text-[0.95rem] leading-relaxed text-[#14261f] group-hover:text-[#1d5c4f] transition-colors">{f.title}</p>
+                </LocalizedLink>
+              </li>
+            ))}
+          </ul>
+        )}
+      </RightRailPanel>
+
+      <RightRailPanel title={dict.news.popularTags}>
+        <div className="flex flex-wrap gap-2">
+          {popularTags.map(tag => (
+            <LocalizedLink
+              key={tag.id}
+              href={`/tag/${tag.slug}`}
+              className="border border-[#ddd5ca] bg-white px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-[#667067] hover:border-[#14261f] hover:text-[#14261f] transition-colors"
+            >
+              #{tag.name}
+            </LocalizedLink>
+          ))}
+        </div>
+      </RightRailPanel>
+
+      <div className="sticky top-24 pt-6 border-t border-[#ddd5ca]">
+        <p className="yn-meta mb-4 font-semibold text-[#14261f]">{dict.news.channelIndex}</p>
+        <div className="space-y-3 flex flex-col">
+          {categories.map((c) => (
+            <LocalizedLink key={c.slug} href={`/news/${c.slug}`} className="text-sm text-slate-600 hover:text-[#14261f] hover:underline underline-offset-4 decoration-[#ddd5ca]">
+              {c.name}
+            </LocalizedLink>
+          ))}
+        </div>
+      </div>
+    </aside>
+  );
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }} />
@@ -137,7 +186,12 @@ export default async function CategoryPage({
       />
 
       {isDerivatives && !articleType ? (
-        <DerivativesSubTabs initialArticles={articles} lang={locale} />
+        <div className="grid gap-8 lg:grid-cols-12 xl:gap-12">
+          <div className="min-w-0 lg:col-span-8 xl:col-span-9">
+            <DerivativesSubTabs initialArticles={articles} lang={locale} />
+          </div>
+          {rightRail}
+        </div>
       ) : (
         <div className="grid gap-8 lg:grid-cols-12 xl:gap-12">
           {/* Main Content Area */}
@@ -248,53 +302,7 @@ export default async function CategoryPage({
             )}
           </div>
 
-          {/* Rigid Right Rail */}
-          <aside className="lg:col-span-4 xl:col-span-3 lg:border-l border-[#ddd5ca] lg:pl-8 space-y-8">
-            <RightRailPanel title={dict.news.flashSnippets} actionHref="/flash" actionLabel={dict.news.live} accent className="bg-white">
-              {flashMini.length === 0 ? (
-                <p className="yn-meta text-[#667067]">{dict.news.noFlash}</p>
-              ) : (
-                <ul className="space-y-4">
-                  {flashMini.slice(0, 5).map(f => (
-                    <li key={f.id} className="border-b border-dashed border-[#ece4d9] pb-3 last:border-b-0 last:pb-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#cc3333] shrink-0"></span>
-                        <span className="yn-meta tabular-nums text-[#cc3333]">{f.published_at?.slice(11, 16) ?? '—'}</span>
-                      </div>
-                      <LocalizedLink href={`/flash/${encodeFlashSlug(f)}`} className="group block">
-                        <p className="text-[0.95rem] leading-relaxed text-[#14261f] group-hover:text-[#1d5c4f] transition-colors">{f.title}</p>
-                      </LocalizedLink>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </RightRailPanel>
-
-            <RightRailPanel title={dict.news.popularTags}>
-              <div className="flex flex-wrap gap-2">
-                {popularTags.map(tag => (
-                  <LocalizedLink
-                    key={tag.id}
-                    href={`/tag/${tag.slug}`}
-                    className="border border-[#ddd5ca] bg-white px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-[#667067] hover:border-[#14261f] hover:text-[#14261f] transition-colors"
-                  >
-                    #{tag.name}
-                  </LocalizedLink>
-                ))}
-              </div>
-            </RightRailPanel>
-            
-            <div className="sticky top-24 pt-6 border-t border-[#ddd5ca]">
-              <p className="yn-meta mb-4 font-semibold text-[#14261f]">{dict.news.channelIndex}</p>
-              <div className="space-y-3 flex flex-col">
-                {categories.map((c) => (
-                  <LocalizedLink key={c.slug} href={`/news/${c.slug}`} className="text-sm text-slate-600 hover:text-[#14261f] hover:underline underline-offset-4 decoration-[#ddd5ca]">
-                    {c.name}
-                  </LocalizedLink>
-                ))}
-              </div>
-            </div>
-          </aside>
+          {rightRail}
         </div>
       )}
     </div>
