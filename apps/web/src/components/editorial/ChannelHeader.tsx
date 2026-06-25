@@ -58,7 +58,7 @@ export default function ChannelHeader({
               </span>
               {quote && <p className="hidden font-display text-base tracking-tight text-white/75 md:block">“{quote}”</p>}
             </div>
-            <h1 className="yn-display mt-5 max-w-[8ch] text-white">
+            <h1 className="yn-display mt-5 max-w-[16ch] text-white">
               {title}
             </h1>
             <p className="mt-5 max-w-[36ch] font-body text-[1rem] leading-8 text-white/78 md:text-[1.05rem]">{description}</p>

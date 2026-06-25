@@ -78,7 +78,7 @@ export default function ArticleCard({ article, featured = false, priority = fals
   }
 
   return (
-    <LocalizedLink href={`/article/${article.slug}`} className="group grid gap-3 sm:gap-5 border-t border-[#ddd5ca] py-4 sm:py-6 first:border-t-0 first:pt-0 sm:grid-cols-[minmax(0,1fr)_196px] sm:items-start">
+    <LocalizedLink href={`/article/${article.slug}`} className="group grid gap-3 sm:gap-5 border-t border-[#ddd5ca] py-4 sm:py-6 first:border-t-0 first:pt-0 sm:grid-cols-[minmax(0,1fr)_196px] sm:items-stretch">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1.5">
           {article.category_name && <span className={getCategoryBadgeClass(article.category_slug)}>{dict.nav?.[article.category_slug || ''] || article.category_name}</span>}
@@ -96,7 +96,7 @@ export default function ArticleCard({ article, featured = false, priority = fals
           {article.source && article.source !== 'YayaNews' && <span>{dict.common?.source || '来源'}: {article.source}</span>}
         </div>
       </div>
-      <div className="relative order-first aspect-[16/9] overflow-hidden border border-[#d8d1c5] bg-[#ece6dc] sm:order-last sm:h-[138px] sm:w-[196px] sm:aspect-auto">
+      <div className="relative order-first aspect-[16/9] overflow-hidden border border-[#d8d1c5] bg-[#ece6dc] sm:order-last sm:h-full sm:min-h-[138px] sm:w-[196px] sm:aspect-auto">
         <Image
           src={coverSrc}
           alt={article.title}
