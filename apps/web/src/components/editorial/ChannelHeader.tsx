@@ -27,50 +27,40 @@ export default function ChannelHeader({
   const coverOpt = coverSrc ? isRemoteImageOptimizable(coverSrc) : false;
 
   return (
-    <header className="mb-10 grid gap-0 xl:grid-cols-[150px_minmax(0,1fr)]">
-      <aside className="hidden border-r border-[#d6cec2] bg-[#efebe4] xl:flex xl:flex-col xl:justify-between">
-        <div className="space-y-6 p-5">
-          <div className="border border-[#d6cec2] bg-white p-3">
-            <p className="yn-meta text-[#1d5c4f]">{lang === 'zh' ? '动态档案' : 'The Living Archive'}</p>
-            <p className="mt-2 text-xs yn-body text-[#667067]">
-              {lang === 'zh' ? '为追踪结构性变化读者提供的每日精选情报。' : 'Curated daily intelligence for readers tracking structural shifts.'}
-            </p>
-          </div>
-          <nav className="space-y-2 yn-action text-[#667067]">
-            <LocalizedLink href="/" className="block border-l-2 border-[#1d5c4f] pl-3 text-[#14261f]">{dict?.nav?.home || 'Home'}</LocalizedLink>
-            <LocalizedLink href="/flash" className="block pl-3">{dict?.nav?.flash || 'Breaking'}</LocalizedLink>
-            <LocalizedLink href="/news" className="block pl-3">{dict?.home?.newsOverview || 'Trending'}</LocalizedLink>
-          </nav>
-        </div>
-        <div className="space-y-4 p-5">
-          <button className="w-full border border-[#7ae88a] bg-[#9cff8f] px-3 py-2 yn-action text-[#0e2a1f]">
-            {lang === 'zh' ? '订阅简报' : 'Newsletter signup'}
-          </button>
-        </div>
-      </aside>
-
+    <header className="mb-10">
       <div className="border border-[#d6cec2] bg-[#004c39] text-white">
-        <div className="grid gap-8 p-6 md:p-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)] lg:items-stretch lg:gap-10 lg:p-10">
-          <div className="min-w-0">
+        <div className="grid gap-8 p-6 md:p-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.85fr)] lg:items-stretch lg:gap-12 lg:p-10">
+          <div className="flex min-w-0 flex-col">
             <div className="flex flex-wrap items-center gap-4 border-b border-white/15 pb-4">
               <span className="border border-[#7fe193] bg-[#d5ff8d]/90 px-2 py-1 yn-action text-[#0e2a1f]">
-                {label} • {title}
+                {label}
               </span>
               {quote && <p className="hidden font-display text-base tracking-tight text-white/75 md:block">“{quote}”</p>}
             </div>
-            <h1 className="yn-display mt-5 max-w-[52ch] text-white [text-wrap:wrap]">
+            <h1 className="yn-display mt-6 text-white [text-wrap:wrap]">
               {title}
             </h1>
-            <p className="mt-5 max-w-[52ch] font-body text-[1rem] leading-8 text-white/78 md:text-[1.05rem]">{description}</p>
+            <p className="mt-5 max-w-[60ch] font-body text-[1rem] leading-8 text-white/80 md:text-[1.05rem]">{description}</p>
+            <div className="mt-auto flex flex-wrap items-center gap-3 pt-7">
+              <button className="border border-[#7ae88a] bg-[#9cff8f] px-4 py-2 yn-action text-[#0e2a1f] transition-colors hover:bg-[#b6ffac]">
+                {lang === 'zh' ? '订阅简报' : 'Newsletter signup'}
+              </button>
+              <LocalizedLink
+                href="/flash"
+                className="border border-white/25 px-4 py-2 yn-action text-white/85 transition-colors hover:border-white/60 hover:text-white"
+              >
+                {lang === 'zh' ? '7×24 快讯 →' : 'Live wire →'}
+              </LocalizedLink>
+            </div>
           </div>
 
-          <div className="relative min-h-[340px] overflow-hidden border border-white/10 bg-[#08241d] shadow-[0_20px_40px_rgba(0,0,0,0.18)]">
+          <div className="relative min-h-[340px] overflow-hidden border border-white/10 bg-[#08241d] shadow-[0_20px_40px_rgba(0,0,0,0.18)] lg:min-h-full">
             {coverSrc ? (
               <Image
                 src={coverSrc}
                 alt={featured?.title ?? title}
                 fill
-                sizes="(max-width: 1024px) 100vw, 42vw"
+                sizes="(max-width: 1024px) 100vw, 40vw"
                 className="object-cover"
                 priority
                 unoptimized={!coverOpt}
