@@ -206,7 +206,7 @@ export default async function CategoryPage({
                   </div>
 
                   {/* Secondary (2 items stacked) */}
-                  <div className="md:col-span-1 flex flex-col gap-6">
+                  <div className="md:col-span-1 flex flex-col gap-6 md:justify-between">
                     {secondary.map(item => {
                       const cover = getArticleCoverSrc(item.cover_image, undefined, item.source);
                       const opt = isRemoteImageOptimizable(cover);
