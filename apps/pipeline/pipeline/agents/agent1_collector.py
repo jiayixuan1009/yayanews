@@ -11,7 +11,7 @@ import feedparser
 
 from pipeline.config.settings import CATEGORIES, RSS_FEEDS, PIPELINE_COLLECT_WORKERS, ARTICLE_DEEP_RATIO
 from pipeline.utils.llm import chat
-from pipeline.utils.database import get_recent_titles, now_cn
+from pipeline.utils.database import get_recent_titles, get_recent_source_urls, normalize_source_url, now_cn
 from pipeline.utils.logger import get_logger, step_print
 
 log = get_logger("agent1")
@@ -99,17 +99,30 @@ def _topics_from_rss(category_slug: str) -> list[dict]:
     return topics
 
 
-def _collect_one_category(cat_slug: str, min_per_cat: int, existing_titles: frozenset) -> tuple[str, list[dict]]:
+def _collect_one_category(
+    cat_slug: str,
+    min_per_cat: int,
+    existing_titles: frozenset,
+    existing_source_urls: frozenset = frozenset(),
+) -> tuple[str, list[dict]]:
     """单分类：RSS 优先，不足时再用 LLM 补缺口。"""
     rss_topics = _topics_from_rss(cat_slug)
     seen_local: set[str] = set()
+    seen_urls: set[str] = set()
     out: list[dict] = []
 
     for t in rss_topics:
         title = t["title"].strip()
+        # 信源 URL 去重：窗口内已生成过该原文则跳过，避免同一新闻被反复洗稿。
+        norm_url = normalize_source_url(t.get("source_url", ""))
+        if norm_url and (norm_url in existing_source_urls or norm_url in seen_urls):
+            log.info(f"Skip RSS topic (source_url already covered): {title[:50]} | {norm_url[:80]}")
+            continue
         if title in existing_titles or title in seen_local:
             continue
         seen_local.add(title)
+        if norm_url:
+            seen_urls.add(norm_url)
         out.append(t)
 
     need = max(0, min_per_cat - len(out))
@@ -132,13 +145,14 @@ def collect(batch_size: int = 10) -> list[dict]:
     step_print("Agent 1: 选题采集", f"目标数量: {batch_size}（分类并行）")
 
     existing_titles = frozenset(get_recent_titles(100))
+    existing_source_urls = frozenset(get_recent_source_urls())
     cats = list(CATEGORIES.keys())
     min_per_cat = max(1, batch_size // len(cats))
     workers = min(len(cats), max(1, PIPELINE_COLLECT_WORKERS))
 
     per_cat_topics: dict[str, list[dict]] = {slug: [] for slug in cats}
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        futs = [pool.submit(_collect_one_category, slug, min_per_cat, existing_titles) for slug in cats]
+        futs = [pool.submit(_collect_one_category, slug, min_per_cat, existing_titles, existing_source_urls) for slug in cats]
         for fut in as_completed(futs):
             try:
                 slug, topics = fut.result()

@@ -59,6 +59,26 @@ TITLE_DUPLICATE_PREFIX_LENGTH = _env_int("TITLE_DUPLICATE_PREFIX_LENGTH", 10)
 TITLE_DUPLICATE_SIMILARITY = _env_float("TITLE_DUPLICATE_SIMILARITY", 0.72)
 TITLE_NEAR_DUPLICATE_SIMILARITY = _env_float("TITLE_NEAR_DUPLICATE_SIMILARITY", 0.88)
 
+# 同一信源 URL 的去重窗口（天）：窗口内同 URL 的原创文章不再重复生成，
+# 避免同一条新闻被反复洗稿成多篇（参见 SEO 重复内容治理）。
+SOURCE_URL_DEDUPE_DAYS = _env_int("SOURCE_URL_DEDUPE_DAYS", 45)
+
+
+def normalize_source_url(url: str) -> str:
+    """信源 URL 归一化：去首尾空白、去 fragment/查询串、去尾部斜杠、小写 scheme+host。"""
+    raw = (url or "").strip()
+    if not raw:
+        return ""
+    try:
+        from urllib.parse import urlsplit, urlunsplit
+        parts = urlsplit(raw)
+        scheme = (parts.scheme or "").lower()
+        netloc = (parts.netloc or "").lower()
+        path = parts.path.rstrip("/")
+        return urlunsplit((scheme, netloc, path, "", "")).lower()
+    except Exception:
+        return raw.split("?")[0].split("#")[0].rstrip("/").lower()
+
 
 def normalize_title_key(title: str) -> str:
     text = (title or "").casefold().strip()
@@ -137,6 +157,7 @@ def insert_article(
     author_id: Optional[int] = None,
     is_indexable: bool = True,
     canonical_url: Optional[str] = None,
+    dedupe_source_url: bool = True,
 ) -> int:
     ts = now_cn()
     resolved_audit = audit_status or ("approved" if status == "published" else "pending")
@@ -154,6 +175,33 @@ def insert_article(
                     conn.rollback()
                     log.warning(f"Article title already exists: id={existing[0]}, title={normalized_title[:80]}")
                     return -1
+
+            # 信源 URL 去重兜底：窗口内同一原文不再重复生成新文章。
+            # 仅对“原创/源头篇”（parent_id 为空）按 (source_url, lang) 拦截，
+            # 不影响中英互译的同源兄弟篇（其 parent_id 非空）。
+            if dedupe_source_url and parent_id is None and SOURCE_URL_DEDUPE_DAYS > 0:
+                norm_url = normalize_source_url(source_url)
+                if norm_url:
+                    window_start = (datetime.now(TZ_CN) - timedelta(days=SOURCE_URL_DEDUPE_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
+                    cur.execute(
+                        """
+                        SELECT id FROM articles
+                        WHERE parent_id IS NULL
+                          AND lang = %s
+                          AND created_at >= %s
+                          AND regexp_replace(regexp_replace(lower(trim(source_url)), '[?#].*$', ''), '/+$', '') = %s
+                        LIMIT 1
+                        """,
+                        (lang, window_start, norm_url),
+                    )
+                    dup_url = cur.fetchone()
+                    if dup_url:
+                        conn.rollback()
+                        log.warning(
+                            f"Skip insert: source_url already covered within {SOURCE_URL_DEDUPE_DAYS}d "
+                            f"existing_id={dup_url[0]} lang={lang} url={norm_url[:90]}"
+                        )
+                        return -1
 
             slug = normalize_article_slug_for_storage(
                 slug=slug,
@@ -657,6 +705,28 @@ def get_recent_titles(limit: int = 50) -> list[str]:
             return [r["title"] for r in cur.fetchall()]
     except Exception:
         return []
+    finally:
+        get_pool().putconn(conn)
+
+def get_recent_source_urls(days: int = SOURCE_URL_DEDUPE_DAYS, limit: int = 8000) -> set[str]:
+    """返回最近 days 天内已使用过的信源 URL（归一化）集合，用于采集端去重。"""
+    if days <= 0:
+        return set()
+    conn = get_conn()
+    try:
+        window_start = (datetime.now(TZ_CN) - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT source_url FROM articles
+                   WHERE source_url IS NOT NULL AND source_url <> ''
+                     AND created_at >= %s
+                   ORDER BY created_at DESC LIMIT %s""",
+                (window_start, limit),
+            )
+            return {normalize_source_url(r[0]) for r in cur.fetchall() if r[0]}
+    except Exception as e:
+        log.warning(f"get_recent_source_urls failed: {e}")
+        return set()
     finally:
         get_pool().putconn(conn)
 
