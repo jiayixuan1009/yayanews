@@ -35,9 +35,9 @@ export default function ChannelHeader({
               <span className="border border-[#7fe193] bg-[#d5ff8d]/90 px-2 py-1 yn-action text-[#0e2a1f]">
                 {label}
               </span>
-              {quote && <p className="hidden font-display text-base tracking-tight text-white/75 md:block">“{quote}”</p>}
+              {quote && <p className="hidden font-display text-xl tracking-tight text-white/85 md:block md:text-2xl">“{quote}”</p>}
             </div>
-            <h1 className="yn-display mt-6 text-white [text-wrap:wrap]">
+            <h1 className="yn-display mt-6 text-white [text-wrap:wrap] text-[1.9rem] sm:text-[2.2rem] md:text-[2.4rem] lg:text-[2.6rem]">
               {title}
             </h1>
             <p className="mt-5 max-w-[60ch] font-body text-[1rem] leading-8 text-white/80 md:text-[1.05rem]">{description}</p>
