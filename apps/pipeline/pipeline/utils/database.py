@@ -129,6 +129,83 @@ def _unique_article_slug(cur, slug: str, exclude_article_id: Optional[int] = Non
         candidate = f"{base[:max_length - len(suffix)].rstrip('-')}{suffix}"
         counter += 1
 
+
+def _find_recent_source_url_article(
+    cur,
+    source_url: str,
+    lang: str = "zh",
+    exclude_article_id: Optional[int] = None,
+    days: int = SOURCE_URL_DEDUPE_DAYS,
+) -> Optional[dict]:
+    """查询窗口内是否已有同信源 URL、同语言的源头文章。"""
+    if days <= 0:
+        return None
+    norm_url = normalize_source_url(source_url)
+    if not norm_url:
+        return None
+
+    window_start = (datetime.now(TZ_CN) - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+    where = [
+        "parent_id IS NULL",
+        "lang = %s",
+        "created_at >= %s",
+        "regexp_replace(regexp_replace(lower(trim(source_url)), '[?#].*$', ''), '/+$', '') = %s",
+        "status = 'published'",
+        "deleted_at IS NULL",
+    ]
+    params: list[object] = [lang, window_start, norm_url]
+    if exclude_article_id is not None:
+        where.append("id <> %s")
+        params.append(exclude_article_id)
+
+    cur.execute(
+        f"""
+        SELECT id, title, slug, source_url
+        FROM articles
+        WHERE {' AND '.join(where)}
+        ORDER BY created_at ASC, id ASC
+        LIMIT 1
+        """,
+        params,
+    )
+    row = cur.fetchone()
+    if not row:
+        return None
+    if isinstance(row, Mapping):
+        return {
+            "id": row["id"],
+            "title": row["title"],
+            "slug": row["slug"],
+            "source_url": row["source_url"],
+            "normalized_source_url": norm_url,
+        }
+    return {
+        "id": row[0],
+        "title": row[1],
+        "slug": row[2],
+        "source_url": row[3],
+        "normalized_source_url": norm_url,
+    }
+
+
+def find_recent_source_url_article(
+    source_url: str,
+    lang: str = "zh",
+    exclude_article_id: Optional[int] = None,
+    days: int = SOURCE_URL_DEDUPE_DAYS,
+) -> Optional[dict]:
+    """发布前门禁：跨来源按 source_url + lang 检查近期重复。"""
+    conn = get_conn()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            return _find_recent_source_url_article(cur, source_url, lang, exclude_article_id, days)
+    except Exception as e:
+        log.warning(f"find_recent_source_url_article failed: {e}")
+        return None
+    finally:
+        get_pool().putconn(conn)
+
+
 def insert_article(
     title: str,
     slug: str,
@@ -180,28 +257,15 @@ def insert_article(
             # 仅对“原创/源头篇”（parent_id 为空）按 (source_url, lang) 拦截，
             # 不影响中英互译的同源兄弟篇（其 parent_id 非空）。
             if dedupe_source_url and parent_id is None and SOURCE_URL_DEDUPE_DAYS > 0:
-                norm_url = normalize_source_url(source_url)
-                if norm_url:
-                    window_start = (datetime.now(TZ_CN) - timedelta(days=SOURCE_URL_DEDUPE_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
-                    cur.execute(
-                        """
-                        SELECT id FROM articles
-                        WHERE parent_id IS NULL
-                          AND lang = %s
-                          AND created_at >= %s
-                          AND regexp_replace(regexp_replace(lower(trim(source_url)), '[?#].*$', ''), '/+$', '') = %s
-                        LIMIT 1
-                        """,
-                        (lang, window_start, norm_url),
+                dup_url = _find_recent_source_url_article(cur, source_url, lang=lang)
+                if dup_url:
+                    conn.rollback()
+                    log.warning(
+                        f"Skip insert: source_url already covered within {SOURCE_URL_DEDUPE_DAYS}d "
+                        f"existing_id={dup_url['id']} lang={lang} "
+                        f"url={dup_url['normalized_source_url'][:90]}"
                     )
-                    dup_url = cur.fetchone()
-                    if dup_url:
-                        conn.rollback()
-                        log.warning(
-                            f"Skip insert: source_url already covered within {SOURCE_URL_DEDUPE_DAYS}d "
-                            f"existing_id={dup_url[0]} lang={lang} url={norm_url[:90]}"
-                        )
-                        return -1
+                    return -1
 
             slug = normalize_article_slug_for_storage(
                 slug=slug,

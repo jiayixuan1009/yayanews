@@ -5,7 +5,14 @@ Agent 5: 入库发布
 - 入库后主动 Ping 谷歌 sitemap 以加速收录
 """
 import requests
-from pipeline.utils.database import insert_article, insert_tags, get_conn, get_pool, find_similar_article_title
+from pipeline.utils.database import (
+    insert_article,
+    insert_tags,
+    get_conn,
+    get_pool,
+    find_similar_article_title,
+    find_recent_source_url_article,
+)
 from pipeline.utils.logger import get_logger, step_print
 from pipeline.config.settings import SITE_URL, CATEGORIES
 from pipeline.cover_image import resolve_cover_for_article
@@ -139,6 +146,26 @@ def publish(articles: list[dict]) -> list[dict]:
         key_points = article.get("key_points", [])
         source = article.get("source", "")
         source_url = article.get("source_url", "")
+        lang = article.get("lang", "zh") or "zh"
+
+        if not slug or not content:
+            log.warning(f"Skip [{title}]: missing slug or content")
+            continue
+
+        draft_id = article.get("draft_id")
+        if not article.get("parent_id"):
+            duplicate_url = find_recent_source_url_article(
+                source_url,
+                lang=lang,
+                exclude_article_id=draft_id if draft_id and draft_id > 0 else None,
+            )
+            if duplicate_url:
+                log.warning(
+                    f"Skip [{title}]: duplicate source_url before publish "
+                    f"existing_id={duplicate_url.get('id')} existing_title={duplicate_url.get('title')}"
+                )
+                print(f"  [{i}] SKIPPED DUPLICATE SOURCE_URL: {title}")
+                continue
 
         source_label = _resolve_source_label(source, source_url, article)
         source_type = _resolve_source_type(source, source_label, article)
@@ -157,12 +184,6 @@ def publish(articles: list[dict]) -> list[dict]:
             is_original=source == "ai_generated"
         )
         cover_image = cover_res.url or ""
-
-        if not slug or not content:
-            log.warning(f"Skip [{title}]: missing slug or content")
-            continue
-
-        draft_id = article.get("draft_id")
         duplicate = find_similar_article_title(
             article.get("title", ""),
             exclude_article_id=draft_id if draft_id and draft_id > 0 else None,
