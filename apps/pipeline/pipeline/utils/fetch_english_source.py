@@ -21,6 +21,18 @@ _UA = (
 )
 _SKIP_TAGS = frozenset({"script", "style", "nav", "footer", "header", "aside", "noscript", "iframe", "form"})
 
+# Telegram 频道帖（t.me / telegram.me）没有"逐帖标题"：og:title 永远是频道名
+# （例如 "方程式新闻 BWEnews"），正文又常是中英混排，没有可抓取的"英文原文标题"。
+# 这类来源直接跳过 API 英文抽取，回退到 Agent 6 的 LLM 直译，由中文母稿生成唯一英文标题。
+_TELEGRAM_HOSTS = frozenset({"t.me", "telegram.me", "telegram.org"})
+
+
+def _is_telegram_host(host: str | None) -> bool:
+    h = (host or "").lower().lstrip(".")
+    if not h:
+        return False
+    return h in _TELEGRAM_HOSTS or h.endswith(".t.me") or h.endswith(".telegram.me")
+
 
 def _latin_letters(s: str) -> int:
     return len(re.findall(r"[a-zA-Z]", s or ""))
@@ -39,6 +51,29 @@ def is_probably_english(text: str, min_latin: int = 120) -> bool:
     if latin < min_latin:
         return False
     if cjk > max(30, latin * 0.35):
+        return False
+    return True
+
+
+def _is_acceptable_english_title(title: str, site_name: str | None = None) -> bool:
+    """通用守卫：抽取到的"英文标题"必须像一条真实英文标题，而不是来源/频道/站点名。
+
+    拦截的退化情形（任一即判失败 → 调用方应返回 None 回退 LLM 直译）：
+      - 标题为空或过短（< 12 字符）；
+      - 标题等于站点名 / og:site_name（频道名当标题）；
+      - 标题含较多 CJK（与"英文原文"语言不符，如 "方程式新闻 BWEnews"）；
+      - 标题里的英文词太少（裸频道名 / 站点名，如 "BWEnews"）。
+    """
+    t = (title or "").strip()
+    if len(t) < 12:
+        return False
+    sn = (site_name or "").strip()
+    if sn and t.casefold() == sn.casefold():
+        return False
+    if _cjk_chars(t) >= 4:
+        return False
+    words = [w for w in re.findall(r"[A-Za-z][A-Za-z'\-]+", t) if len(w) >= 2]
+    if len(words) < 3:
         return False
     return True
 
@@ -159,6 +194,10 @@ def fetch_english_from_source_url(url: str | None, min_body_chars: int = 400) ->
         parsed = urlparse(url)
         if parsed.hostname in {"localhost", "127.0.0.1"}:
             return None
+        # Telegram 频道帖没有逐帖英文标题（og:title=频道名）：直接跳过，回退 LLM 直译。
+        if _is_telegram_host(parsed.hostname):
+            log.debug(f"[en-fetch] skip telegram source (no per-post title): {url}")
+            return None
     except Exception:
         return None
 
@@ -173,7 +212,13 @@ def fetch_english_from_source_url(url: str | None, min_body_chars: int = 400) ->
     body_sample = re.sub(r"<[^>]+>", " ", blob["content_html"])[:8000]
     if not is_probably_english(body_sample):
         return None
-    if not blob["title"]:
+    # 通用守卫：抽取到的标题不能是来源/频道/站点名，必须像真实英文标题。
+    site_name = _meta_content(html, "og:site_name")
+    if not _is_acceptable_english_title(blob["title"], site_name):
+        log.debug(
+            f"[en-fetch] reject low-quality extracted title: {blob['title']!r} "
+            f"(site={site_name!r}) url={final_url}"
+        )
         return None
     if not blob["summary"]:
         blob["summary"] = (body_sample[:240] + "…") if len(body_sample) > 240 else body_sample
