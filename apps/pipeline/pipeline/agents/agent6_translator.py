@@ -41,7 +41,9 @@ def _get_translation_candidates(limit: int = 5, min_views: int = 0) -> list[dict
                 WHERE lang = 'zh'
                   AND article_type != 'flash'
                   AND status = 'published'
-                                    AND view_count >= %s
+                  AND deleted_at IS NULL
+                  AND is_indexable = TRUE
+                  AND view_count >= %s
                   AND id NOT IN (
                       SELECT parent_id FROM articles
                       WHERE lang = 'en' AND parent_id IS NOT NULL
