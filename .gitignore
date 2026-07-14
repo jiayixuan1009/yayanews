@@ -3,6 +3,7 @@ node_modules/
 
 # ── Next.js 构建产物 ──
 .next/
+.next-validation/
 out/
 dist/
 backups/

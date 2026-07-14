@@ -7,6 +7,14 @@ on:
       - 'apps/admin/**'
       - 'apps/ws-server/**'
       - 'packages/**'
+      - 'infra/nginx/**'
+      - 'infra/deploy/nginx-yayanews.conf'
+      - 'infra/scripts/install-yayanews-nginx.sh'
+      - 'scripts/build-next-app.mjs'
+      - 'scripts/verify/analyze-nginx-traffic.mjs'
+      - 'scripts/verify/article-metadata-title.mjs'
+      - 'scripts/verify/cloudflare-real-ip-config.mjs'
+      - 'scripts/verify/news-sitemap-policy.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'infra/scripts/copy-standalone.mjs'
@@ -17,6 +25,14 @@ on:
       - 'apps/admin/**'
       - 'apps/ws-server/**'
       - 'packages/**'
+      - 'infra/nginx/**'
+      - 'infra/deploy/nginx-yayanews.conf'
+      - 'infra/scripts/install-yayanews-nginx.sh'
+      - 'scripts/build-next-app.mjs'
+      - 'scripts/verify/analyze-nginx-traffic.mjs'
+      - 'scripts/verify/article-metadata-title.mjs'
+      - 'scripts/verify/cloudflare-real-ip-config.mjs'
+      - 'scripts/verify/news-sitemap-policy.mjs'
       - 'package.json'
       - 'package-lock.json'
 
@@ -64,6 +80,18 @@ jobs:
 
       - name: Lint workspaces
         run: npm run lint
+
+      - name: Verify News sitemap selection policy
+        run: npm run verify:news-sitemap-policy
+
+      - name: Verify article metadata-title policy
+        run: npm run verify:article-metadata-title
+
+      - name: Verify Cloudflare real-IP configuration
+        run: npm run verify:cloudflare-real-ip
+
+      - name: Check Nginx installer shell syntax
+        run: bash -n infra/scripts/install-yayanews-nginx.sh
 
       - name: Build workspaces
         run: npm run build

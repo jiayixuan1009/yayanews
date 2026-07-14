@@ -116,9 +116,9 @@ const REDIRECT_CHECKS = [
 
 const DEFAULT_OG_PATH = '/brand/og-default.png';
 const JSON_LD_SELECTOR = /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
-const NEWS_SITEMAP_MAX_ITEMS = 100;
-const NEWS_SITEMAP_MAX_ITEMS_PER_TOPIC = 24;
-const NEWS_SITEMAP_MAX_ITEMS_PER_TITLE_PREFIX = 3;
+const NEWS_SITEMAP_MAX_ITEMS = 48;
+const NEWS_SITEMAP_MAX_ITEMS_PER_TOPIC = 10;
+const NEWS_SITEMAP_MAX_ITEMS_PER_TITLE_PREFIX = 2;
 const ASCII_SITEMAP_PATH_RE = /^\/[A-Za-z0-9._~!$&'()*+,;=:@/%-]*$/;
 
 function usage() {
