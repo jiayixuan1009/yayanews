@@ -47,6 +47,9 @@ jobs:
             git fetch --all --tags
             git checkout --detach "${{ github.ref_name }}"
 
+            echo "Installing and validating Nginx configuration..."
+            sudo -n bash infra/scripts/install-yayanews-nginx.sh
+
             echo "Running deploy script..."
             bash deploy/publish-yayanews.sh
 

@@ -1056,7 +1056,7 @@ export async function getRecentArticlesForSitemap(
  */
 export async function getNewsArticlesForNewsSitemap(): Promise<Article[]> {
   const sql = `
-    SELECT a.*, c.name as category_name,
+    SELECT a.*, c.name as category_name, c.slug as category_slug,
       ${ARTICLE_AUTHOR_FIELDS}
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id

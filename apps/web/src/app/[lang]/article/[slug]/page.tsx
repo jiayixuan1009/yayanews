@@ -25,6 +25,7 @@ import { siteConfig, type Article } from '@yayanews/types';
 import { sanitizeHtml } from '@/lib/sanitize';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
 import { articleHasRealCover, getArticleCoverSrc } from '@/lib/article-image';
+import { articleMetadataTitle } from '@/lib/article-metadata-title';
 
 import { buildAuthorSlug, createMetadata, buildNewsArticleJsonLd, buildBreadcrumbJsonLd } from '@yayanews/seo';
 
@@ -34,18 +35,6 @@ async function optional<T>(promise: Promise<T>, fallback: T): Promise<T> {
   } catch {
     return fallback;
   }
-}
-
-function truncateMetadataTitle(title: string, lang: string): string {
-  const maxLength = lang === 'en' ? 95 : 60;
-  const chars = Array.from(title);
-  if (chars.length <= maxLength) return title;
-
-  const sliced = chars.slice(0, maxLength - 1).join('');
-  const trimmed = lang === 'en'
-    ? sliced.replace(/\s+\S*$/, '').trim()
-    : sliced.trim();
-  return `${trimmed || sliced.trim()}…`;
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; lang: string }> }): Promise<Metadata> {
@@ -81,7 +70,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   return createMetadata({
-    title: truncateMetadataTitle(article.title, lang),
+    title: articleMetadataTitle(article.title, lang),
     description: descFallback,
     url: `/article/${slug}`,
     type: 'article',

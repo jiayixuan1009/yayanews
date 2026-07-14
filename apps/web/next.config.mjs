@@ -102,6 +102,9 @@ const contentSecurityPolicy = [
   "form-action 'self'",
 ].join('; ');
 
+const standaloneOutput = process.env.NEXT_OUTPUT_STANDALONE !== '0';
+const distDir = process.env.NEXT_DIST_DIR?.trim();
+
 const htmlCacheHeaders = {
   live: 'public, max-age=30, s-maxage=30, stale-while-revalidate=120',
   realtime: 'public, max-age=60, s-maxage=60, stale-while-revalidate=300',
@@ -112,7 +115,8 @@ const htmlCacheHeaders = {
 };
 
 const nextConfig = {
-  output: 'standalone',
+  ...(standaloneOutput ? { output: 'standalone' } : {}),
+  ...(distDir ? { distDir } : {}),
   compress: true,
   poweredByHeader: false,
 
