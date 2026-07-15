@@ -25,6 +25,7 @@ from pipeline.config.settings import (
     FLASH_NORMALIZE_BATCH, FLASH_LLM_CANDIDATE_MULTIPLIER, FLASH_OUTPUT_LANGS,
     FLASH_LLM_CLEAN_SAME_LANG,
     ENABLE_FLASH_EMBEDDING,
+    NEWS_SOURCE_TIMEOUT,
 )
 from pipeline.utils.ws_flash_buffer import drain_ws_buffer
 from pipeline.utils.database import insert_flash, now_cn, check_semantic_duplicate, get_pool
@@ -35,6 +36,17 @@ from pipeline.utils.logger import get_logger, step_print
 log = get_logger("flash")
 
 _channel_health: dict[str, dict] = {}
+
+_FEED_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; YayaNewsFeedFetcher/1.0; +https://yayanews.cryptooptiontool.com)",
+    "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8",
+}
+
+
+def _parse_feed_url(url: str, timeout=NEWS_SOURCE_TIMEOUT):
+    resp = requests.get(url, timeout=timeout, headers=_FEED_HEADERS)
+    resp.raise_for_status()
+    return feedparser.parse(resp.content)
 
 
 def _health(name: str) -> dict:
@@ -385,7 +397,7 @@ def _fetch_cn_sina() -> list[dict]:
                 "page": 1,
                 "encode": "utf-8",
             },
-            timeout=ch.get("timeout", 15),
+            timeout=ch.get("timeout", NEWS_SOURCE_TIMEOUT),
         )
         resp.raise_for_status()
         body = resp.json()
@@ -427,7 +439,7 @@ def _fetch_cn_rss() -> list[dict]:
     items = []
     for feed_cfg in feeds:
         try:
-            d = feedparser.parse(feed_cfg["url"])
+            d = _parse_feed_url(feed_cfg["url"], ch.get("timeout", NEWS_SOURCE_TIMEOUT))
             cat_slug = feed_cfg.get("category", "us-stock")
             entries = getattr(d, "entries", None) or []
             for entry in entries[:per]:
@@ -476,7 +488,7 @@ def _fetch_scmp_hkex() -> list[dict]:
 
     for feed_cfg in feeds:
         try:
-            d = feedparser.parse(feed_cfg["url"])
+            d = _parse_feed_url(feed_cfg["url"], ch.get("timeout", NEWS_SOURCE_TIMEOUT))
             tag = feed_cfg.get("tag", "SCMP")
             lang = feed_cfg.get("lang", "en")
             is_hkex = tag.startswith("HKEX")
@@ -538,7 +550,7 @@ def _fetch_bwenews() -> list[dict]:
     rss_url = ch.get("rss_url", "https://rss-public.bwe-ws.com")
     items = []
     try:
-        d = feedparser.parse(rss_url)
+        d = _parse_feed_url(rss_url, ch.get("timeout", NEWS_SOURCE_TIMEOUT))
         entries = getattr(d, "entries", None) or []
 
         for entry in entries[:ch.get("max_items", 10)]:
@@ -599,7 +611,7 @@ def _fetch_rss() -> list[dict]:
     items = []
     for feed_cfg in RSS_FEEDS:
         try:
-            d = feedparser.parse(feed_cfg["url"])
+            d = _parse_feed_url(feed_cfg["url"], ch.get("timeout", NEWS_SOURCE_TIMEOUT))
             cat_slug = feed_cfg.get("category", "crypto")
             lang = feed_cfg.get("lang", "zh")
 
@@ -638,7 +650,7 @@ def _fetch_newsapi() -> list[dict]:
             resp = requests.get(
                 ch["api_url"],
                 params={"category": category, "apiKey": ch["api_key"], "language": "en", "pageSize": ch.get("max_items", 15)},
-                timeout=ch.get("timeout", 12),
+                timeout=ch.get("timeout", NEWS_SOURCE_TIMEOUT),
             )
             resp.raise_for_status()
             data = resp.json()
@@ -675,7 +687,7 @@ def _fetch_polygon() -> list[dict]:
         resp = requests.get(
             ch["api_url"],
             params={"apiKey": ch["api_key"], "limit": ch.get("max_items", 15)},
-            timeout=ch.get("timeout", 12),
+            timeout=ch.get("timeout", NEWS_SOURCE_TIMEOUT),
         )
         resp.raise_for_status()
         for n in resp.json().get("results", []):
@@ -712,7 +724,7 @@ def _fetch_alphavantage() -> list[dict]:
         resp = requests.get(
             ch["api_url"],
             params={"function": "NEWS_SENTIMENT", "topics": topics, "apikey": ch["api_key"], "limit": ch.get("max_items", 15)},
-            timeout=ch.get("timeout", 15),
+            timeout=ch.get("timeout", NEWS_SOURCE_TIMEOUT),
         )
         resp.raise_for_status()
         for n in resp.json().get("feed", [])[:ch.get("max_items", 15)]:

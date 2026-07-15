@@ -8,19 +8,27 @@ import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import feedparser
+import requests
 
-from pipeline.config.settings import CATEGORIES, RSS_FEEDS, PIPELINE_COLLECT_WORKERS, ARTICLE_DEEP_RATIO
+from pipeline.config.settings import CATEGORIES, RSS_FEEDS, PIPELINE_COLLECT_WORKERS, ARTICLE_DEEP_RATIO, NEWS_SOURCE_TIMEOUT
 from pipeline.utils.llm import chat
 from pipeline.utils.database import get_recent_titles, get_recent_source_urls, normalize_source_url, now_cn
 from pipeline.utils.logger import get_logger, step_print
 
 log = get_logger("agent1")
 
+_RSS_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; YayaNewsAgent1/1.0; +https://yayanews.cryptooptiontool.com)",
+    "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8",
+}
+
 
 def _fetch_rss(feed_url: str, limit: int = 5) -> list[dict]:
     """从 RSS 源获取最新条目。"""
     try:
-        d = feedparser.parse(feed_url)
+        resp = requests.get(feed_url, timeout=NEWS_SOURCE_TIMEOUT, headers=_RSS_HEADERS)
+        resp.raise_for_status()
+        d = feedparser.parse(resp.content)
         items = []
         for entry in d.entries[:limit]:
             items.append({
