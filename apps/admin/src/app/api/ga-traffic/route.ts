@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import fs from 'node:fs';
 import { BetaAnalyticsDataClient } from '@google-analytics/data';
+import { OAuth2Client } from 'google-auth-library';
 import { requireAuth } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
@@ -8,6 +10,40 @@ export const runtime = 'nodejs';
 function normalizePropertyId(id: string): string {
   const t = id.trim();
   return t.startsWith('properties/') ? t : `properties/${t}`;
+}
+
+type OAuthTokenFile = {
+  client_id?: string;
+  client_secret?: string;
+  refresh_token?: string;
+  token?: string;
+  access_token?: string;
+};
+
+function buildOAuthClient(): BetaAnalyticsDataClient | null {
+  const raw = process.env.GA4_OAUTH_TOKEN_JSON;
+  const filePath = process.env.GA4_OAUTH_TOKEN_FILE?.trim();
+  if (!raw && !filePath) return null;
+
+  try {
+    const token = JSON.parse(raw || fs.readFileSync(filePath as string, 'utf8')) as OAuthTokenFile;
+    if (!token.client_id || !token.client_secret) return null;
+
+    const authClient = new OAuth2Client({
+      clientId: token.client_id,
+      clientSecret: token.client_secret,
+    });
+    if (token.refresh_token) {
+      authClient.setCredentials({ refresh_token: token.refresh_token });
+    } else if (token.access_token || token.token) {
+      authClient.setCredentials({ access_token: token.access_token || token.token });
+    } else {
+      return null;
+    }
+    return new BetaAnalyticsDataClient({ authClient });
+  } catch {
+    return null;
+  }
 }
 
 function buildClient(): BetaAnalyticsDataClient | null {
@@ -28,6 +64,8 @@ function buildClient(): BetaAnalyticsDataClient | null {
       return null;
     }
   }
+  const oauthClient = buildOAuthClient();
+  if (oauthClient) return oauthClient;
   try {
     return new BetaAnalyticsDataClient();
   } catch {

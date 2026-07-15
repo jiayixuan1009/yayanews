@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import * as db from '@yayanews/database';
 import type { Article, FlashNews, Category } from '@yayanews/types';
 
@@ -22,6 +23,83 @@ export interface DashboardStats {
   recentArticles: Article[];
   dailyTrend: { date: string; articles: number; flash: number }[];
   processingStats: ProcessingStats;
+}
+
+export interface LoopSummaryItem {
+  opportunity_type: string;
+  status: string;
+  count: number;
+  max_priority: number | null;
+  last_seen_at: string | null;
+}
+
+export interface LoopOpportunityItem {
+  id: number;
+  opportunity_type: string;
+  status: string;
+  priority: number;
+  score: number;
+  entity_kind: string;
+  entity_value: string;
+  lang: string | null;
+  title: string;
+  reason: string;
+  metrics: Record<string, unknown>;
+  recommended_action: string;
+  url: string | null;
+  updated_at: string;
+  last_seen_at: string;
+}
+
+export interface LoopActionItem {
+  id: number;
+  action_type: string;
+  status: string;
+  risk_level: string;
+  target_kind: string;
+  target_id: number | null;
+  target_value: string | null;
+  target_url: string | null;
+  payload: Record<string, unknown>;
+  result: Record<string, unknown>;
+  updated_at: string;
+  opportunity_type: string | null;
+  priority: number | null;
+}
+
+export interface LoopRunItem {
+  id: number;
+  run_type: string;
+  mode: string;
+  status: string;
+  started_at: string;
+  finished_at: string | null;
+  stats: Record<string, unknown>;
+  notes: string;
+}
+
+export interface LoopDashboard {
+  summaries: LoopSummaryItem[];
+  opportunities: LoopOpportunityItem[];
+  actions: LoopActionItem[];
+  runs: LoopRunItem[];
+}
+
+export interface LoopExecuteResult {
+  inspectedActions: number;
+  updatedActions: number;
+  results: {
+    id: number;
+    action_type: string;
+    target_value: string | null;
+    status: string;
+    message: string;
+  }[];
+}
+
+export interface LoopMutationResult {
+  updated: number;
+  message: string;
 }
 
 function buildDashboardFilter(
@@ -722,5 +800,359 @@ export async function getBenchmarks(limit = 50, offset = 0): Promise<BenchmarkSu
     avgDiffSeconds: avgRow?.avg !== null && avgRow?.avg !== undefined ? Math.round(avgRow.avg) : null,
     medianDiffSeconds: medianDiffSeconds !== null ? Math.round(medianDiffSeconds) : null,
     records,
+  };
+}
+
+export async function getLoopDashboard(limit = 30): Promise<LoopDashboard> {
+  const safeLimit = Math.max(1, Math.min(100, Math.floor(limit || 30)));
+
+  const summaries = await db.queryAll<LoopSummaryItem>(
+    `
+    SELECT
+      opportunity_type,
+      status,
+      COUNT(*)::int AS count,
+      MAX(priority)::int AS max_priority,
+      MAX(last_seen_at)::text AS last_seen_at
+    FROM content_opportunities
+    GROUP BY opportunity_type, status
+    ORDER BY max_priority DESC NULLS LAST, count DESC, opportunity_type
+    `
+  );
+
+  const opportunities = await db.queryAll<LoopOpportunityItem>(
+    `
+    SELECT
+      id,
+      opportunity_type,
+      status,
+      priority,
+      score::float AS score,
+      entity_kind,
+      entity_value,
+      lang,
+      title,
+      reason,
+      metrics,
+      recommended_action,
+      url,
+      updated_at::text,
+      last_seen_at::text
+    FROM content_opportunities
+    WHERE status = 'open'
+    ORDER BY priority DESC, score DESC, last_seen_at DESC
+    LIMIT $1
+    `,
+    [safeLimit]
+  );
+
+  const actions = await db.queryAll<LoopActionItem>(
+    `
+    SELECT
+      a.id,
+      a.action_type,
+      a.status,
+      a.risk_level,
+      a.target_kind,
+      a.target_id,
+      a.target_value,
+      a.target_url,
+      a.payload,
+      a.result,
+      a.updated_at::text,
+      o.opportunity_type,
+      o.priority
+    FROM loop_actions a
+    LEFT JOIN content_opportunities o ON o.id = a.opportunity_id
+    ORDER BY a.updated_at DESC, a.created_at DESC
+    LIMIT $1
+    `,
+    [safeLimit]
+  );
+
+  const runs = await db.queryAll<LoopRunItem>(
+    `
+    SELECT
+      id,
+      run_type,
+      mode,
+      status,
+      started_at::text,
+      finished_at::text,
+      stats,
+      notes
+    FROM loop_runs
+    ORDER BY started_at DESC
+    LIMIT $1
+    `,
+    [safeLimit]
+  );
+
+  return { summaries, opportunities, actions, runs };
+}
+
+const SAFE_LOOP_ACTIONS = [
+  'translate_en_priority',
+  'meta_rewrite_draft',
+  'internal_link_draft',
+  'topic_brief_draft',
+  'feedback_review_draft',
+];
+
+function buildLoopActionResult(action: LoopActionItem & { score?: number | null }): {
+  status: string;
+  message: string;
+  result: Record<string, unknown>;
+} {
+  const payload = action.payload || {};
+  const metrics = (payload.metrics || {}) as Record<string, unknown>;
+
+  if (action.action_type === 'translate_en_priority') {
+    return {
+      status: 'queued',
+      message: 'Marked as an Agent 6 English localization priority.',
+      result: {
+        target_article_id: action.target_id,
+        priority: action.priority,
+        score: action.score ?? 0,
+        metrics,
+      },
+    };
+  }
+
+  if (action.action_type === 'meta_rewrite_draft') {
+    return {
+      status: 'executed',
+      message: 'Created a CTR rewrite brief. Published metadata was not changed.',
+      result: {
+        brief: [
+          'Rewrite title/meta description around the highest-intent matching queries.',
+          'Preserve canonical, language alternates, indexability, and factual claims.',
+          'Check source attribution and visible trust fields before publishing any text change.',
+        ],
+        metrics,
+        target_url: action.target_url,
+      },
+    };
+  }
+
+  if (action.action_type === 'internal_link_draft') {
+    return {
+      status: 'executed',
+      message: 'Created an internal-link boost brief. Page content was not changed.',
+      result: {
+        brief: [
+          'Find 3-5 stronger related articles/topics and add contextual links to this target.',
+          'Prefer relevant in-body links over broad footer/sidebar links.',
+          'Re-run SEO and redirect checks after code/content changes.',
+        ],
+        metrics,
+        target_url: action.target_url,
+      },
+    };
+  }
+
+  if (action.action_type === 'topic_brief_draft') {
+    return {
+      status: 'executed',
+      message: 'Created a query-led content brief for the topic pipeline.',
+      result: {
+        brief: [
+          `Search query or demand signal: ${action.target_value || '-'}`,
+          'Create or refresh a focused article that directly answers the query intent.',
+          'Use current source material and preserve financial-risk disclosure.',
+        ],
+        metrics,
+      },
+    };
+  }
+
+  if (action.action_type === 'feedback_review_draft') {
+    return {
+      status: 'executed',
+      message: 'Created a feedback-signal review brief. Published content and crawl rules were not changed.',
+      result: {
+        brief: [
+          `Feedback signal: ${action.target_value || action.target_url || '-'}`,
+          'Review status code, canonical, robots/noindex, sitemap inclusion, and internal link source before changing anything.',
+          'Use 410, redirect, noindex, or content update only after confirming the entity-specific cause.',
+        ],
+        metrics,
+        target_url: action.target_url,
+      },
+    };
+  }
+
+  return {
+    status: 'failed',
+    message: `Unsupported action type: ${action.action_type}`,
+    result: {},
+  };
+}
+
+export async function executeLoopActions(limit = 20): Promise<LoopExecuteResult> {
+  const safeLimit = Math.max(1, Math.min(100, Math.floor(limit || 20)));
+  const [{ id: runId }] = await db.queryAll<{ id: number }>(
+    `
+    INSERT INTO loop_runs(run_key, run_type, mode, status, notes)
+    VALUES ($1, 'execute_actions', 'apply', 'running', 'admin-api')
+    RETURNING id
+    `,
+    [`admin-execute-actions-${Date.now()}-${randomUUID()}`]
+  );
+
+  const actions = await db.queryAll<LoopActionItem & { score: number | null }>(
+    `
+    SELECT
+      a.id,
+      a.action_type,
+      a.status,
+      a.risk_level,
+      a.target_kind,
+      a.target_id,
+      a.target_value,
+      a.target_url,
+      a.payload,
+      a.result,
+      a.updated_at::text,
+      o.opportunity_type,
+      o.priority,
+      o.score::float AS score
+    FROM loop_actions a
+    JOIN content_opportunities o ON o.id = a.opportunity_id
+    WHERE a.status = 'proposed'
+      AND a.risk_level = 'low'
+      AND a.action_type = ANY($1::text[])
+    ORDER BY o.priority DESC, o.score DESC, a.created_at ASC
+    LIMIT $2
+    `,
+    [SAFE_LOOP_ACTIONS, safeLimit]
+  );
+
+  const results: LoopExecuteResult['results'] = [];
+  try {
+    for (const action of actions) {
+      const built = buildLoopActionResult(action);
+      await db.queryRun(
+        `
+        UPDATE loop_actions
+        SET status = $2,
+            result = $3::jsonb,
+            updated_at = CURRENT_TIMESTAMP,
+            queued_at = CASE WHEN $2 = 'queued' THEN COALESCE(queued_at, CURRENT_TIMESTAMP) ELSE queued_at END,
+            executed_at = CASE WHEN $2 IN ('executed', 'failed') THEN COALESCE(executed_at, CURRENT_TIMESTAMP) ELSE executed_at END
+        WHERE id = $1
+        `,
+        [action.id, built.status, JSON.stringify(built.result)]
+      );
+      await db.queryRun(
+        `
+        INSERT INTO loop_action_results(action_id, status, message, evidence)
+        VALUES ($1, $2, $3, $4::jsonb)
+        `,
+        [action.id, built.status, built.message, JSON.stringify(built.result)]
+      );
+      results.push({
+        id: action.id,
+        action_type: action.action_type,
+        target_value: action.target_value,
+        status: built.status,
+        message: built.message,
+      });
+    }
+
+    await db.queryRun(
+      `
+      UPDATE loop_runs
+      SET status = 'completed',
+          finished_at = CURRENT_TIMESTAMP,
+          stats = $2::jsonb
+      WHERE id = $1
+      `,
+      [
+        runId,
+        JSON.stringify({
+          inspectedActions: actions.length,
+          updatedActions: results.length,
+          source: 'admin-api',
+        }),
+      ]
+    );
+  } catch (error) {
+    await db.queryRun(
+      `
+      UPDATE loop_runs
+      SET status = 'failed',
+          finished_at = CURRENT_TIMESTAMP,
+          stats = $2::jsonb
+      WHERE id = $1
+      `,
+      [runId, JSON.stringify({ error: error instanceof Error ? error.message : String(error) })]
+    );
+    throw error;
+  }
+
+  return {
+    inspectedActions: actions.length,
+    updatedActions: results.length,
+    results,
+  };
+}
+
+export async function updateLoopActionStatus(
+  id: number,
+  status: 'dismissed' | 'proposed'
+): Promise<LoopMutationResult> {
+  const updated = await db.queryRun(
+    `
+    UPDATE loop_actions
+    SET status = $2,
+        updated_at = CURRENT_TIMESTAMP,
+        result = CASE
+          WHEN $2 = 'dismissed' THEN jsonb_set(COALESCE(result, '{}'::jsonb), '{dismissed_by}', '"admin-api"', true)
+          ELSE COALESCE(result, '{}'::jsonb) - 'dismissed_by'
+        END
+    WHERE id = $1
+      AND status IN ('proposed', 'dismissed')
+    `,
+    [id, status]
+  );
+  if (updated > 0) {
+    await db.queryRun(
+      `
+      INSERT INTO loop_action_results(action_id, status, message, evidence)
+      VALUES ($1, $2, $3, $4::jsonb)
+      `,
+      [
+        id,
+        status,
+        status === 'dismissed' ? 'Dismissed from admin.' : 'Reopened from admin.',
+        JSON.stringify({ source: 'admin-api' }),
+      ]
+    );
+  }
+  return {
+    updated,
+    message: updated > 0 ? `Action ${status}.` : 'No eligible action updated.',
+  };
+}
+
+export async function updateLoopOpportunityStatus(
+  id: number,
+  status: 'dismissed' | 'open'
+): Promise<LoopMutationResult> {
+  const updated = await db.queryRun(
+    `
+    UPDATE content_opportunities
+    SET status = $2,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1
+      AND status IN ('open', 'dismissed')
+    `,
+    [id, status]
+  );
+  return {
+    updated,
+    message: updated > 0 ? `Opportunity ${status}.` : 'No eligible opportunity updated.',
   };
 }
