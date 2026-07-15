@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 
 import requests
 
+from pipeline.config.settings import NEWS_SOURCE_TIMEOUT
 from pipeline.utils.logger import get_logger
 
 log = get_logger("fetch_en")
@@ -139,7 +140,7 @@ def _esc_html(s: str) -> str:
     )
 
 
-def _fetch_html(url: str, timeout: float = 18.0) -> tuple[str | None, str]:
+def _fetch_html(url: str, timeout=NEWS_SOURCE_TIMEOUT) -> tuple[str | None, str]:
     try:
         r = requests.get(
             url,
@@ -288,7 +289,7 @@ def fetch_english_from_newsapi(tickers: str | None, api_key: str | None, min_bod
                 "pageSize": 8,
                 "apiKey": api_key.strip(),
             },
-            timeout=14,
+            timeout=NEWS_SOURCE_TIMEOUT,
             headers={"User-Agent": _UA},
         )
         resp.raise_for_status()
@@ -321,7 +322,7 @@ def fetch_english_from_polygon(tickers: str | None, api_key: str | None, min_bod
         resp = requests.get(
             "https://api.polygon.io/v2/reference/news",
             params={"apiKey": api_key.strip(), "limit": 40},
-            timeout=14,
+            timeout=NEWS_SOURCE_TIMEOUT,
             headers={"User-Agent": _UA},
         )
         resp.raise_for_status()

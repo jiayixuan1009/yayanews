@@ -23,7 +23,7 @@ import feedparser
 import requests
 from psycopg2.extras import RealDictCursor
 
-from pipeline.config.settings import SITE_URL
+from pipeline.config.settings import NEWS_SOURCE_TIMEOUT, SITE_URL
 from pipeline.utils.database import get_pool
 from pipeline.utils.logger import get_logger
 
@@ -32,7 +32,7 @@ TZ_CN = timezone(timedelta(hours=8))
 
 GOOGLE_NEWS_RSS = "https://news.google.com/rss/search"
 USER_AGENT = "Mozilla/5.0 (compatible; YayaNews-Benchmark/1.0)"
-REQUEST_TIMEOUT = 15
+REQUEST_TIMEOUT = NEWS_SOURCE_TIMEOUT
 SEARCH_DELAY = 2.0
 
 

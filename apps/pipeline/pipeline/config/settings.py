@@ -28,6 +28,18 @@ LLM_FALLBACK_MODEL = os.environ.get("LLM_FALLBACK_MODEL", "deepseek-chat")
 BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "10"))
 ARTICLE_MIX = {"standard": 0.7, "deep": 0.3}
 
+
+def _env_float(name: str, default: float) -> float:
+    raw = os.environ.get(name)
+    if raw is None or str(raw).strip() == "":
+        return default
+    return float(raw)
+
+
+NEWS_SOURCE_CONNECT_TIMEOUT_SECONDS = _env_float("NEWS_SOURCE_CONNECT_TIMEOUT_SECONDS", 30.0)
+NEWS_SOURCE_READ_TIMEOUT_SECONDS = _env_float("NEWS_SOURCE_READ_TIMEOUT_SECONDS", 35.0)
+NEWS_SOURCE_TIMEOUT = (NEWS_SOURCE_CONNECT_TIMEOUT_SECONDS, NEWS_SOURCE_READ_TIMEOUT_SECONDS)
+
 # ── 分类 ──
 CATEGORIES = {
     "us-stock": {"id": 1, "name": "美股", "keywords": ["美股", "纳斯达克", "标普500", "道琼斯", "NASDAQ", "S&P", "NYSE", "AAPL", "TSLA", "NVDA", "Wall Street"]},
@@ -91,8 +103,8 @@ FLASH_CHANNELS = {
         "enabled": True,
         "weight": 5,          # 权重越高，同等条件下优先入库
         "max_items": 16,      # 单次最多拉取条数
-        "timeout": 12,
         "api_url": "https://finnhub.io/api/v1",
+        "timeout": NEWS_SOURCE_TIMEOUT,
         "api_key": os.environ.get("FINNHUB_KEY", ""),
         "categories": ["general", "crypto"],
     },
@@ -100,8 +112,8 @@ FLASH_CHANNELS = {
         "enabled": False,
         "weight": 4,
         "max_items": 15,
-        "timeout": 12,
         "api_url": "https://api.marketaux.com/v1",
+        "timeout": NEWS_SOURCE_TIMEOUT,
         "api_key": os.environ.get("MARKETAUX_KEY", ""),
         "searches": ["bitcoin,crypto,ethereum", "US stock,NASDAQ,Wall Street", "Hong Kong stock,Hang Seng", "gold,oil,commodity"],
         "per_search": 5,
@@ -110,24 +122,24 @@ FLASH_CHANNELS = {
         "enabled": True,
         "weight": 3,
         "max_items": 10,
-        "timeout": 12,
         "api_url": "https://min-api.cryptocompare.com/data",
+        "timeout": NEWS_SOURCE_TIMEOUT,
         "api_key": os.environ.get("CRYPTOCOMPARE_KEY", ""),
     },
     "coingecko": {
         "enabled": True,
         "weight": 2,
         "max_items": 20,
-        "timeout": 12,
         "api_url": "https://api.coingecko.com/api/v3",
+        "timeout": NEWS_SOURCE_TIMEOUT,
         "move_threshold": 2.0,  # 涨跌幅阈值(%)
     },
     "newsapi": {
         "enabled": True,
         "weight": 3,
         "max_items": 15,
-        "timeout": 12,
         "api_url": "https://newsapi.org/v2/top-headlines",
+        "timeout": NEWS_SOURCE_TIMEOUT,
         "api_key": os.environ.get("NEWSAPI_KEY", ""),
         "categories": ["business", "technology"],
     },
@@ -135,16 +147,16 @@ FLASH_CHANNELS = {
         "enabled": True,
         "weight": 4,
         "max_items": 15,
-        "timeout": 12,
         "api_url": "https://api.polygon.io/v2/reference/news",
+        "timeout": NEWS_SOURCE_TIMEOUT,
         "api_key": os.environ.get("POLYGON_KEY", ""),
     },
     "alphavantage": {
         "enabled": True,
         "weight": 3,
         "max_items": 15,
-        "timeout": 15,
         "api_url": "https://www.alphavantage.co/query",
+        "timeout": NEWS_SOURCE_TIMEOUT,
         "api_key": os.environ.get("ALPHAVANTAGE_KEY", ""),
         "topics": ["blockchain", "financial_markets", "earnings"],
     },
@@ -152,27 +164,27 @@ FLASH_CHANNELS = {
         "enabled": True,
         "weight": 1,
         "max_items": 15,
-        "timeout": 15,
+        "timeout": NEWS_SOURCE_TIMEOUT,
     },
     "scmp_hkex": {
         "enabled": True,
         "weight": 7,          # 最高优先级：港股专业源
         "max_items": 20,
-        "timeout": 15,
+        "timeout": NEWS_SOURCE_TIMEOUT,
     },
     "bwenews": {
         "enabled": True,
         "weight": 6,          # 方程式新闻：加密快讯 Alpha 源
         "max_items": 10,
-        "timeout": 12,
         "rss_url": "https://rss-public.bwe-ws.com",
+        "timeout": NEWS_SOURCE_TIMEOUT,
     },
     "cn_sina": {
         "enabled": True,
         "weight": 6,
         "max_items": 25,
-        "timeout": 15,
         "api_url": "https://feed.sina.com.cn/api/roll/get",
+        "timeout": NEWS_SOURCE_TIMEOUT,
         "pageid": 153,
         "lid": 2516,
     },
@@ -180,7 +192,7 @@ FLASH_CHANNELS = {
         "enabled": True,
         "weight": 5,
         "max_items": 18,
-        "timeout": 15,
+        "timeout": NEWS_SOURCE_TIMEOUT,
     },
     "llm_fallback": {
         "enabled": False,   # 关闭 LLM 凭空生成快讯，节省 Token

@@ -52,6 +52,19 @@ import requests
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 GENERATED_COVERS_DIR = PROJECT_ROOT / "public" / "covers" / "generated"
 
+
+def _env_float(name: str, default: float) -> float:
+    raw = os.environ.get(name)
+    if raw is None or str(raw).strip() == "":
+        return default
+    return float(raw)
+
+
+_NEWS_SOURCE_TIMEOUT = (
+    _env_float("NEWS_SOURCE_CONNECT_TIMEOUT_SECONDS", 30.0),
+    _env_float("NEWS_SOURCE_READ_TIMEOUT_SECONDS", 35.0),
+)
+
 CoverSource = Literal[
     "existing",
     "source_page",
@@ -179,7 +192,7 @@ def _ssrf_block_reason(url: str) -> str | None:
     return None
 
 
-def fetch_cover_from_source_url(url: str, timeout: float = 15.0) -> CoverResult:
+def fetch_cover_from_source_url(url: str, timeout=_NEWS_SOURCE_TIMEOUT) -> CoverResult:
     """GET 信源页面并尝试解析封面图。"""
     blocked = _ssrf_block_reason(url)
     if blocked:

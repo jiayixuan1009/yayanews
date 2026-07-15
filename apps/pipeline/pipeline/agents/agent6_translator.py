@@ -5,6 +5,7 @@ Agent 6: 英文双语翻译 (English Translator)
 """
 import json
 import os
+import psycopg2
 from pipeline.utils.llm import chat
 from pipeline.utils.logger import get_logger, step_print
 from pipeline.utils.database import get_pool, insert_article, insert_tags, slug_exists
@@ -16,6 +17,59 @@ from pipeline.utils.fetch_english_source import (
 )
 from psycopg2.extras import RealDictCursor
 log = get_logger("agent6")
+
+
+TRANSLATION_CANDIDATES_SQL = """
+    SELECT
+      a.*,
+      la.loop_action_id,
+      la.loop_action_status
+    FROM articles a
+    LEFT JOIN (
+        SELECT DISTINCT ON (target_id)
+          id AS loop_action_id,
+          target_id,
+          status AS loop_action_status,
+          updated_at
+        FROM loop_actions
+        WHERE action_type = 'translate_en_priority'
+          AND status IN ('queued', 'executed')
+          AND target_id IS NOT NULL
+        ORDER BY target_id, updated_at DESC, id DESC
+    ) la ON la.target_id = a.id
+    WHERE a.lang = 'zh'
+      AND a.article_type != 'flash'
+      AND a.status = 'published'
+      AND a.deleted_at IS NULL
+      AND a.is_indexable = TRUE
+      AND (a.view_count >= %s OR la.target_id IS NOT NULL)
+      AND a.id NOT IN (
+          SELECT parent_id FROM articles
+          WHERE lang = 'en' AND parent_id IS NOT NULL
+      )
+    ORDER BY
+      CASE WHEN la.target_id IS NULL THEN 1 ELSE 0 END,
+      COALESCE(la.updated_at, a.published_at) DESC,
+      a.published_at DESC
+    LIMIT %s
+"""
+
+TRANSLATION_CANDIDATES_FALLBACK_SQL = """
+    SELECT *
+    FROM articles
+    WHERE lang = 'zh'
+      AND article_type != 'flash'
+      AND status = 'published'
+      AND deleted_at IS NULL
+      AND is_indexable = TRUE
+      AND view_count >= %s
+      AND id NOT IN (
+          SELECT parent_id FROM articles
+          WHERE lang = 'en' AND parent_id IS NOT NULL
+      )
+    ORDER BY published_at DESC
+    LIMIT %s
+"""
 
 
 def _generate_english_slug(title: str) -> str:
@@ -35,25 +89,49 @@ def _get_translation_candidates(limit: int = 5, min_views: int = 0) -> list[dict
     conn = get_pool().getconn()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(
-                """
-                SELECT * FROM articles
-                WHERE lang = 'zh'
-                  AND article_type != 'flash'
-                  AND status = 'published'
-                  AND deleted_at IS NULL
-                  AND is_indexable = TRUE
-                  AND view_count >= %s
-                  AND id NOT IN (
-                      SELECT parent_id FROM articles
-                      WHERE lang = 'en' AND parent_id IS NOT NULL
-                  )
-                ORDER BY published_at DESC LIMIT %s
-                                """, (min_views, limit)
-            )
+            try:
+                cur.execute(TRANSLATION_CANDIDATES_SQL, (min_views, limit))
+            except psycopg2.errors.UndefinedTable:
+                conn.rollback()
+                cur.execute(TRANSLATION_CANDIDATES_FALLBACK_SQL, (min_views, limit))
             return [dict(r) for r in cur.fetchall()]
     finally:
         get_pool().putconn(conn)
+
+
+def _record_loop_translation_result(action_id: int | None, status: str, message: str, evidence: dict | None = None) -> None:
+    if not action_id:
+        return
+    conn = get_pool().getconn()
+    try:
+        with conn.cursor() as cur:
+            next_status = "consumed" if status == "success" else "failed"
+            cur.execute(
+                """
+                UPDATE loop_actions
+                SET status = %s,
+                    result = COALESCE(result, '{}'::jsonb) || %s::jsonb,
+                    updated_at = CURRENT_TIMESTAMP,
+                    executed_at = COALESCE(executed_at, CURRENT_TIMESTAMP)
+                WHERE id = %s
+                  AND action_type = 'translate_en_priority'
+                """,
+                (next_status, json.dumps(evidence or {}, ensure_ascii=False), action_id),
+            )
+            cur.execute(
+                """
+                INSERT INTO loop_action_results(action_id, status, message, evidence)
+                VALUES (%s, %s, %s, %s::jsonb)
+                """,
+                (action_id, next_status, message, json.dumps(evidence or {}, ensure_ascii=False)),
+            )
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        log.warning(f"Failed to record Loop translation result for action {action_id}: {e}")
+    finally:
+        get_pool().putconn(conn)
+
 
 def _translate_article(zh_article: dict) -> dict:
     prompt = f"""You are an expert bilingual financial journalist for YayaNews. 
@@ -181,6 +259,7 @@ def translate_queue(batch_size: int = 5, force: bool = False) -> list[dict]:
     results = []
     
     for zh in Candidates:
+        loop_action_id = zh.get("loop_action_id")
         print(f"  [Agent 6.1] 正在处理: {zh['title'][:30]}...")
         en_draft = _try_english_from_apis(zh)
         if en_draft:
@@ -214,10 +293,33 @@ def translate_queue(batch_size: int = 5, force: bool = False) -> list[dict]:
                 translated_count += 1
                 insert_tags(fid, en_draft.get("tags", []))
                 results.append(en_draft)
+                _record_loop_translation_result(
+                    loop_action_id,
+                    "success",
+                    "Agent 6 created an English article from this translation priority.",
+                    {
+                        "source_article_id": zh["id"],
+                        "english_article_id": fid,
+                        "english_slug": en_draft["slug"],
+                        "method": en_draft.get("_en_from") or "llm",
+                    },
+                )
                 print(f"    [OK] 英文版入库成功 -> {en_draft['slug']}")
             else:
+                _record_loop_translation_result(
+                    loop_action_id,
+                    "failed",
+                    "Agent 6 failed to insert the English article.",
+                    {"source_article_id": zh["id"], "reason": "insert_article returned 0"},
+                )
                 print(f"    [FAIL] 英文版入库失败 (可能 Slug 冲突)")
         else:
+            _record_loop_translation_result(
+                loop_action_id,
+                "failed",
+                "Agent 6 did not produce valid English content.",
+                {"source_article_id": zh["id"]},
+            )
             print(f"    [FAIL] API 与 LLM 均未产生有效英文正文")
             
     print(f"\n[Agent 6] 双语扩展流完成: 共产生 {translated_count} 篇纯净英文研报。")

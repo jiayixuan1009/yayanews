@@ -20,7 +20,7 @@ except ImportError:
     print("请安装: pip install websocket-client", file=sys.stderr)
     sys.exit(1)
 
-from pipeline.config.settings import FLASH_CHANNELS
+from pipeline.config.settings import FLASH_CHANNELS, NEWS_SOURCE_READ_TIMEOUT_SECONDS
 from pipeline.utils.ws_flash_buffer import append_ws_item
 from pipeline.utils.database import insert_flash
 from pipeline.utils.logger import get_logger
@@ -40,28 +40,46 @@ _rate_limited_until = 0.0
 _opened_at = 0.0
 _connection_opened = False
 
-_MIN_RETRY_DELAY = max(1, int(os.environ.get("FINNHUB_WS_MIN_RETRY_SECONDS", "5")))
-_MAX_RETRY_DELAY = max(_MIN_RETRY_DELAY, int(os.environ.get("FINNHUB_WS_MAX_RETRY_SECONDS", "900")))
+_MIN_RETRY_DELAY = max(1, int(os.environ.get("FINNHUB_WS_MIN_RETRY_SECONDS", "30")))
+_MAX_RETRY_DELAY = max(_MIN_RETRY_DELAY, int(os.environ.get("FINNHUB_WS_MAX_RETRY_SECONDS", "3600")))
 _STABLE_CONNECTION_SECONDS = max(
     _MIN_RETRY_DELAY,
     int(os.environ.get("FINNHUB_WS_STABLE_CONNECTION_SECONDS", "60")),
 )
 _SHORT_CONNECTION_RETRY_SECONDS = max(
     _MIN_RETRY_DELAY,
-    int(os.environ.get("FINNHUB_WS_SHORT_CONNECTION_RETRY_SECONDS", "60")),
+    int(os.environ.get("FINNHUB_WS_SHORT_CONNECTION_RETRY_SECONDS", "35")),
 )
 _RATE_LIMIT_FALLBACK_DELAY = max(
     _MIN_RETRY_DELAY,
-    int(os.environ.get("FINNHUB_WS_RATE_LIMIT_RETRY_SECONDS", "300")),
+    int(os.environ.get("FINNHUB_WS_RATE_LIMIT_RETRY_SECONDS", "600")),
+)
+_RATE_LIMIT_RESET_SKEW_SECONDS = max(
+    0,
+    int(os.environ.get("FINNHUB_WS_RATE_LIMIT_RESET_SKEW_SECONDS", "5")),
 )
 _retry_delay = float(_MIN_RETRY_DELAY)
+_WS_HANDSHAKE_TIMEOUT_SECONDS = max(
+    1,
+    int(os.environ.get("FINNHUB_WS_HANDSHAKE_TIMEOUT_SECONDS", str(int(NEWS_SOURCE_READ_TIMEOUT_SECONDS)))),
+)
+_PING_INTERVAL_SECONDS = max(1, int(os.environ.get("FINNHUB_WS_PING_INTERVAL_SECONDS", "35")))
+_PING_TIMEOUT_SECONDS = max(1, int(os.environ.get("FINNHUB_WS_PING_TIMEOUT_SECONDS", "30")))
+if _PING_INTERVAL_SECONDS <= _PING_TIMEOUT_SECONDS:
+    _PING_INTERVAL_SECONDS = _PING_TIMEOUT_SECONDS + 1
 
 
 def _extract_rate_limit_reset(err):
     message = str(err)
-    match = re.search(r"'x-ratelimit-reset': '(\d+)'", message, re.IGNORECASE)
-    if not match:
-        match = re.search(r'"x-ratelimit-reset":\s*"?(\d+)"?', message, re.IGNORECASE)
+    patterns = [
+        r"['\"]x-ratelimit-reset['\"]\s*:\s*['\"]?(\d+)['\"]?",
+        r"\bx-ratelimit-reset\b\s*[:=]\s*['\"]?(\d+)['\"]?",
+    ]
+    match = None
+    for pattern in patterns:
+        match = re.search(pattern, message, re.IGNORECASE)
+        if match:
+            break
     if not match:
         return None
     try:
@@ -74,15 +92,23 @@ def _remember_rate_limit(err):
     global _rate_limited_until
     message = str(err)
     if "429" not in message and "too many requests" not in message.lower():
-        return
+        return None
 
     now = time.time()
     reset_at = _extract_rate_limit_reset(err)
     if reset_at and reset_at > now:
-        wait_seconds = min(_MAX_RETRY_DELAY, max(_MIN_RETRY_DELAY, int(reset_at - now) + 5))
+        wait_seconds = min(
+            _MAX_RETRY_DELAY,
+            max(_MIN_RETRY_DELAY, int(reset_at - now) + _RATE_LIMIT_RESET_SKEW_SECONDS),
+        )
     else:
         wait_seconds = min(_MAX_RETRY_DELAY, _RATE_LIMIT_FALLBACK_DELAY)
     _rate_limited_until = max(_rate_limited_until, now + wait_seconds)
+    return wait_seconds
+
+
+def _format_retry_time(epoch_seconds: float) -> str:
+    return time.strftime("%Y-%m-%d %H:%M:%S %z", time.localtime(epoch_seconds))
 
 
 def _next_retry_seconds():
@@ -144,7 +170,13 @@ def _on_message(ws, message):
 
 
 def _on_error(ws, err):
-    _remember_rate_limit(err)
+    wait_seconds = _remember_rate_limit(err)
+    if wait_seconds is not None:
+        log.warning(
+            "WS rate limited; cooling down for "
+            f"{wait_seconds:.0f}s until {_format_retry_time(_rate_limited_until)}: {err}"
+        )
+        return
     log.warning(f"WS error: {err}")
 
 
@@ -183,6 +215,7 @@ def main():
     signal.signal(signal.SIGINT, stop)
     signal.signal(signal.SIGTERM, stop)
 
+    websocket.setdefaulttimeout(_WS_HANDSHAKE_TIMEOUT_SECONDS)
     url = f"wss://ws.finnhub.io?token={token}"
     while _running:
         _connection_opened = False
@@ -195,7 +228,11 @@ def main():
                 on_close=_on_close,
                 on_open=_on_open,
             )
-            ws.run_forever(ping_interval=30, ping_timeout=10)
+            ws.run_forever(
+                ping_interval=_PING_INTERVAL_SECONDS,
+                ping_timeout=_PING_TIMEOUT_SECONDS,
+                http_proxy_timeout=_WS_HANDSHAKE_TIMEOUT_SECONDS,
+            )
             if _connection_opened and time.time() - _opened_at >= _STABLE_CONNECTION_SECONDS:
                 _retry_delay = float(_MIN_RETRY_DELAY)
         except Exception as e:
