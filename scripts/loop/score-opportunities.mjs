@@ -412,7 +412,7 @@ async function upsertOpportunity(client, snapshot, opportunity, apply) {
         payload = EXCLUDED.payload,
         updated_at = CURRENT_TIMESTAMP,
         status = CASE
-          WHEN loop_actions.status IN ('queued', 'executed', 'failed', 'dismissed') THEN loop_actions.status
+          WHEN loop_actions.status IN ('queued', 'executed', 'failed', 'dismissed', 'consumed') THEN loop_actions.status
           ELSE 'proposed'
         END
     `,
