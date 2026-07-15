@@ -16,7 +16,9 @@ export function articleMetadataTitle(title: string, lang: string): string {
   if (chars.length <= maxLength) return normalized;
 
   const sliced = chars.slice(0, maxLength - 1).join('');
-  const trimmed = lang === 'en'
+  // For latin/English text (contains spaces) cut back to the last whitespace so
+  // the title never ends mid-word; CJK text has no spaces so slice by character.
+  const trimmed = /\s/.test(sliced)
     ? sliced.replace(/\s+\S*$/, '').trim()
     : sliced.trim();
   return `${trimmed || sliced.trim()}…`;
