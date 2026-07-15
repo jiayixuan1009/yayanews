@@ -21,8 +21,12 @@ const remoteHosts = [
 ];
 
 /** @type {import('next').NextConfig} */
+const standaloneOutput = process.env.NEXT_OUTPUT_STANDALONE !== '0';
+const distDir = process.env.NEXT_DIST_DIR?.trim();
+
 const nextConfig = {
-  output: 'standalone',
+  ...(standaloneOutput ? { output: 'standalone' } : {}),
+  ...(distDir ? { distDir } : {}),
   compress: true,
   poweredByHeader: false,
   // Admin runs at /admin path via Nginx proxy
