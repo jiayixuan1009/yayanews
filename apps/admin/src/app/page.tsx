@@ -12,6 +12,7 @@ import ArticlesView from './components/views/ArticlesView';
 import FlashView from './components/views/FlashView';
 import TopicsView from './components/views/TopicsView';
 import CleanupView from './components/views/CleanupView';
+import LoopView from './components/views/LoopView';
 
 export default function AdminSPA() {
   const [activeTab, setActiveTab] = useState('pipeline');
@@ -26,6 +27,7 @@ export default function AdminSPA() {
       case 'flash':     return <FlashView />;
       case 'topics':    return <TopicsView />;
       case 'cleanup':   return <CleanupView />;
+      case 'loop':      return <LoopView />;
       case 'dashboard':
       default:          return <DashboardView onNavigate={setActiveTab} />;
     }
@@ -48,4 +50,3 @@ export default function AdminSPA() {
     </div>
   );
 }
-
