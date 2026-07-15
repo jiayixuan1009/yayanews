@@ -37,15 +37,53 @@ async function optional<T>(promise: Promise<T>, fallback: T): Promise<T> {
   }
 }
 
+// Truncate text without cutting a word in half. For latin/English text (has
+// spaces) trim back to the last whitespace before the limit; for CJK text
+// (no spaces) character-based slicing is fine. Appends an ellipsis only when
+// the text was actually truncated.
+function truncateAtWordBoundary(text: string, limit: number): string {
+  const clean = text.trim();
+  if (clean.length <= limit) return clean;
+  const sliced = clean.slice(0, limit);
+  const boundary = /\s/.test(sliced) ? sliced.replace(/\s+\S*$/, '').trim() : sliced.trim();
+  return `${boundary || sliced.trim()}…`;
+}
+
+// Map a category slug to an English section label using the existing English
+// dictionary (`categoryMeta`), so English pages don't emit the Chinese
+// category name in `article:section`. Falls back to undefined when no English
+// mapping is found. Never throws.
+function englishCategorySection(
+  slug: string | undefined,
+  dict: { categoryMeta?: unknown },
+): string | undefined {
+  if (!slug) return undefined;
+  const meta = (dict.categoryMeta as Record<string, { title?: string } | undefined> | undefined)?.[slug];
+  const title = meta?.title;
+  if (!title) return undefined;
+  const lead = title.split(/[|｜]/)[0]?.trim() || '';
+  const cleaned = lead.replace(/\s+News$/i, '').trim();
+  return cleaned || undefined;
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; lang: string }> }): Promise<Metadata> {
   const { slug, lang } = await params;
   const article = await getArticleBySlug(slug) as (Article & { sibling_slug?: string }) | undefined;
   if (!article || articleLocale(article.lang) !== articleLocale(lang)) return {};
   const descFallback = article.summary
-    ? article.summary.slice(0, 155)
+    ? truncateAtWordBoundary(article.summary, 155)
     : article.content
-      ? article.content.replace(/<[^>]+>/g, '').slice(0, 152) + '...'
+      ? truncateAtWordBoundary(article.content.replace(/<[^>]+>/g, ''), 152)
       : article.title;
+
+  // English pages should show an English `article:section`, not the Chinese
+  // category name. Map the category slug via the English dictionary; fall back
+  // to the raw category name when no English mapping exists.
+  let section = article.category_name || undefined;
+  if (lang === 'en') {
+    const enDict = await getDictionary('en');
+    section = englishCategorySection(article.category_slug, enDict) || article.category_name || undefined;
+  }
 
   const sibling = (article as { sibling_slug?: string }).sibling_slug;
 
@@ -55,11 +93,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     alternatesLanguages = {
       zh: `/zh/article/${slug}`,
       en: `/en/article/${sibling}`,
+      // x-default points to the English edition as the international fallback
+      'x-default': `/en/article/${sibling}`,
     };
   } else if (lang === 'en' && sibling) {
     alternatesLanguages = {
       zh: `/zh/article/${sibling}`,
       en: `/en/article/${slug}`,
+      // x-default points to the English edition as the international fallback
+      'x-default': `/en/article/${slug}`,
     };
   } else if (lang === 'zh') {
     const p = `/zh/article/${slug}`;
@@ -78,7 +120,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     image: article.cover_image || undefined,
     publishedTime: article.published_at || undefined,
     modifiedTime: article.updated_at || undefined,
-    section: article.category_name || undefined,
+    section,
     lang: lang as 'zh' | 'en',
     alternatesLanguages,
     // short articles are thin content (< ~300 words) — exclude from index pool
