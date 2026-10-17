@@ -16,7 +16,7 @@ import ChannelHeader from '@/components/editorial/ChannelHeader';
 import RightRailPanel from '@/components/editorial/RightRailPanel';
 import SectionHeader from '@/components/editorial/SectionHeader';
 
-import { createMetadata, buildBreadcrumbJsonLd } from '@yayanews/seo';
+import { createMetadata, buildBreadcrumbJsonLd, serializeJsonLd } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 
 function tagAlternates(slug: string, counts: { zh: number; en: number }, currentLang: 'zh' | 'en') {
@@ -112,8 +112,8 @@ export default async function TagPage({ params }: { params: Promise<{ slug: stri
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(collectionJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }} />
     <div className="container-main py-6 sm:py-8">
       <ChannelHeader
         lang={lang}

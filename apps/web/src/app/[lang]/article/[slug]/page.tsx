@@ -27,7 +27,7 @@ import { isRemoteImageOptimizable } from '@/lib/remote-image';
 import { articleHasRealCover, getArticleCoverSrc } from '@/lib/article-image';
 import { articleMetadataTitle } from '@/lib/article-metadata-title';
 
-import { buildAuthorSlug, createMetadata, buildNewsArticleJsonLd, buildBreadcrumbJsonLd } from '@yayanews/seo';
+import { buildAuthorSlug, createMetadata, buildNewsArticleJsonLd, buildBreadcrumbJsonLd, serializeJsonLd } from '@yayanews/seo';
 
 async function optional<T>(promise: Promise<T>, fallback: T): Promise<T> {
   try {
@@ -703,13 +703,13 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(buildNewsArticleJsonLd(article, articleTopic, lang)),
+          __html: serializeJsonLd(buildNewsArticleJsonLd(article, articleTopic, lang)),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(buildBreadcrumbJsonLd([
+          __html: serializeJsonLd(buildBreadcrumbJsonLd([
             { name: dict.nav.home, url: `/${lang}` },
             { name: dict.nav.newsSection, url: `/${lang}/news` },
             ...(article.category_name && article.category_slug

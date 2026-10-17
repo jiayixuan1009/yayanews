@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import LocalizedLink from '@/components/LocalizedLink';
 import { siteConfig, SITE_NAME_ZH, SITE_NAME_EN, SITE_SLOGAN_ZH, SITE_SLOGAN_EN } from '@yayanews/types';
-import { createMetadata, buildOrganizationJsonLd } from '@yayanews/seo';
+import { createMetadata, buildOrganizationJsonLd, serializeJsonLd } from '@yayanews/seo';
 
 export const revalidate = 86400;
 
@@ -29,7 +29,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(buildOrganizationJsonLd(lang)) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildOrganizationJsonLd(lang)) }}
       />
       <div className="container-main py-12 md:py-20 lg:max-w-4xl mx-auto">
       {/* Header Section */}

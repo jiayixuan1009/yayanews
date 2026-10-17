@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import ArticleCard from '@/components/ArticleCard';
 import { getAuthorBySlug, getPublishedArticlesByAuthorSlug } from '@/lib/queries';
 import { getDictionary } from '@/lib/dictionaries';
-import { createMetadata } from '@yayanews/seo';
+import { createMetadata, serializeJsonLd } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 
 export const revalidate = 300;
@@ -81,7 +81,7 @@ export default async function AuthorPage({
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <div className="container-main py-8 sm:py-10">
         <header className="border-b border-[#ddd5ca] pb-6">
           <p className="yn-meta text-[#1d5c4f]">{locale === 'en' ? 'Author' : '作者'}</p>

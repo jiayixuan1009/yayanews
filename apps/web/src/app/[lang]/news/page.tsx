@@ -1,6 +1,6 @@
 import { getDictionary } from '@/lib/dictionaries';
 import type { Metadata } from 'next';
-import { buildBreadcrumbJsonLd, createMetadata } from '@yayanews/seo';
+import { buildBreadcrumbJsonLd, createMetadata, serializeJsonLd } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 import LocalizedLink from '@/components/LocalizedLink';
 import {
@@ -116,8 +116,8 @@ export default async function NewsPage({
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(collectionJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }} />
       <div className="container-main py-6 sm:py-8">
       <ChannelHeader
         lang={locale}

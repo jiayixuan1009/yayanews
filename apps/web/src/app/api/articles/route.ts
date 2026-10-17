@@ -7,7 +7,8 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const category = sp.get('category') || undefined;
   const subcategory = sp.get('subcategory') || undefined;
-  const limit = Math.min(Number(sp.get('limit') || 30), 100);
+  const limitParam = Number.parseInt(sp.get('limit') ?? '', 10);
+  const limit = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 100) : 30;
   const lang = sp.get('lang') || 'zh';
 
   try {

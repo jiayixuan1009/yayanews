@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import LocalizedLink from '@/components/LocalizedLink';
 import { getAuthorsForIndex, getPublishedArticles } from '@/lib/queries';
-import { createMetadata } from '@yayanews/seo';
+import { createMetadata, serializeJsonLd } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 
 export const revalidate = 300;
@@ -81,7 +81,7 @@ export default async function AuthorsPage({ params }: { params: Promise<{ lang: 
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <div className="container-main py-10 sm:py-12">
         <header className="border-b border-[#ddd5ca] pb-7">
           <p className="yn-meta text-[#1d5c4f]">{locale === 'en' ? 'Trust & bylines' : '信任与署名'}</p>

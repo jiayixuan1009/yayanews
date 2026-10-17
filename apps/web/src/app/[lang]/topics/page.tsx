@@ -3,7 +3,7 @@ import LocalizedLink from '@/components/LocalizedLink';
 import Image from 'next/image';
 import { getTopics } from '@/lib/queries';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
-import { buildBreadcrumbJsonLd, createMetadata } from '@yayanews/seo';
+import { buildBreadcrumbJsonLd, createMetadata, serializeJsonLd } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 import { getDictionary } from '@/lib/dictionaries';
 import SectionHeader from '@/components/editorial/SectionHeader';
@@ -60,8 +60,8 @@ export default async function TopicsPage({ params }: { params: Promise<{ lang: s
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(collectionJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }} />
       <div className="container-main py-6 sm:py-8">
       <header className="mb-8 border-b border-[#ddd5ca] pb-6">
         <h1 className="yn-page-title">{t.pageTitle}</h1>

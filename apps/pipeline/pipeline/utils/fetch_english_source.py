@@ -4,10 +4,12 @@
 """
 from __future__ import annotations
 
+import ipaddress
 import re
+import socket
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 
@@ -26,6 +28,69 @@ _SKIP_TAGS = frozenset({"script", "style", "nav", "footer", "header", "aside", "
 # （例如 "方程式新闻 BWEnews"），正文又常是中英混排，没有可抓取的"英文原文标题"。
 # 这类来源直接跳过 API 英文抽取，回退到 Agent 6 的 LLM 直译，由中文母稿生成唯一英文标题。
 _TELEGRAM_HOSTS = frozenset({"t.me", "telegram.me", "telegram.org"})
+
+# SSRF 防护：显式拒绝的内网/本机主机名（IP 字面量与域名解析结果另行校验）。
+_BLOCKED_HOSTNAMES = frozenset(
+    {"localhost", "localhost.localdomain", "ip6-localhost", "ip6-loopback"}
+)
+_MAX_REDIRECTS = 5
+
+
+def _is_non_public_ip(ip_str: str) -> bool:
+    """判断 IP 是否属于私网/环回/链路本地(含云元数据)/保留/组播等非公网网段。"""
+    try:
+        ip = ipaddress.ip_address(ip_str)
+    except ValueError:
+        return True
+    if (
+        not ip.is_global
+        or ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_multicast
+        or ip.is_reserved
+        or ip.is_unspecified
+    ):
+        return True
+    # 6to4 / Teredo / IPv4-mapped 可能把私网地址包在 IPv6 表示里，递归拆开判断。
+    for attr in ("ipv4_mapped", "sixtofour"):
+        nested = getattr(ip, attr, None)
+        if nested is not None and _is_non_public_ip(str(nested)):
+            return True
+    teredo = getattr(ip, "teredo", None)
+    if teredo is not None and _is_non_public_ip(str(teredo[1])):
+        return True
+    return False
+
+
+def _is_safe_public_url(url: str) -> bool:
+    """SSRF 防护：仅允许 http/https 且解析出的所有 IP 均为公网地址的 URL。"""
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return False
+    if parsed.scheme not in ("http", "https"):
+        return False
+    host = (parsed.hostname or "").strip().lower().rstrip(".")
+    if (
+        not host
+        or host in _BLOCKED_HOSTNAMES
+        or host.endswith(".localhost")
+        or host.endswith(".local")
+        or host.endswith(".internal")
+    ):
+        return False
+    try:
+        infos = socket.getaddrinfo(
+            host,
+            parsed.port or (443 if parsed.scheme == "https" else 80),
+            type=socket.SOCK_STREAM,
+        )
+    except OSError:
+        return False
+    if not infos:
+        return False
+    return all(not _is_non_public_ip(info[4][0]) for info in infos)
 
 
 def _is_telegram_host(host: str | None) -> bool:
@@ -141,17 +206,32 @@ def _esc_html(s: str) -> str:
 
 
 def _fetch_html(url: str, timeout=NEWS_SOURCE_TIMEOUT) -> tuple[str | None, str]:
+    """抓取 HTML；SSRF 防护：每一跳（含重定向目标）都必须是公网 http/https 地址。"""
+    current = url
     try:
-        r = requests.get(
-            url,
-            timeout=timeout,
-            headers={"User-Agent": _UA, "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8"},
-        )
-        r.raise_for_status()
-        ct = (r.headers.get("Content-Type") or "").lower()
-        if "html" not in ct and "xml" not in ct:
-            return None, url
-        return r.text, str(r.url)
+        for _ in range(_MAX_REDIRECTS + 1):
+            if not _is_safe_public_url(current):
+                log.debug(f"[en-fetch] blocked non-public url: {current}")
+                return None, current
+            r = requests.get(
+                current,
+                timeout=timeout,
+                headers={"User-Agent": _UA, "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8"},
+                allow_redirects=False,
+            )
+            if r.is_redirect or r.is_permanent_redirect:
+                location = r.headers.get("Location")
+                if not location:
+                    return None, current
+                current = urljoin(current, location)
+                continue
+            r.raise_for_status()
+            ct = (r.headers.get("Content-Type") or "").lower()
+            if "html" not in ct and "xml" not in ct:
+                return None, current
+            return r.text, str(r.url)
+        log.debug(f"[en-fetch] too many redirects: {url}")
+        return None, url
     except requests.RequestException as e:
         log.debug(f"[en-fetch] GET failed {url}: {e}")
         return None, url
@@ -192,9 +272,11 @@ def fetch_english_from_source_url(url: str | None, min_body_chars: int = 400) ->
     if not url or not str(url).strip().startswith(("http://", "https://")):
         return None
     try:
-        parsed = urlparse(url)
-        if parsed.hostname in {"localhost", "127.0.0.1"}:
+        # SSRF 防护：拒绝私网/环回/云元数据等非公网目标（含域名解析结果）。
+        if not _is_safe_public_url(url.strip()):
+            log.debug(f"[en-fetch] block non-public source url: {url}")
             return None
+        parsed = urlparse(url)
         # Telegram 频道帖没有逐帖英文标题（og:title=频道名）：直接跳过，回退 LLM 直译。
         if _is_telegram_host(parsed.hostname):
             log.debug(f"[en-fetch] skip telegram source (no per-post title): {url}")

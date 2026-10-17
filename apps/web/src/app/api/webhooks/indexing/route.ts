@@ -1,9 +1,20 @@
 import { NextResponse } from 'next/server';
+import { timingSafeEqual } from 'node:crypto';
 import { google } from 'googleapis';
 import { log as baseLog } from '@/lib/logger';
 
 const log = baseLog.child({ route: '/api/webhooks/indexing' });
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://yayanews.cryptooptiontool.com';
+
+function tokensMatch(provided: string, expected: string): boolean {
+  const providedBuffer = Buffer.from(provided);
+  const expectedBuffer = Buffer.from(expected);
+
+  return (
+    providedBuffer.length === expectedBuffer.length &&
+    timingSafeEqual(providedBuffer, expectedBuffer)
+  );
+}
 
 function getServiceAccountCredentials() {
   if (process.env.GA4_CREDENTIALS_BASE64) {
@@ -28,9 +39,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Webhook secret misconfigured' }, { status: 500 });
     }
 
-    // 1. Verify Authorization
+    // 1. Verify Authorization（常量时间比较，避免 timing side-channel）
     const authHeader = req.headers.get('authorization');
-    if (!authHeader || authHeader !== `Bearer ${webhookSecret}`) {
+    const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice('Bearer '.length).trim() : '';
+    if (!bearer || !tokensMatch(bearer, webhookSecret)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
