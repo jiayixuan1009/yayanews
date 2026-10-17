@@ -16,6 +16,8 @@ next-env.d.ts
 # ── 环境变量与机密（绝对不提交！）──
 .env
 .env.*
+# Dirty-worktree deploy gate: also ignore names like .envlocal.bak that .env.* misses.
+.env*.bak
 !.env.example
 .secrets/
 secrets/

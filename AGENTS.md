@@ -383,8 +383,15 @@ low-risk action queues. It is a feedback loop, not an autonomous publisher.
   docs and verification outputs.
 - Treat production deploys as high-risk. Confirm git state, current branch,
   tag status, and whether the user actually asked to deploy.
-- If the user says not to deploy, do not push tags, trigger Actions, or run
-  remote deployment steps.
+- `.github/workflows/deploy.yml` deploys on every push to `main` and on `v*`
+  tags. `docs/**` and `**/*.md` do not deploy by themselves. Merging to `main`
+  deploys that commit. Required Actions secrets are `VPS_HOST`, `VPS_USER`,
+  and `VPS_SSH_KEY`. The SSH checkout uses `github.sha`.
+- The production deploy aborts when `/var/www/yayanews` is dirty. Keep
+  server-local `.env*.bak`, `infra/backups/`, and deploy logs covered by
+  `.gitignore` so they do not trip that check.
+- If the user says not to deploy, do not push to `main`, push tags, trigger
+  Actions, or run remote deployment steps.
 
 ## Evidence And Deliverable Rules
 

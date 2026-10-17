@@ -9,6 +9,7 @@ on:
 permissions:
   contents: read
   issues: write
+  actions: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -160,3 +161,9 @@ jobs:
               --body "Production SEO monitor recovered at $(date -u '+%Y-%m-%d %H:%M:%S UTC'). Closing this alert."
             gh issue close "$issue_number" --repo "$REPO" --comment "Recovered."
           fi
+
+      - name: Keep scheduled workflow enabled
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/seo-monitor.yml/enable"
