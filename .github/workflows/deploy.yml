@@ -2,8 +2,20 @@ name: Deploy to Production
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_dispatch: {}
+
+permissions: {}
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -11,7 +23,7 @@ jobs:
 
     steps:
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17 # v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -21,7 +33,7 @@ jobs:
             set -euo pipefail
             cd /var/www/yayanews
 
-            echo "Deploying tag: ${{ github.ref_name }}"
+            echo "Deploying ${{ github.ref_name }} @ ${{ github.sha }}"
             dirty_status="$(git status --porcelain --untracked-files=normal | grep -Ev '^\?\? infra/deploy/[^/]+\.log(\.[0-9]+)?$' || true)"
             if [ -n "$dirty_status" ]; then
               echo "Production worktree is dirty; snapshotting and aborting before checkout."
@@ -45,7 +57,7 @@ jobs:
 
             echo "Pulling latest code..."
             git fetch --all --tags
-            git checkout --detach "${{ github.ref_name }}"
+            git checkout --detach "${{ github.sha }}"
 
             echo "Installing and validating Nginx configuration..."
             sudo -n bash infra/scripts/install-yayanews-nginx.sh

@@ -125,7 +125,11 @@ and re-check facts that may have changed.
 - GitHub repo: `jiayixuan1009/yayanews`.
 - Production IP mentioned by user context: `8.216.43.113`.
 - Production app directory: `/var/www/yayanews`.
-- Deployment can be triggered by git tags through GitHub Actions.
+- Deployment is triggered by GitHub Actions on push to `main` and on `v*`
+  tags. `docs/**` and `**/*.md` are path-ignored. Required secrets:
+  `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`. The production dirty-worktree gate
+  depends on `.gitignore` covering `.env*.bak`, `infra/backups/`, and deploy
+  logs.
 - A successful release was `v1.2.15`, commit `53fffad fix: pin next for production build`.
 - Next.js is pinned to `15.5.18` because `15.5.19` caused production trace
   failures during deployment.
