@@ -39,8 +39,8 @@ jobs:
           - 6379:6379
 
     env:
-      DATABASE_URL: "REDACTED"
-      REDIS_URL: "REDACTED"
+      DATABASE_URL: "postgresql://fakeuser:fakepassword@127.0.0.1:5432/yayanews"
+      REDIS_URL: "redis://127.0.0.1:6379"
       SKIP_DB_INIT: "true"
 
     steps:

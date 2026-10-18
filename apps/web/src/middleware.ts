@@ -44,9 +44,9 @@ const verificationFiles = new Map([
     },
   ],
   [
-    '/REDACTED.txt',
+    '/db1162aa32014bba89ab29ba04a5ddba.txt',
     {
-      body: 'REDACTED',
+      body: 'db1162aa32014bba89ab29ba04a5ddba',
       contentType: 'text/plain; charset=utf-8',
     },
   ],
@@ -112,7 +112,7 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/google557e7d124058718a.html',
-    '/REDACTED.txt',
+    '/db1162aa32014bba89ab29ba04a5ddba.txt',
     // Skip all internal paths (_next) and api routes
     '/((?!api|admin|_next/static|_next/image|images|favicon.ico|robots.txt|sitemap.xml|sitemap-news.xml|sitemap-chunk|news.xml|feed-news.xml|.*\\..*).*)',
   ],

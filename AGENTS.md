@@ -390,6 +390,22 @@ low-risk action queues. It is a feedback loop, not an autonomous publisher.
 - The production deploy aborts when `/var/www/yayanews` is dirty. Keep
   server-local `.env*.bak`, `infra/backups/`, and deploy logs covered by
   `.gitignore` so they do not trip that check.
+- `infra/deploy/publish-yayanews.sh` snapshots and later replaces the
+  `apps/*/.next/standalone` trees. A process still running from a replaced tree
+  keeps a `(deleted)` cwd and holds ports 3001/3002/3003, so every later PM2
+  start fails with `EADDRINUSE` and the app sticks in `waiting restart`
+  (`restart_time` in the thousands). `free_app_ports()` in that script clears
+  such stale processes before each reload; keep it, and stop the core apps
+  before replacing the standalone trees.
+- The private-repo deploy authenticates the server-side `git fetch` with the
+  workflow's read-only `GITHUB_TOKEN` (or a dedicated `DEPLOY_GIT_TOKEN`
+  secret) through a temporary 600-permission credential file, and must use
+  `git fetch --all --tags --force` because the 2026-10-18 secret purge rewrote
+  history and tags.
+- The text-verification token `db1162aa32014bba89ab29ba04a5ddba` and the
+  `/<token>.txt` route are public ownership-verification values, not secrets.
+  Never redact them; several scripts (`verify:seo`, `verify:redirects`,
+  `ops:public-health`) and the deploy health check depend on them.
 - If the user says not to deploy, do not push to `main`, push tags, trigger
   Actions, or run remote deployment steps.
 

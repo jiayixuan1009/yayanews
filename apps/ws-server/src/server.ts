@@ -61,7 +61,7 @@ function verifyClient(
 const wss = new WebSocketServer({ host: HOST, port: PORT, verifyClient });
 
 // Utilize process.env.REDIS_URL, fallback to localhost
-const redisUrl = process.env.REDIS_URL || 'REDACTED';
+const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 function redactConnectionUrl(value: string): string {
   try {
     const parsed = new URL(value);
