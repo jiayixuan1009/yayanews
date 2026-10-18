@@ -357,19 +357,28 @@ assert_standalone_smoke() {
         exit 1
     fi
 
+    # 收尾必须按端口来收:$! 只是那个子 shell 的 PID,真正的 next-server 是它的
+    # 孙进程(run-with-env.cjs → node server.js)。只 kill "$smoke_pid" 会漏下一个
+    # PPID=1、仍占着 $DEPLOY_SMOKE_PORT 的孤儿 node 进程 —— 每次部署漏一个
+    # ~200MB 的 next-server,累积起来会拖垮这台机器。
+    kill_smoke_port_listeners() {
+        if command -v fuser >/dev/null 2>&1; then
+            fuser -k "${DEPLOY_SMOKE_PORT}/tcp" >/dev/null 2>&1 || true
+        elif command -v lsof >/dev/null 2>&1; then
+            lsof -ti "tcp:${DEPLOY_SMOKE_PORT}" | xargs -r kill >/dev/null 2>&1 || true
+        fi
+    }
+
     cleanup_smoke() {
         if [ -n "$smoke_pid" ] && kill -0 "$smoke_pid" 2>/dev/null; then
             kill "$smoke_pid" 2>/dev/null || true
             wait "$smoke_pid" 2>/dev/null || true
         fi
+        kill_smoke_port_listeners
     }
     trap cleanup_smoke RETURN
 
-    if command -v fuser >/dev/null 2>&1; then
-        fuser -k "${DEPLOY_SMOKE_PORT}/tcp" >/dev/null 2>&1 || true
-    elif command -v lsof >/dev/null 2>&1; then
-        lsof -ti "tcp:${DEPLOY_SMOKE_PORT}" | xargs -r kill >/dev/null 2>&1 || true
-    fi
+    kill_smoke_port_listeners
 
     log "Running web standalone smoke test on port $DEPLOY_SMOKE_PORT..."
     rm -f "$smoke_log"
