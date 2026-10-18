@@ -7,7 +7,7 @@
 | **OS** | Ubuntu 24.04 LTS |
 | **域名** | yayanews.cryptooptiontool.com |
 | **应用目录** | `/var/www/yayanews` |
-| **Node.js** | >= 18.17 |
+| **Node.js** | 22（目标；升级完成前仍接受 20.19+，见下文「Node 22 升级」） |
 | **Python** | 3.10+ |
 | **数据库** | PostgreSQL 16 + pgvector |
 | **缓存/队列** | Redis 7 |
@@ -111,3 +111,31 @@ sudo systemctl status redis-server
 redis-cli ping
 # 应返回 PONG
 ```
+
+## Node 22 升级（2026-10-18）
+
+Node 20 已于 2026 年 4 月停止维护（不再有安全更新）。CI、Docker 和 `.nvmrc` 已改为 Node 22。`check:node` 暂时同时接受 20.19+ 和 22，所以服务器升级前部署照常进行。服务器需要人工升级一次：
+
+```bash
+# 1. 先看当前版本和安装方式
+node -v && which node
+
+# 2a. 如果是 NodeSource（apt）安装（which node 为 /usr/bin/node）
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# 2b. 如果是 nvm 安装（which node 在 ~/.nvm 下）
+nvm install 22 && nvm alias default 22
+
+# 3. 确认后让 PM2 守护进程改用新 Node
+node -v          # 应为 v22.x
+pm2 update
+```
+
+4. 在 GitHub Actions → Deploy to Production → Run workflow 触发一次正常部署，用 Node 22 重新安装依赖、构建并做冒烟检查（失败会自动回滚）。不要在 `/var/www/yayanews` 里手动 `npm ci`／`build`：工作区不干净时，部署会中止。
+5. 部署成功后，`pm2 status` 中所有进程均为 online，并且 `npm run ops:public-health` 正常。之后从 `scripts/verify/check-node-version.mjs` 删除 20，并把 `package.json` 的 `engines` 收紧为 `>=22 <23`。
+
+## 部署前检查
+
+`deploy.yml` 先调用 `ci-node.yml`（lint、SEO 策略校验、完整构建、pipeline 编译），全部通过后才 SSH 部署；检查失败时不会触碰服务器。
+

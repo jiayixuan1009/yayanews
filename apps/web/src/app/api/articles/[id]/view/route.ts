@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { incrementArticleViewCount } from '@/lib/queries';
+import { clientIp, shouldCountView } from '@/lib/view-dedupe';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
@@ -18,6 +19,14 @@ export async function POST(
         headers: { 'Cache-Control': 'no-store' },
       },
     );
+  }
+
+  // A repeat from the same visitor inside the window is accepted but not counted.
+  if (!shouldCountView(clientIp(request.headers), articleId)) {
+    return new NextResponse(null, {
+      status: 204,
+      headers: { 'Cache-Control': 'no-store' },
+    });
   }
 
   try {
