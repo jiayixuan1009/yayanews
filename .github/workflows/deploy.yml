@@ -11,7 +11,10 @@ on:
       - '**/*.md'
   workflow_dispatch: {}
 
-permissions: {}
+# 仓库转为 PRIVATE 后,服务器匿名 fetch 会失败(could not read Username for 'https://github.com')。
+# 这里需要只读的 contents 权限,以便把 GITHUB_TOKEN 传给服务器用于拉取。
+permissions:
+  contents: read
 
 concurrency:
   group: deploy-production
@@ -24,11 +27,16 @@ jobs:
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17 # v1.2.0
+        env:
+          # 优先使用专用的只读 token(若已配置 DEPLOY_GIT_TOKEN secret),
+          # 否则回退到本 workflow 的一次性 GITHUB_TOKEN(仅 contents: read)。
+          DEPLOY_GIT_TOKEN: ${{ secrets.DEPLOY_GIT_TOKEN || secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           command_timeout: 30m
+          envs: DEPLOY_GIT_TOKEN
           script: |
             set -euo pipefail
             cd /var/www/yayanews
@@ -55,8 +63,19 @@ jobs:
               exit 1
             fi
 
-            echo "Pulling latest code..."
-            git fetch --all --tags
+            echo "Pulling latest code (authenticated)..."
+            if [ -z "${DEPLOY_GIT_TOKEN:-}" ]; then
+              echo "DEPLOY_GIT_TOKEN is empty; cannot fetch a private repository." >&2
+              exit 1
+            fi
+            # 一次性凭据文件(600):不写入 .git/config,不进命令行参数,退出时自动删除。
+            cred_file="$(mktemp)"
+            chmod 600 "$cred_file"
+            trap 'rm -f "$cred_file"' EXIT
+            printf 'https://x-access-token:%s@github.com\n' "$DEPLOY_GIT_TOKEN" > "$cred_file"
+            git -c credential.helper= \
+                -c credential.helper="store --file=$cred_file" \
+                fetch --all --tags
             git checkout --detach "${{ github.sha }}"
 
             echo "Installing and validating Nginx configuration..."
