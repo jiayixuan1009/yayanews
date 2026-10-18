@@ -67,17 +67,18 @@ on_deploy_exit() {
         else
             log "${YELLOW}Deploy failed after PM2 reload; restoring previous standalone build${NC}"
         fi
-        # 先停掉核心应用再替换 standalone 目录,否则会留下 cwd 指向已删除目录、
-        # 却仍占着端口的僵尸进程,让下一次部署全部 EADDRINUSE。
+        # 先把核心应用从 PM2 摘掉再替换 standalone 目录。用 stop 会保留条目,
+        # PM2 仍可能在目录被替换的瞬间把进程拉起来(留下 cwd 指向已删除目录、
+        # 却仍占着端口的僵尸);delete 则彻底摘掉条目,不会再有 autorestart。
         if [ "$DEPLOY_RELOADED" -eq 1 ] && command -v pm2 >/dev/null 2>&1; then
-            pm2 stop "${CORE_PM2_APPS[@]}" >/dev/null 2>&1 || true
+            pm2 delete "${CORE_PM2_APPS[@]}" >/dev/null 2>&1 || true
         fi
         free_app_ports
         restore_standalone_snapshot
         if [ "$DEPLOY_RELOADED" -eq 1 ] && command -v pm2 >/dev/null 2>&1; then
             log "${YELLOW}Reloading PM2 back onto restored standalone build${NC}"
             free_app_ports
-            pm2 reload ecosystem.config.cjs --update-env || pm2 start ecosystem.config.cjs --update-env
+            pm2 startOrReload ecosystem.config.cjs --update-env || pm2 start ecosystem.config.cjs --update-env
             pm2 save >/dev/null
             wait_for_pm2_online "${CORE_PM2_APPS[@]}" "${PYTHON_PM2_APPS[@]}" || true
         fi
@@ -596,8 +597,14 @@ if ! command -v pm2 >/dev/null 2>&1; then
     log "${RED}PM2 is not installed${NC}"
     exit 1
 fi
+# 顺序很重要:先把核心应用从 PM2 摘掉,再释放端口,最后统一 startOrReload。
+# 若反过来(先 free_app_ports 再 reload),PM2 会在旧进程刚被杀掉时立刻
+# autorestart 抢回端口,紧接着的 reload 又起一个实例 → 一个占着端口在服务、
+# 另一个反复 EADDRINUSE 崩溃,而 PM2 的记账跟着崩溃的那个走,状态永远停在
+# "waiting restart"(restart 数只增不减)。先 delete 就不会有 autorestart 抢端口。
+pm2 delete "${CORE_PM2_APPS[@]}" >/dev/null 2>&1 || true
 free_app_ports
-pm2 reload ecosystem.config.cjs --update-env || pm2 start ecosystem.config.cjs --update-env
+pm2 startOrReload ecosystem.config.cjs --update-env || pm2 start ecosystem.config.cjs --update-env
 DEPLOY_RELOADED=1
 pm2 save >/dev/null
 wait_for_pm2_online "${CORE_PM2_APPS[@]}" "${PYTHON_PM2_APPS[@]}"
