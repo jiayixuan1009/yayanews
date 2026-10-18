@@ -42,7 +42,7 @@
 ## 💡 4. 如何做到“服务于真实的可运行性”？
 
 1. **环境仿生术**：给你的 GitHub CI 注射“空包弹”（Fake Envs）：
-   在 CI 环境内强制配置 `DATABASE_URL=REDACTED` 和 `REDIS_URL=REDACTED`。在 `.env` 中如果有写死强校验的代码，一定会在这一步因为读不到而崩溃，从而逼迫你写下安全的 fallback 逻辑。
+   在 CI 环境内强制配置 `DATABASE_URL=postgresql://fake:5432` 和 `REDIS_URL=redis://localhost:6379`。在 `.env` 中如果有写死强校验的代码，一定会在这一步因为读不到而崩溃，从而逼迫你写下安全的 fallback 逻辑。
 2. **拒绝死板的单侧 (`Unit Tests`)，拥抱构建态强校验**：单人写 `npm test` 会拖累你的研发进度，最好的方式是**把验证逻辑塞进 Build 时**。如果在 Next.js 编译时能捕获所有错误（包括 API 调用结构），这就是最实用的静态测试。
 
 ## 🛠️ 5. 极简实战：一份值得抄作业的 YAML (ci-node 示例)

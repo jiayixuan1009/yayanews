@@ -2,7 +2,7 @@
 # 导入到 DATABASE_URL 指向的库（语句多为 ON CONFLICT DO NOTHING，可重复执行）。
 # 用法（PowerShell）:
 #   cd d:\news\yayanews-production
-#   $env:DATABASE_URL = "REDACTED"
+#   $env:DATABASE_URL = "postgresql://用户:密码@主机:5432/yayanews"
 #   .\scripts\restore-cloud-seed.ps1
 #
 # 需本机已安装 psql 并在 PATH 中；数据库须已启动。

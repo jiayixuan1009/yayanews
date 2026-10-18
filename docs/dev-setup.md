@@ -9,8 +9,8 @@
 **如何配置连接：**
 因为 `.env` 被 Git 忽略，你可以安全地将 `DATABASE_URL` 指向云端地址（例如阿里云 ECS 的公网 IP 等）：
 ```env
-DATABASE_URL="REDACTED"
-REDIS_URL="REDACTED"
+DATABASE_URL="postgresql://yayanews_super:YourDBPassword@47.79.x.x:5432/yayanews"
+REDIS_URL="redis://:YourRedisPassword@47.79.x.x:6379"
 ```
 
 > [!WARNING]

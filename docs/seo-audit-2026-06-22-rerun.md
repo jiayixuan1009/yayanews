@@ -75,7 +75,7 @@ OK /sitemap.xml -> 200
 OK /sitemap-news.xml -> 200
 OK /brand/logo-square.png -> 200
 OK /google557e7d124058718a.html -> 200
-OK /REDACTED.txt -> 200
+OK /db1162aa32014bba89ab29ba04a5ddba.txt -> 200
 ```
 
 Interpretation:

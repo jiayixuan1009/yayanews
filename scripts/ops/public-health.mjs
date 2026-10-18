@@ -13,11 +13,11 @@ const DEFAULT_PATHS = [
   '/sitemap-news.xml',
   '/brand/logo-square.png',
   '/google557e7d124058718a.html',
-  '/REDACTED.txt',
+  '/db1162aa32014bba89ab29ba04a5ddba.txt',
 ];
 const EXPECTED_BODIES = new Map([
   ['/google557e7d124058718a.html', 'google-site-verification: google557e7d124058718a.html'],
-  ['/REDACTED.txt', 'REDACTED'],
+  ['/db1162aa32014bba89ab29ba04a5ddba.txt', 'db1162aa32014bba89ab29ba04a5ddba'],
 ]);
 const MAX_REDIRECTS = 5;
 const TIMEOUT_MS = Number(process.env.PUBLIC_HEALTH_TIMEOUT_MS || 15000);

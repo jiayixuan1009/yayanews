@@ -12,8 +12,8 @@
 不要在文件库里找账号密码。第一步，在根目录创建一份真正的 `.env`，你至少需要：
 ```env
 # 数据库主轴 (PostgreSQL)
-DATABASE_URL="postgresql://yayanews:REDACTED@127.0.0.1:5432/yayanews"
-REDIS_URL="REDACTED"
+DATABASE_URL="postgresql://yayanews:{YOUR_PASSWORD}@127.0.0.1:5432/yayanews"
+REDIS_URL="redis://localhost:6379"
 
 # 数据来源
 FINNHUB_KEY="xxxxxx"

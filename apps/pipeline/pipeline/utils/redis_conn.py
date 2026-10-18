@@ -3,7 +3,7 @@
 供 daemon、worker、tasks 等所有模块使用，避免散落硬编码。
 
 支持格式：
-  redis://:REDACTED@host:port
+  redis://:password@host:port
   redis://host:port
   
 回退：REDIS_HOST + REDIS_PORT + REDIS_PASSWORD 环境变量

@@ -20,8 +20,8 @@ STANDALONE_ROLLBACK_DIR=""
 DEPLOY_RELOADED=0
 GOOGLE_VERIFICATION_PATH="/google557e7d124058718a.html"
 GOOGLE_VERIFICATION_BODY="google-site-verification: google557e7d124058718a.html"
-TEXT_VERIFICATION_PATH="/REDACTED.txt"
-TEXT_VERIFICATION_BODY="REDACTED"
+TEXT_VERIFICATION_PATH="/db1162aa32014bba89ab29ba04a5ddba.txt"
+TEXT_VERIFICATION_BODY="db1162aa32014bba89ab29ba04a5ddba"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -67,9 +67,16 @@ on_deploy_exit() {
         else
             log "${YELLOW}Deploy failed after PM2 reload; restoring previous standalone build${NC}"
         fi
+        # 先停掉核心应用再替换 standalone 目录,否则会留下 cwd 指向已删除目录、
+        # 却仍占着端口的僵尸进程,让下一次部署全部 EADDRINUSE。
+        if [ "$DEPLOY_RELOADED" -eq 1 ] && command -v pm2 >/dev/null 2>&1; then
+            pm2 stop "${CORE_PM2_APPS[@]}" >/dev/null 2>&1 || true
+        fi
+        free_app_ports
         restore_standalone_snapshot
         if [ "$DEPLOY_RELOADED" -eq 1 ] && command -v pm2 >/dev/null 2>&1; then
             log "${YELLOW}Reloading PM2 back onto restored standalone build${NC}"
+            free_app_ports
             pm2 reload ecosystem.config.cjs --update-env || pm2 start ecosystem.config.cjs --update-env
             pm2 save >/dev/null
             wait_for_pm2_online "${CORE_PM2_APPS[@]}" "${PYTHON_PM2_APPS[@]}" || true
@@ -196,6 +203,68 @@ wait_for_pm2_online() {
 
     log "${RED}PM2 services did not become online${NC}: $failures"
     return 1
+}
+
+# 释放应用端口(3001 ws-gateway / 3002 web / 3003 admin)。
+#
+# 背景:standalone 目录被 rm -rf 或替换后,旧构建的 node 进程会带着 "(deleted)"
+# 的 cwd 继续活着并占住端口;PM2 里同名应用于是每次启动都
+#   Error: listen EADDRINUSE: address already in use 127.0.0.1:3002
+# 崩溃重启(表现为 status=waiting restart、restart 数疯涨,wait_for_pm2_online
+# 永远等不到 online,整个部署被判失败)。这里在重启前后把端口上的"本应用"进程
+# 收掉,让 PM2 的新实例能绑上端口。
+free_app_ports() {
+    command -v ss >/dev/null 2>&1 || return 0
+
+    local ports=(3001 3002 3003)
+    local killed=()
+    local port pid cmd i alive
+
+    for port in "${ports[@]}"; do
+        for pid in $(ss -ltnp 2>/dev/null | awk -v p=":$port" '$4 ~ p"$"' \
+            | grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u); do
+            [ -n "$pid" ] || continue
+            cmd="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
+
+            # 只动本应用的进程:Next standalone 会把进程名改成 next-server,
+            # ws-gateway 则是 node "$APP_DIR/apps/ws-server/dist/server.js"。
+            case "$cmd" in
+                *next-server*|*"$APP_DIR"*) ;;
+                *)
+                    log "   ${YELLOW}port $port held by unrelated pid $pid; leaving it alone${NC}: $cmd"
+                    continue
+                    ;;
+            esac
+
+            log "   ${YELLOW}Freeing port $port: stopping stale pid $pid${NC} ($cmd)"
+            if kill -TERM "$pid" 2>/dev/null; then
+                killed+=("$pid")
+            fi
+        done
+    done
+
+    [ "${#killed[@]}" -gt 0 ] || return 0
+
+    # 给它们退出的时间。强杀只针对"自己刚发过信号的固定 PID 列表",
+    # 避免误伤 PM2 随后重新拉起的健康实例。
+    for i in 1 2 3 4 5; do
+        alive=0
+        for pid in "${killed[@]}"; do
+            if kill -0 "$pid" 2>/dev/null; then
+                alive=1
+            fi
+        done
+        [ "$alive" -eq 0 ] && return 0
+        sleep 1
+    done
+
+    for pid in "${killed[@]}"; do
+        if kill -0 "$pid" 2>/dev/null; then
+            log "   ${YELLOW}Force-killing stale pid $pid (ignored SIGTERM)${NC}"
+            kill -KILL "$pid" 2>/dev/null || true
+        fi
+    done
+    return 0
 }
 
 assert_pipeline_enabled() {
@@ -527,6 +596,7 @@ if ! command -v pm2 >/dev/null 2>&1; then
     log "${RED}PM2 is not installed${NC}"
     exit 1
 fi
+free_app_ports
 pm2 reload ecosystem.config.cjs --update-env || pm2 start ecosystem.config.cjs --update-env
 DEPLOY_RELOADED=1
 pm2 save >/dev/null
