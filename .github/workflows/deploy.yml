@@ -73,9 +73,12 @@ jobs:
             chmod 600 "$cred_file"
             trap 'rm -f "$cred_file"' EXIT
             printf 'https://x-access-token:%s@github.com\n' "$DEPLOY_GIT_TOKEN" > "$cred_file"
+            # --force:2026-10-18 的密钥清理改写了历史并 force-push 了标签,
+            # 服务器上仍有改写前的旧标签对象,不加 --force 会以
+            # "would clobber existing tag" 失败。部署机的唯一事实来源是远端,强制同步是正确的。
             git -c credential.helper= \
                 -c credential.helper="store --file=$cred_file" \
-                fetch --all --tags
+                fetch --all --tags --force
             git checkout --detach "${{ github.sha }}"
 
             echo "Installing and validating Nginx configuration..."
