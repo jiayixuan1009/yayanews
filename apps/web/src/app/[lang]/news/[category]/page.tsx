@@ -21,7 +21,7 @@ import { getArticleCoverSrc } from '@/lib/article-image';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
 
 
-import { createMetadata, buildBreadcrumbJsonLd } from '@yayanews/seo';
+import { createMetadata, buildBreadcrumbJsonLd, serializeJsonLd } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 
 async function optional<T>(promise: Promise<T>, fallback: T): Promise<T> {
@@ -165,8 +165,8 @@ export default async function CategoryPage({
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(collectionJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }} />
     <div className="container-main py-6 sm:py-8 lg:py-10">
       <ChannelHeader
         lang={locale}

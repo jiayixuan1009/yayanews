@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import LocalizedLink from '@/components/LocalizedLink';
 import ArticleCard from '@/components/ArticleCard';
 import { getTopicArticleCountsByLang, getTopicBySlug, getTopics } from '@/lib/queries';
-import { createMetadata, buildBreadcrumbJsonLd } from '@yayanews/seo';
+import { createMetadata, buildBreadcrumbJsonLd, serializeJsonLd } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 import { sanitizeHtml } from '@/lib/sanitize';
 
@@ -122,18 +122,18 @@ export default async function TopicDetailPage({ params, searchParams }: Props) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       {faqSchema && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqSchema) }}
         />
       )}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(buildBreadcrumbJsonLd([
+          __html: serializeJsonLd(buildBreadcrumbJsonLd([
             { name: isZh ? '首页' : 'Home', url: `/${lang}` },
             { name: isZh ? '专题' : 'Topics', url: `/${lang}/topics` },
             { name, url: `/${lang}/topics/${slug}` },

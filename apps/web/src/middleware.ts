@@ -4,6 +4,37 @@ import type { NextRequest } from 'next/server';
 const locales = ['zh', 'en'];
 const defaultLocale = 'zh';
 const fallbackOrigin = 'https://yayanews.cryptooptiontool.com';
+
+// 允许用于构造重定向 origin 的主机名白名单：
+// NEXT_PUBLIC_SITE_URL（逗号分隔可配多个）+ 规范生产域名 + 本地开发地址。
+// 其余 Host / X-Forwarded-Host（可被攻击者伪造）一律回退到 fallbackOrigin，
+// 避免开放重定向 / 钓鱼跳板。
+const allowedHosts = new Set(
+  (process.env.NEXT_PUBLIC_SITE_URL || '')
+    .split(',')
+    .map((value) => {
+      try {
+        return new URL(value.trim()).host.toLowerCase();
+      } catch {
+        return '';
+      }
+    })
+    .filter(Boolean)
+);
+try {
+  allowedHosts.add(new URL(fallbackOrigin).host.toLowerCase());
+} catch {
+  /* fallbackOrigin is a static constant; ignore */
+}
+
+function isAllowedHost(host: string | null): boolean {
+  if (!host) return false;
+  const normalized = host.trim().toLowerCase();
+  if (allowedHosts.has(normalized)) return true;
+  const hostname = normalized.replace(/:\d+$/, '');
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1';
+}
+
 const verificationFiles = new Map([
   [
     '/google557e7d124058718a.html',
@@ -63,8 +94,12 @@ export function middleware(request: NextRequest) {
   // Redirect if there is no locale
   const locale = getLocale(request);
   const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
-  const proto = request.headers.get('x-forwarded-proto') || request.nextUrl.protocol.replace(':', '') || 'https';
-  const origin = host ? `${proto}://${host}` : fallbackOrigin;
+  const headerProto = (
+    request.headers.get('x-forwarded-proto') ||
+    request.nextUrl.protocol.replace(':', '')
+  ).toLowerCase();
+  const proto = headerProto === 'http' ? 'http' : 'https';
+  const origin = isAllowedHost(host) ? `${proto}://${host}` : fallbackOrigin;
   const normalizedPathname = pathname === '/' ? '/' : pathname.replace(/\/+$/, '');
   const targetPathname = normalizedPathname === '/' ? `/${locale}` : `/${locale}${normalizedPathname}`;
   const redirectUrl = new URL(`${targetPathname}${search}`, origin);

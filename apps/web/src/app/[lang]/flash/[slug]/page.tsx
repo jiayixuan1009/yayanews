@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { getFlashNewsById } from '@/lib/queries';
 import { decodeFlashSlug, encodeFlashSlug, getImportanceDot } from '@/lib/ui-utils';
-import { createMetadata } from '@yayanews/seo';
+import { createMetadata, serializeJsonLd } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 import LocalizedLink from '@/components/LocalizedLink';
 
@@ -99,7 +99,7 @@ export default async function FlashDetailPage({ params }: { params: Promise<{ sl
       {flashJsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(flashJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(flashJsonLd) }}
         />
       )}
     <div className="container-main py-8 sm:py-12 lg:py-16 min-h-[70vh]">

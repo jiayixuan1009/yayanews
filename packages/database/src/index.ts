@@ -81,7 +81,8 @@ export async function queryAll<T>(text: string, params: unknown[] = []): Promise
     const { rows } = await readQueryWithRetry(text, params);
     return convertDates(rows) as T[];
   } catch (err: any) {
-    if (err.code === '42P18') console.error(`\n[DB 42P18 ERROR - queryAll]\nSQL: ${text}\nParams:`, params, '\n');
+    // 42P18 诊断需要 SQL 文本；params 可能含业务数据（邮箱/搜索词等），只记录数量不记录值。
+    if (err.code === '42P18') console.error(`\n[DB 42P18 ERROR - queryAll]\nSQL: ${text}\nParams(${params.length}): [redacted]\n`);
     throw err;
   }
 }
@@ -91,7 +92,7 @@ export async function queryGet<T>(text: string, params: unknown[] = []): Promise
     const { rows } = await readQueryWithRetry(text, params);
     return convertDates(rows[0]) as T | undefined;
   } catch (err: any) {
-    if (err.code === '42P18') console.error(`\n[DB 42P18 ERROR - queryGet]\nSQL: ${text}\nParams:`, params, '\n');
+    if (err.code === '42P18') console.error(`\n[DB 42P18 ERROR - queryGet]\nSQL: ${text}\nParams(${params.length}): [redacted]\n`);
     throw err;
   }
 }

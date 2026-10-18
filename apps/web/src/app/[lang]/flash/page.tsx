@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { buildBreadcrumbJsonLd, createMetadata } from '@yayanews/seo';
+import { buildBreadcrumbJsonLd, createMetadata, serializeJsonLd } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 import { getDictionary } from '@/lib/dictionaries';
 import { getFlashNews } from '@/lib/queries';
@@ -53,8 +53,8 @@ export default async function FlashPage({ params, searchParams }: { params: Prom
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(collectionJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }} />
       <FlashPageClient initialCat={resolvedSearchParams.cat || ''} lang={lang} flashDict={dict.flash} />
     </>
   );

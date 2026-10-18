@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import LocalizedLink from '@/components/LocalizedLink';
-import { createMetadata } from '@yayanews/seo';
+import { createMetadata, serializeJsonLd } from '@yayanews/seo';
 import { siteConfig } from '@yayanews/types';
 
 export const revalidate = 86400;
@@ -51,7 +51,7 @@ export default async function RiskDisclosurePage({ params }: { params: Promise<{
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <div className="container-main py-10 sm:py-12 lg:max-w-3xl">
         <header className="border-b border-[#ddd5ca] pb-7">
           <p className="yn-meta text-[#1d5c4f]">{isEn ? 'Investor protection' : '投资者保护'}</p>

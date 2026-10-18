@@ -2,6 +2,9 @@
 #
 # 数据库：PostgreSQL（见根目录 .env 的 DATABASE_URL）。初始化请用 npm run db:init / db:seed，勿依赖 SQLite。
 #
+# 运行期配置（含 DATABASE_URL）一律经 env_file 注入根目录 .env，本文件不得写入任何真实凭据；
+# 占位符与变量名见根目录 .env.example。
+#
 # 必须在仓库根目录执行（保证 build.context 解析为项目根）：
 #   docker compose -f infra/docker-compose.prod.yml up -d --build
 #
@@ -23,7 +26,8 @@ services:
       NEXT_PUBLIC_SITE_URL: https://yayanews.cryptooptiontool.com
       NEXT_PUBLIC_PARENT_SITE: https://www.biyapay.com
       NEXT_PUBLIC_TRADING_SITE: https://invest.biyapay.com
-      DATABASE_URL: REDACTED
+      # DATABASE_URL is intentionally NOT set here: it comes from ../.env via env_file
+      # (runtime only, never a build arg, never committed).
       PORT: "3002"
       HOSTNAME: "0.0.0.0"
     env_file:

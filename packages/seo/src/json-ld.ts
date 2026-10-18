@@ -19,6 +19,20 @@ function structuredDataImage(image?: string | null): string {
   return absoluteSiteUrl((image || '').trim() || DEFAULT_STRUCTURED_DATA_IMAGE);
 }
 
+/**
+ * 把 JSON-LD 对象序列化为可安全内嵌进 <script type="application/ld+json"> 的字符串。
+ *
+ * `JSON.stringify` 不会转义 `<`，而 headline/name 等字段最终来自 RSS/第三方/LLM，
+ * 一旦包含字面量 `</script>`，浏览器 HTML 解析器会提前结束脚本标签，形成存储型 XSS。
+ * 这里把 `<`、`>`、`&` 转成等价的 JSON Unicode 转义（JSON-LD 解析结果不变）。
+ */
+export function serializeJsonLd(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
+}
+
 export function buildAuthorSlug(author?: string | null): string {
   const raw = (author || 'YayaNews').trim() || 'YayaNews';
   const lower = raw.toLowerCase();

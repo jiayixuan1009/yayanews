@@ -10,7 +10,7 @@ interface Props {
   params: Promise<{ lang: string; slug: string }>;
 }
 
-import { createMetadata } from '@yayanews/seo';
+import { createMetadata, serializeJsonLd } from '@yayanews/seo';
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { lang, slug } = await params;
@@ -75,7 +75,7 @@ export default async function GuideDetailPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: serializeJsonLd({
             '@context': 'https://schema.org',
             '@type': 'HowTo',
             name: guide.title,

@@ -22,46 +22,54 @@ export async function GET(req: NextRequest) {
 
   const stream = new ReadableStream({
     start(controller) {
-      const tick = async () => {
-        if (Date.now() - t0 > MAX_CONNECTION_MS) {
-          clearInterval(iv);
-          try {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'end', reason: 'reconnect' })}\n\n`));
-          } catch {
-            /* closed */
-          }
-          try {
-            controller.close();
-          } catch {
-            /* */
-          }
-          return;
-        }
-        try {
-          const m = await getFlashMaxId(lang, cat);
-          if (m > last) {
-            last = m;
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ type: 'flash', maxId: m })}\n\n`)
-            );
-          }
-          controller.enqueue(encoder.encode(': ping\n\n'));
-        } catch (e) {
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ type: 'error', message: String(e) })}\n\n`)
-          );
-        }
-      };
-      const iv = setInterval(tick, POLL_MS);
-      tick();
-      req.signal.addEventListener('abort', () => {
-        clearInterval(iv);
+      let stopped = false;
+      let timer: ReturnType<typeof setTimeout> | null = null;
+
+      const stop = () => {
+        if (stopped) return;
+        stopped = true;
+        if (timer) clearTimeout(timer);
         try {
           controller.close();
         } catch {
-          /* */
+          /* already closed */
         }
-      });
+      };
+
+      const safeEnqueue = (chunk: string) => {
+        if (stopped) return;
+        try {
+          controller.enqueue(encoder.encode(chunk));
+        } catch {
+          // 客户端已断开：停止后续轮询，避免未处理的 rejection。
+          stop();
+        }
+      };
+
+      // 递归 setTimeout：上一次查询 await 完成后才排下一次，避免重入与竞态。
+      const tick = async () => {
+        if (stopped) return;
+        try {
+          if (Date.now() - t0 > MAX_CONNECTION_MS) {
+            safeEnqueue(`data: ${JSON.stringify({ type: 'end', reason: 'reconnect' })}\n\n`);
+            stop();
+            return;
+          }
+          const m = await getFlashMaxId(lang, cat);
+          if (m > last) {
+            last = m;
+            safeEnqueue(`data: ${JSON.stringify({ type: 'flash', maxId: m })}\n\n`);
+          }
+          safeEnqueue(': ping\n\n');
+        } catch (e) {
+          safeEnqueue(`data: ${JSON.stringify({ type: 'error', message: String(e) })}\n\n`);
+        } finally {
+          if (!stopped) timer = setTimeout(tick, POLL_MS);
+        }
+      };
+
+      timer = setTimeout(tick, 0);
+      req.signal.addEventListener('abort', stop);
     },
   });
 

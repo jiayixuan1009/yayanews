@@ -1,7 +1,7 @@
 import { getDictionary } from '@/lib/dictionaries';
 import LocalizedLink from '@/components/LocalizedLink';
 import type { Metadata } from 'next';
-import { createMetadata, buildOrganizationJsonLd, buildWebSiteJsonLd, buildItemListJsonLd } from '@yayanews/seo';
+import { createMetadata, buildOrganizationJsonLd, buildWebSiteJsonLd, buildItemListJsonLd, serializeJsonLd } from '@yayanews/seo';
 import Image from 'next/image';
 import { getArticleCoverSrc } from '@/lib/article-image';
 import { isRemoteImageOptimizable } from '@/lib/remote-image';
@@ -322,15 +322,15 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
 
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(buildWebSiteJsonLd(locale)) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildWebSiteJsonLd(locale)) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(buildOrganizationJsonLd(locale)) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildOrganizationJsonLd(locale)) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(buildItemListJsonLd(articles.slice(0, 10), locale)) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildItemListJsonLd(articles.slice(0, 10), locale)) }}
       />
     </>
   );
