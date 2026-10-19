@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [Unreleased] - 2026-10-18
+
+### Security
+- **Node 22.** Node 20 reached end of life in April 2026 and no longer gets security fixes. CI, the Docker image and `.nvmrc` now use Node 22. `check:node` and `engines` accept 20.19+ or 22 until the production server is upgraded; see `docs/deployment.md` ("Node 22 upgrade"). On Windows, 23+ stays blocked because local Next.js builds hung under Node 24.
+- **Article view counts** count one view per visitor IP and article per 30 minutes (`apps/web/src/lib/view-dedupe.ts`). Before, the public endpoint counted every request, and `view_count` drives popular lists and which articles the pipeline translates.
+- **CoinGecko proxy** forwards only the query parameters the site uses, in a fixed order. Before, arbitrary extra parameters bypassed the 60-second cache and spent the API quota.
+
+### Changed
+- **Deploys wait for checks.** `deploy.yml` now runs `ci-node.yml` (lint, policy verifiers, full build, pipeline compile) first and deploys only if it passes. `ci-node.yml` no longer runs separately on pushes to `main`; it still runs on pull requests.
+
+---
+
 ## [1.3.0] - 2026-04-22
 
 > Full SEO / GEO (AI Search Engine Optimization) sprint

@@ -81,12 +81,16 @@ sitemaps, redirects, live crawlability, production health, and deployment.
   - `yaya-ws-gateway`
   - `yaya-worker-flash`
   - `yaya-worker-articles`
-- Node must satisfy `>=20.19.0 <20.20.0`.
+- Node 22 is the target (CI, Docker, `.nvmrc`); Node 20 reached end of life in
+  April 2026. `check:node` and `engines` accept `20.19+` or `22.x` only so the
+  production server keeps deploying until it is upgraded (`docs/deployment.md`,
+  "Node 22 upgrade"). Once production runs 22, drop 20 from
+  `scripts/verify/check-node-version.mjs` and narrow `engines` to `>=22 <23`.
 - Next.js is intentionally pinned to `15.5.18`; avoid casual Next upgrades.
-- Local default Node has been observed as `v24.12.0`, which blocks repository
-  `npm run verify:*` scripts through `check:node`. Use Node `20.19.x` for normal
-  npm-script verification, or explicitly note when a direct `node scripts/...`
-  invocation was used as a local workaround.
+- Local default Node has been observed as `v24.12.0`. On Windows `check:node`
+  blocks 23+ (local Next.js builds hung under 24); elsewhere it warns. Use Node
+  22 for normal npm-script verification, or explicitly note when a direct
+  `node scripts/...` invocation was used as a local workaround.
 
 ## Pipeline Memory
 
@@ -384,7 +388,9 @@ low-risk action queues. It is a feedback loop, not an autonomous publisher.
 - Treat production deploys as high-risk. Confirm git state, current branch,
   tag status, and whether the user actually asked to deploy.
 - `.github/workflows/deploy.yml` deploys on every push to `main` and on `v*`
-  tags. `docs/**` and `**/*.md` do not deploy by themselves. Merging to `main`
+  tags, after its `checks` job (`ci-node.yml`: lint, policy verifiers, full
+  build, pipeline compile) passes; a failing check stops the deploy before the
+  server is touched. `ci-node.yml` itself runs on pull requests. `docs/**` and `**/*.md` do not deploy by themselves. Merging to `main`
   deploys that commit. Required Actions secrets are `VPS_HOST`, `VPS_USER`,
   and `VPS_SSH_KEY`. The SSH checkout uses `github.sha`.
 - The production deploy aborts when `/var/www/yayanews` is dirty. Keep

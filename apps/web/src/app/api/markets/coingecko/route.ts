@@ -8,6 +8,13 @@ export const runtime = 'nodejs';
 
 const CG_BASE = 'https://api.coingecko.com/api/v3';
 
+/** Query parameters forwarded to CoinGecko (what LiveTicker, Markets and Price pages send). */
+const FORWARDED_PARAMS = [
+  'vs_currency', 'vs_currencies', 'ids', 'order', 'per_page', 'page', 'sparkline',
+  'price_change_percentage', 'include_24hr_change', 'include_market_cap',
+  'localization', 'tickers', 'market_data', 'community_data', 'developer_data',
+] as const;
+
 function buildHeaders(): HeadersInit {
   const key = process.env.COINGECKO_API_KEY;
   const headers: HeadersInit = { 'Accept': 'application/json' };
@@ -52,11 +59,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Endpoint not allowed' }, { status: 400 });
   }
 
-  // Forward all query params except 'endpoint' itself
+  // Forward only the parameters the site uses, in a fixed order, so arbitrary extras can't
+  // bypass the 60s cache and spend the API quota (one upstream call per unique URL).
   const forwardParams = new URLSearchParams();
-  sp.forEach((val, key) => {
-    if (key !== 'endpoint') forwardParams.append(key, val);
-  });
+  for (const key of FORWARDED_PARAMS) {
+    const val = sp.get(key);
+    if (val !== null && val.length <= 500) forwardParams.set(key, val);
+  }
 
   const cgUrl = appendKey(`${CG_BASE}/${endpoint}?${forwardParams.toString()}`);
   try {

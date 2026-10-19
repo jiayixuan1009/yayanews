@@ -21,7 +21,16 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Lint, policy checks, full build and pipeline compile must pass before anything reaches the
+  # server. The server-side publish script still smoke-tests and rolls back on its own.
+  checks:
+    name: Pre-deploy checks
+    uses: ./.github/workflows/ci-node.yml
+    permissions:
+      contents: read
+
   deploy:
+    needs: checks
     runs-on: ubuntu-latest
 
     steps:

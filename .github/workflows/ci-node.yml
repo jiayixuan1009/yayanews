@@ -18,23 +18,8 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'infra/scripts/copy-standalone.mjs'
-  push:
-    branches: [ main ]
-    paths:
-      - 'apps/web/**'
-      - 'apps/admin/**'
-      - 'apps/ws-server/**'
-      - 'packages/**'
-      - 'infra/nginx/**'
-      - 'infra/deploy/nginx-yayanews.conf'
-      - 'infra/scripts/install-yayanews-nginx.sh'
-      - 'scripts/build-next-app.mjs'
-      - 'scripts/verify/analyze-nginx-traffic.mjs'
-      - 'scripts/verify/article-metadata-title.mjs'
-      - 'scripts/verify/cloudflare-real-ip-config.mjs'
-      - 'scripts/verify/news-sitemap-policy.mjs'
-      - 'package.json'
-      - 'package-lock.json'
+  # main is checked by deploy.yml, which calls this workflow and deploys only if it passes.
+  workflow_call: {}
 
 jobs:
   build-and-typecheck:
@@ -72,7 +57,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.19.x'
+          node-version: '22.x'
           cache: 'npm'
 
       - name: Install dependencies

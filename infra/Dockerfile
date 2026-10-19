@@ -6,7 +6,7 @@
 #     --build-arg NEXT_PUBLIC_PARENT_SITE=https://www.biyapay.com \
 #     --build-arg NEXT_PUBLIC_TRADING_SITE=https://invest.biyapay.com .
 
-FROM node:20-bookworm-slim AS builder
+FROM node:22-bookworm-slim AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -25,7 +25,7 @@ ENV NEXT_PUBLIC_TRADING_SITE=$NEXT_PUBLIC_TRADING_SITE
 
 RUN npm run build
 
-FROM node:20-bookworm-slim AS runner
+FROM node:22-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

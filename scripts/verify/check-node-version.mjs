@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 
-const REQUIRED_MAJOR = 20;
-const REQUIRED_MINOR = 19;
+// Node 22 is the target (CI, Docker, .nvmrc). Node 20 reached end of life in April 2026
+// and gets no security fixes; 20.19+ is still accepted only so a server that has not
+// been upgraded yet keeps deploying. Remove 20 from SUPPORTED once production runs 22.
+const PREFERRED = 22;
+const SUPPORTED = { 20: 19, 22: 0 }; // major -> minimum minor
 const isWindows = process.platform === 'win32';
 
 function parseVersion(version) {
@@ -17,25 +20,23 @@ function parseVersion(version) {
 }
 
 const current = parseVersion(process.version);
+const minMinor = current ? SUPPORTED[current.major] : undefined;
+const supported = current && minMinor !== undefined && current.minor >= minMinor;
+// Windows local Next.js builds hung under Node 24 in this repo; 23+ stays blocked there.
+const windowsNextBuildHangRisk = isWindows && current && current.major > PREFERRED;
 
-const unsupported =
-  !current ||
-  current.major < REQUIRED_MAJOR ||
-  (current.major === REQUIRED_MAJOR && current.minor < REQUIRED_MINOR);
-const windowsNextBuildHangRisk = isWindows && current?.major !== REQUIRED_MAJOR;
-
-if (unsupported || windowsNextBuildHangRisk) {
-  const reason = unsupported
-    ? `Node.js ${REQUIRED_MAJOR}.${REQUIRED_MINOR}.x or newer is required.`
-    : 'Windows local Next.js builds currently hang under Node.js 24 in this repo.';
+if (!supported && (!current || current.major < PREFERRED || windowsNextBuildHangRisk)) {
+  const reason = windowsNextBuildHangRisk
+    ? 'Windows local Next.js builds currently hang under Node.js 24 in this repo.'
+    : `Node.js ${PREFERRED}.x is required (20.19+ is accepted during the upgrade).`;
   console.error([
     `Unsupported Node.js runtime: ${process.version}`,
     reason,
-    `Use Node ${REQUIRED_MAJOR}.${REQUIRED_MINOR}.x before running install, dev, build, start, or verify commands on Windows.`,
+    `Use Node ${PREFERRED} before running install, dev, build, start, or verify commands.`,
     '',
-    'Windows examples:',
-    '  nvm install 20.19.0',
-    '  nvm use 20.19.0',
+    'Examples:',
+    `  nvm install ${PREFERRED}`,
+    `  nvm use ${PREFERRED}`,
     '',
     'Then rerun:',
     '  npm ci',
@@ -44,8 +45,10 @@ if (unsupported || windowsNextBuildHangRisk) {
   process.exit(1);
 }
 
-if (current.major !== REQUIRED_MAJOR) {
+if (current.major !== PREFERRED) {
   console.warn(
-    `Warning: CI uses Node ${REQUIRED_MAJOR}.${REQUIRED_MINOR}.x; current runtime is ${process.version}.`
+    current.major === 20
+      ? `Warning: Node ${process.version} is end of life (no security fixes). CI and Docker use Node ${PREFERRED}; upgrade this machine.`
+      : `Warning: CI uses Node ${PREFERRED}.x; current runtime is ${process.version}.`
   );
 }
